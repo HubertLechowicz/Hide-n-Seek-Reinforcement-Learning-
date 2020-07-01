@@ -1,5 +1,5 @@
 import pygame
-from ext.Point import Point
+from ext.supportive import Point
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT):
@@ -13,7 +13,7 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
-        self.velocity = Point((0, 0)) # doesn't move
+        self.velocity = speed # how fast it should move
 
         image = pygame.Surface((width, height))
         image.fill((0, 0, 0, 0))
@@ -31,24 +31,18 @@ class Player(pygame.sprite.Sprite):
         self.rect.center = (self.pos_init.x, self.pos_init.y)
 
     def update(self, movement, dt):
-        self.velocity += Point((movement.x * dt, movement.y * dt))
-
-        self.pos += self.velocity
+        self.pos += self.velocity * Point((movement.x * dt, movement.y * dt))
 
         if self.pos.y - self.height / 2 <= 0:
             self.pos.y = self.height / 2
-            self.velocity = Point((0, 0))
 
         if self.pos.y + self.height / 2 >= self.SCREEN_HEIGHT:
             self.pos.y = self.SCREEN_HEIGHT - self.height / 2
-            self.velocity = Point((0, 0))
 
         if self.pos.x - self.width / 2 <= 0:
             self.pos.x = self.width / 2
-            self.velocity = Point((0, 0))
 
         if self.pos.x + self.width / 2 >= self.SCREEN_WIDTH:
             self.pos.x = self.SCREEN_WIDTH - self.width / 2
-            self.velocity = Point((0, 0))
 
         self.rect.center = (self.pos.x, self.pos.y)
