@@ -10,7 +10,7 @@ if __name__ == "__main__":
         'p_seek': .91,
     }
 
-    game = HideNSeek(width=512, height=512, fps=fps, speed_ratio=players_speed_ratio, speed_multiplier=50)
+    game = HideNSeek(width=512, height=512, fps=fps, speed_ratio=players_speed_ratio, speed_multiplier=100)
     game.setup()
     game.init()
 

@@ -55,8 +55,8 @@ class HideNSeek(object):
         self.players_group.add(self.player_hide)
 
         self.walls_group = pygame.sprite.Group()
-        self.players_group.add(self.walls)
-
+        self.walls_group.add(self.walls)
+    
     def reset(self):
         # it just uses init function
         self.init()
@@ -71,8 +71,8 @@ class HideNSeek(object):
 
         # temporarily move them randomly
         move = {
-            'p1': Point((random.randint(-5, 5), random.randint(-5, 5))),
-            'p2': Point((random.randint(-5, 5), random.randint(-5, 5))),
+            'p1': Point((random.randint(-1, 1), random.randint(-1, 1))),
+            'p2': Point((random.randint(-1, 1), random.randint(-1, 1))),
         }
 
         for wall in self.walls:
@@ -85,3 +85,4 @@ class HideNSeek(object):
         self.player_hide.update(move['p2'], dt)
 
         self.players_group.draw(self.screen)
+        self.walls_group.draw(self.screen)
