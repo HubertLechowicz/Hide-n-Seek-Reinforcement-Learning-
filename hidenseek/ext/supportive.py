@@ -6,6 +6,9 @@ class Point():
     def __add__(self, obj):
         return Point((self.x + obj.x, self.y + obj.y))
 
+    def __sub__(self, obj):
+        return Point((self.x - obj.x, self.y - obj.y))
+
     def __eq__(self, obj):
         return self.x == obj.x and self.y == obj.y
 
