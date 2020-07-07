@@ -41,6 +41,7 @@ class HideNSeek(object):
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
 
+
         self.walls_group = pygame.sprite.Group()
         # self.walls_group.add(self.walls)
     
@@ -59,8 +60,11 @@ class HideNSeek(object):
         player_seek_action = self.player_seek.take_action()
         player_hide_action = self.player_hide.take_action()
 
+        player_hide_circle = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width)
+        player_seek_circle = pygame.draw.circle(self.screen, (0, 0, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width)
+
         if player_seek_action['type'] == 'remove_wall':
-            walls = self.walls_in_radius(self.player_seek, radius=10)
+            walls = self.walls_in_radius(player_seek_circle)
             
             for wall in walls:
                 wall.owner.walls_counter -= 1
@@ -79,21 +83,13 @@ class HideNSeek(object):
         self.players_group.draw(self.screen)
         self.walls_group.draw(self.screen)
 
-    def walls_in_radius(self, obj, radius):
+    def walls_in_radius(self, circle):
         in_radius = []
-        radius_point = Point((radius, radius))
-        obj_radius_rect = [
-            Point((min(0, obj.pos.x - obj.width / 2), min(0, obj.pos.y - obj.height / 2))) - radius_point, # top-left radius corner
-            Point((max(self.width, obj.pos.x + obj.width / 2), min(self.height, obj.pos.y + obj.height / 2))) + radius_point, # top-left radius corner
-        ]
+
         for wall in self.walls_group:
-            if wall.pos.x + wall.width / 2 <= obj_radius_rect[0].x or wall.pos.x - wall.width / 2 >= obj_radius_rect[1].x:
-                continue
-            if wall.pos.y + wall.height / 2 <= obj_radius_rect[0].y or wall.pos.y - wall.height / 2 >= obj_radius_rect[1].y:
-                continue
-
-            in_radius.append(wall)
-
-        print(len(self.walls_group), ',', len(in_radius))
+            if circle.colliderect(wall.rect): # as for now it's only rectangular check, but need to think about other solution
+                in_radius.append(wall)
 
         return in_radius
+
+
