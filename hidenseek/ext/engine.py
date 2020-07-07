@@ -37,15 +37,6 @@ class HideNSeek(object):
         self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio * self.speed_multiplier, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
         self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio * self.speed_multiplier, (.7, .7), (255, 0, 0), self.width, self.height, 5)
 
-        self.walls = []
-        # self.walls = [Wall(
-        #                 30 + i * 30, 
-        #                 10, 
-        #                 self.width * .2 + self.width * i / 10, 
-        #                 self.height * .1 + self.height * i / 10)
-        #     for i in range(4)
-        # ]
-
         self.players_group = pygame.sprite.Group()
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
@@ -70,10 +61,13 @@ class HideNSeek(object):
 
         if player_seek_action['type'] == 'remove_wall':
             walls = self.walls_in_radius(self.player_seek, radius=10)
-
+            self.player_hide.walls_counter -= len(walls)
+            
             for wall in walls:
                 player_seek_action['content'] = wall
                 self.player_seek.update(player_seek_action, dt)
+
+            self.walls_group = pygame.sprite.Group([wall for wall in self.walls_group if wall not in walls])
         else:
             self.player_seek.update(player_seek_action, dt)
 
@@ -85,19 +79,21 @@ class HideNSeek(object):
         self.players_group.draw(self.screen)
         self.walls_group.draw(self.screen)
 
-    def walls_in_radius(self, seeker, radius):
+    def walls_in_radius(self, obj, radius):
         in_radius = []
         radius_point = Point((radius, radius))
-        seeker_radius_rect = [
-            Point((min(0, seeker.pos.x - seeker.width / 2), min(0, seeker.pos.y - seeker.height / 2))) - radius_point, # top-left radius corner
-            Point((max(self.width, seeker.pos.x + seeker.width / 2), min(self.height, seeker.pos.y + seeker.height / 2))) + radius_point, # top-left radius corner
+        obj_radius_rect = [
+            Point((min(0, obj.pos.x - obj.width / 2), min(0, obj.pos.y - obj.height / 2))) - radius_point, # top-left radius corner
+            Point((max(self.width, obj.pos.x + obj.width / 2), min(self.height, obj.pos.y + obj.height / 2))) + radius_point, # top-left radius corner
         ]
-        for wall in self.walls:
-            if wall.pos.x + wall.width / 2 <= seeker_radius_rect[0].x or wall.pos.x - wall.width / 2 >= seeker_radius_rect[1].x:
+        for wall in self.walls_group:
+            if wall.pos.x + wall.width / 2 <= obj_radius_rect[0].x or wall.pos.x - wall.width / 2 >= obj_radius_rect[1].x:
                 continue
-            if wall.pos.y + wall.height / 2 <= seeker_radius_rect[0].y or wall.pos.y - wall.height / 2 >= seeker_radius_rect[1].y:
+            if wall.pos.y + wall.height / 2 <= obj_radius_rect[0].y or wall.pos.y - wall.height / 2 >= obj_radius_rect[1].y:
                 continue
 
             in_radius.append(wall)
+
+        print(len(self.walls_group), ',', len(in_radius))
 
         return in_radius
