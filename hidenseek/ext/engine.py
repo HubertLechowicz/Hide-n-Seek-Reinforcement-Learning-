@@ -61,9 +61,9 @@ class HideNSeek(object):
 
         if player_seek_action['type'] == 'remove_wall':
             walls = self.walls_in_radius(self.player_seek, radius=10)
-            self.player_hide.walls_counter -= len(walls)
             
             for wall in walls:
+                wall.owner.walls_counter -= 1
                 player_seek_action['content'] = wall
                 self.player_seek.update(player_seek_action, dt)
 
