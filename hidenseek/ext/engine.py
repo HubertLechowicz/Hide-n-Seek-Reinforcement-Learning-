@@ -8,7 +8,7 @@ from objects.fixed import Wall
 from ext.supportive import Point
 
 class HideNSeek(object):
-    def __init__(self, width, height, fps, speed_ratio, speed_multiplier):
+    def __init__(self, width, height, fps, speed_ratio):
         self.width = width
         self.height = height
         self.fps = fps
@@ -17,8 +17,6 @@ class HideNSeek(object):
 
         self.p_hide_speed_ratio = speed_ratio['p_hide']
         self.p_seek_speed_ratio = speed_ratio['p_seek']
-
-        self.speed_multiplier = speed_multiplier
 
     def setup(self):
         self.screen = pygame.display.set_mode((self.width, self.height), 0, 32)
@@ -31,20 +29,15 @@ class HideNSeek(object):
     def tick(self):
         return self.clock.tick_busy_loop(self.fps)
 
-    def game_state(self):
-        # there will be game state, like Agent1 coord, Agent 2 coords, any other elements coords
-        return {}
-
     def init(self):
-        self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio * self.speed_multiplier, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
-        self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio * self.speed_multiplier, (.7, .7), (255, 0, 0), self.width, self.height, 5)
+        self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
+        self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio, (.7, .7), (255, 0, 0), self.width, self.height, 5)
 
         self.players_group = pygame.sprite.Group()
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
 
         self.walls_group = pygame.sprite.Group()
-        # self.walls_group.add(self.walls)
     
     def reset(self):
         # it just uses init function
@@ -53,12 +46,11 @@ class HideNSeek(object):
     def game_over(self):
         return self.player_seek.rect.colliderect(self.player_hide.rect)
 
-    def step(self, dt):
-        # every dt action, otherwise it freeze
-        dt /= 1000.0
+    def step(self):
+        # clean screen
         self.screen.fill((0, 0, 0))
 
-        # take Agent actions
+        # choose Agent actions
         player_seek_action = self.player_seek.take_action()
         player_hide_action = self.player_hide.take_action()
 
@@ -74,14 +66,14 @@ class HideNSeek(object):
             for wall in walls:
                 wall.owner.walls_counter -= 1
                 new_action_seek['content'] = wall
-                self.player_seek.update(new_action_seek, dt)
+                self.player_seek.update(new_action_seek)
 
             self.walls_group = pygame.sprite.Group([wall for wall in self.walls_group if wall not in walls])
         else:
             wall_rects = [wall.rect for wall in self.walls_group]
             if self.player_seek.rect.collidelist(wall_rects) > -1 and new_action_seek['type'] == 'movement': # it returns -1 if there is no collision (intersection)
                 new_action_seek['content'] *= -1 # move in other way
-            self.player_seek.update(new_action_seek, dt)
+            self.player_seek.update(new_action_seek)
 
 
         wall_rects = [wall.rect for wall in self.walls_group]
@@ -93,8 +85,7 @@ class HideNSeek(object):
             new_action_hide['content'] *= -1 # move in other way
         elif new_action_hide['type'] == 'add_wall':
             new_action_hide['walls'] = wall_rects
-        new_wall = self.player_hide.update(new_action_hide, dt)
-
+        new_wall = self.player_hide.update(new_action_hide)
 
         # if Agent Hiding created a wall, add it to the Walls Sprite Group
         if new_wall:
@@ -137,5 +128,3 @@ class HideNSeek(object):
                 in_radius.append(wall)
 
         return in_radius
-
-

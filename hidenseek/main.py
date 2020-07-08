@@ -9,12 +9,12 @@ if __name__ == "__main__":
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     fps = 60
     pygame.init()
-    players_speed_ratio = {
-        'p_hide': .9,
-        'p_seek': .91,
+    players_speed_ratio = { # by how many pixels they should move in every 'movement' action step
+        'p_hide': .1,
+        'p_seek': .1,
     }
 
-    game = HideNSeek(width=512, height=512, fps=fps, speed_ratio=players_speed_ratio, speed_multiplier=100)
+    game = HideNSeek(width=512, height=512, fps=fps, speed_ratio=players_speed_ratio)
     game.setup()
     game.init()
 
@@ -23,8 +23,7 @@ if __name__ == "__main__":
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-        dt = game.clock.tick_busy_loop(fps)
-        game.step(dt)
+        game.step()
         pygame.display.update()
         
         if game.game_over():

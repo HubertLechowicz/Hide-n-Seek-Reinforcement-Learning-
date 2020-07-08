@@ -73,9 +73,9 @@ class Player(pygame.sprite.Sprite):
             },
         ]
 
-    def move_action(self, movement, dt):
+    def move_action(self, movement):
         old_pos = copy.deepcopy(self.pos)
-        self.pos += self.velocity * Point((movement.x * dt, movement.y * dt))
+        self.pos += self.velocity * Point((movement.x, movement.y))
 
         if self.pos.y - self.height / 2 <= 0:
             self.pos.y = self.height / 2
@@ -98,7 +98,7 @@ class Player(pygame.sprite.Sprite):
     def take_action(self):
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
 
-    def update(self, action, dt):
+    def update(self, action):
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
 
 class Hiding(Player):
@@ -165,9 +165,9 @@ class Hiding(Player):
     def take_action(self):
         return random.choice(self.actions)
 
-    def update(self, action, dt):
+    def update(self, action):
         if action['type'] == 'movement':
-            self.move_action(action['content'], dt)
+            self.move_action(action['content'])
         elif action['type'] == 'add_wall':
             return self.add_wall(action['content'], action['walls'])
         else:
@@ -190,8 +190,8 @@ class Seeker(Player):
     def take_action(self):
         return random.choice(self.actions)
 
-    def update(self, action, dt):
+    def update(self, action):
         if action['type'] == 'movement':
-            self.move_action(action['content'], dt)
+            self.move_action(action['content'])
         elif action['type'] == 'remove_wall':
             self.remove_wall(action['content'])
