@@ -131,28 +131,29 @@ class Hiding(Player):
         if self.walls_counter < self. walls_max:
             self.walls_counter += 1
 
-            print(f"Adding wall #{self.walls_counter}")
 
             wall_pos = copy.deepcopy(self.pos)
             wall_width = 15
             wall_height = 50
 
+            DIST = 5
+
             if direction == 1:
                 wall_width = 50
                 wall_height = 15
-                wall_pos.y = self.pos.y - self.height / 2 - wall_height / 2
+                wall_pos.y = self.pos.y - self.height / 2 - wall_height / 2 - DIST
             elif direction == 2:
-                wall_pos.x = self.pos.x + self.width / 2 + wall_width / 2
+                wall_pos.x = self.pos.x + self.width / 2 + wall_width / 2 + DIST
             elif direction == 3:
                 wall_width = 50
                 wall_height = 15
-                wall_pos.y = self.pos.y + self.height / 2 + wall_height / 2
+                wall_pos.y = self.pos.y + self.height / 2 + wall_height / 2 + DIST
             elif direction == 4:
-                wall_pos.x = self.pos.x - self.width / 2 - wall_width / 2
-
+                wall_pos.x = self.pos.x - self.width / 2 - wall_width / 2 - DIST
             else:
                 raise ValueError(f"Given direction is unknown. 1 - UP, 2 - RIGHT, 3 - DOWN, 4 - LEFT")
-        
+            
+            print(f"Added wall #{self.walls_counter}")
             return Wall(self, wall_width, wall_height, wall_pos.x, wall_pos.y)
 
     def take_action(self):
@@ -177,7 +178,7 @@ class Seeker(Player):
         ]
 
     def remove_wall(self, wall):
-        print(f"Remove wall {wall.pos}")
+        print(f"Removed wall {wall.pos}")
         del wall
 
     def take_action(self):

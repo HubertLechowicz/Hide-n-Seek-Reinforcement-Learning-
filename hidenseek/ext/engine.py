@@ -1,5 +1,6 @@
 import pygame
 import random
+import math
 
 from objects.controllable import Hiding, Seeker
 from objects.fixed import Wall
@@ -41,7 +42,6 @@ class HideNSeek(object):
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
 
-
         self.walls_group = pygame.sprite.Group()
         # self.walls_group.add(self.walls)
     
@@ -57,12 +57,15 @@ class HideNSeek(object):
         dt /= 1000.0
         self.screen.fill((0, 0, 0))
 
+        # take Agent actions
         player_seek_action = self.player_seek.take_action()
         player_hide_action = self.player_hide.take_action()
 
-        player_hide_circle = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width)
-        player_seek_circle = pygame.draw.circle(self.screen, (0, 0, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width)
+        # draw Agent circles
+        player_hide_circle = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1) # last - border width, 0 - fill
+        player_seek_circle = pygame.draw.circle(self.screen, (0, 0, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1) # last - border width, 0 - fill
 
+        # update Agent Seeker based on its action
         if player_seek_action['type'] == 'remove_wall':
             walls = self.walls_in_radius(player_seek_circle)
             
@@ -73,21 +76,58 @@ class HideNSeek(object):
 
             self.walls_group = pygame.sprite.Group([wall for wall in self.walls_group if wall not in walls])
         else:
+            wall_rects = [wall.rect for wall in self.walls_group]
+            if self.player_seek.rect.collidelist(wall_rects) >= -1 and player_seek_action['type'] == 'movement': # it returns -1 if there is no collision (intersection)
+                player_seek_action['content'] *= -1 # move in other way
             self.player_seek.update(player_seek_action, dt)
 
+
+        wall_rects = [wall.rect for wall in self.walls_group]
+        new_wall = None
+
+        # update Agent Hiding based on its action
+        if self.player_hide.rect.collidelist(wall_rects) >= -1 and player_hide_action['type'] == 'movement': # it returns -1 if there is no collision (intersection)
+            player_hide_action['content'] *= -1 # move in other way
         new_wall = self.player_hide.update(player_hide_action, dt)
 
+        # if Agent Hiding created a wall, add it to the Walls Sprite Group
         if new_wall:
             self.walls_group.add(new_wall)
 
         self.players_group.draw(self.screen)
         self.walls_group.draw(self.screen)
 
+    def circle_rect_collision(self, circle, rect):
+        if not isinstance(circle, pygame.Rect):
+            raise TypeError(f"Circle is not a pygame.Rect object. It is {type(circle)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
+        if not isinstance(rect, pygame.Rect):
+            raise TypeError(f"Rectangle is not a pygame.Rect object. It is {type(rect)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
+        
+        x = circle.center[0]
+        y = circle.y
+        if circle.center[0] < rect.center[0]:
+            x = rect.left
+        elif circle.center[0] > rect.center[0]:
+            x = rect.right
+
+        if circle.center[1] < rect.center[1]:
+            y = rect.top
+        elif circle.center[1] > rect.center[1]:
+            y = rect.bottom
+        dist_x = circle.center[0] - x
+        dist_y = circle.center[1] - y
+        dist = math.sqrt(dist_x**2 + dist_y**2)
+
+        if dist <= circle.width / 2:
+            return True
+
+        return False
+
     def walls_in_radius(self, circle):
         in_radius = []
 
         for wall in self.walls_group:
-            if circle.colliderect(wall.rect): # as for now it's only rectangular check, but need to think about other solution
+            if self.circle_rect_collision(circle, wall.rect):
                 in_radius.append(wall)
 
         return in_radius
