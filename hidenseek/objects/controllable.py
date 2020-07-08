@@ -127,10 +127,8 @@ class Hiding(Player):
             },
         ]
 
-    def add_wall(self, direction):
+    def add_wall(self, direction, walls):
         if self.walls_counter < self. walls_max:
-            self.walls_counter += 1
-
 
             wall_pos = copy.deepcopy(self.pos)
             wall_width = 15
@@ -153,8 +151,16 @@ class Hiding(Player):
             else:
                 raise ValueError(f"Given direction is unknown. 1 - UP, 2 - RIGHT, 3 - DOWN, 4 - LEFT")
             
-            print(f"Added wall #{self.walls_counter}")
-            return Wall(self, wall_width, wall_height, wall_pos.x, wall_pos.y)
+            wall = Wall(self, wall_width, wall_height, wall_pos.x, wall_pos.y)
+
+            if wall.rect.collidelist(walls) > -1:
+                del wall
+                print(f"Couldn't add Wall #{self.walls_counter + 1}, because it would overlap with other wall.")
+                return None
+            else:
+                self.walls_counter += 1
+                print(f"Added wall #{self.walls_counter}")
+                return wall
 
     def take_action(self):
         return random.choice(self.actions)
@@ -163,7 +169,7 @@ class Hiding(Player):
         if action['type'] == 'movement':
             self.move_action(action['content'], dt)
         elif action['type'] == 'add_wall':
-            return self.add_wall(action['content'])
+            return self.add_wall(action['content'], action['walls'])
         else:
             raise ValueError(f"Given action type ({action['type']}) is unknown for game engine.")
 

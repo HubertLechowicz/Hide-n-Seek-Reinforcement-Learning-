@@ -88,6 +88,8 @@ class HideNSeek(object):
         # update Agent Hiding based on its action
         if self.player_hide.rect.collidelist(wall_rects) >= -1 and player_hide_action['type'] == 'movement': # it returns -1 if there is no collision (intersection)
             player_hide_action['content'] *= -1 # move in other way
+        elif player_hide_action['type'] == 'add_wall':
+            player_hide_action['walls'] = wall_rects
         new_wall = self.player_hide.update(player_hide_action, dt)
 
         # if Agent Hiding created a wall, add it to the Walls Sprite Group
