@@ -20,9 +20,13 @@ if __name__ == "__main__":
 
     while True:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT or game.game_over():
+            if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
         dt = game.clock.tick_busy_loop(fps)
         game.step(dt)
         pygame.display.update()
+        
+        if game.game_over():
+            pygame.quit()
+            sys.exit()

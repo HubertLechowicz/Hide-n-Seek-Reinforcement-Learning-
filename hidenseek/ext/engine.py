@@ -1,6 +1,7 @@
 import pygame
 import random
 import math
+import copy
 
 from objects.controllable import Hiding, Seeker
 from objects.fixed import Wall
@@ -66,31 +67,34 @@ class HideNSeek(object):
         player_seek_circle = pygame.draw.circle(self.screen, (0, 0, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1) # last - border width, 0 - fill
 
         # update Agent Seeker based on its action
-        if player_seek_action['type'] == 'remove_wall':
+        new_action_seek = copy.deepcopy(player_seek_action)
+        if new_action_seek['type'] == 'remove_wall':
             walls = self.walls_in_radius(player_seek_circle)
             
             for wall in walls:
                 wall.owner.walls_counter -= 1
-                player_seek_action['content'] = wall
-                self.player_seek.update(player_seek_action, dt)
+                new_action_seek['content'] = wall
+                self.player_seek.update(new_action_seek, dt)
 
             self.walls_group = pygame.sprite.Group([wall for wall in self.walls_group if wall not in walls])
         else:
             wall_rects = [wall.rect for wall in self.walls_group]
-            if self.player_seek.rect.collidelist(wall_rects) >= -1 and player_seek_action['type'] == 'movement': # it returns -1 if there is no collision (intersection)
-                player_seek_action['content'] *= -1 # move in other way
-            self.player_seek.update(player_seek_action, dt)
+            if self.player_seek.rect.collidelist(wall_rects) > -1 and new_action_seek['type'] == 'movement': # it returns -1 if there is no collision (intersection)
+                new_action_seek['content'] *= -1 # move in other way
+            self.player_seek.update(new_action_seek, dt)
 
 
         wall_rects = [wall.rect for wall in self.walls_group]
         new_wall = None
 
         # update Agent Hiding based on its action
-        if self.player_hide.rect.collidelist(wall_rects) >= -1 and player_hide_action['type'] == 'movement': # it returns -1 if there is no collision (intersection)
-            player_hide_action['content'] *= -1 # move in other way
-        elif player_hide_action['type'] == 'add_wall':
-            player_hide_action['walls'] = wall_rects
-        new_wall = self.player_hide.update(player_hide_action, dt)
+        new_action_hide = copy.deepcopy(player_hide_action)
+        if self.player_hide.rect.collidelist(wall_rects) > -1 and new_action_hide['type'] == 'movement': # it returns -1 if there is no collision (intersection)
+            new_action_hide['content'] *= -1 # move in other way
+        elif new_action_hide['type'] == 'add_wall':
+            new_action_hide['walls'] = wall_rects
+        new_wall = self.player_hide.update(new_action_hide, dt)
+
 
         # if Agent Hiding created a wall, add it to the Walls Sprite Group
         if new_wall:
