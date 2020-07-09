@@ -18,6 +18,7 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
         self.velocity = speed # how fast it should move
+        self.vision = None
 
         image_inplace = pygame.Surface((width, height))
         image_inplace.fill(color)
@@ -73,9 +74,13 @@ class Player(pygame.sprite.Sprite):
             },
         ]
 
-    def move_action(self, movement):
+    def move_action(self, new_pos):
         old_pos = copy.deepcopy(self.pos)
-        self.pos += self.velocity * Point((movement.x, movement.y))
+        self.pos = new_pos
+
+        if old_pos != self.pos: # if moving
+            self.image_index = (self.image_index + 1) % len(self.images)
+            self.image = self.images[self.image_index]
 
         if self.pos.y - self.height / 2 <= 0:
             self.pos.y = self.height / 2
@@ -91,11 +96,7 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.center = (self.pos.x, self.pos.y)
 
-        if old_pos != self.pos: # if moving
-            self.image_index = (self.image_index + 1) % len(self.images)
-            self.image = self.images[self.image_index]
-
-    def take_action(self):
+    def take_action(self, local_env, walls_group):
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
 
     def update(self, action):
@@ -127,9 +128,9 @@ class Hiding(Player):
             },
         ]
 
-    def add_wall(self, direction, walls):
+    def add_wall(self, direction, walls_group, enemy):
+        walls = [wall.rect for wall in walls_group]
         if self.walls_counter < self. walls_max:
-
             wall_pos = copy.deepcopy(self.pos)
             wall_width = 15
             wall_height = 50
@@ -149,29 +150,37 @@ class Hiding(Player):
             elif direction == 4:
                 wall_pos.x = self.pos.x - self.width / 2 - wall_width / 2 - DIST
             else:
-                raise ValueError(f"Given direction is unknown. 1 - UP, 2 - RIGHT, 3 - DOWN, 4 - LEFT")
+                raise ValueError(f"Can't create Wall. Given direction is unknown. 1 - UP, 2 - RIGHT, 3 - DOWN, 4 - LEFT")
             
             wall = Wall(self, wall_width, wall_height, wall_pos.x, wall_pos.y)
 
+            can_create = True
+
             if wall.rect.collidelist(walls) > -1:
-                del wall
-                print(f"Couldn't add Wall #{self.walls_counter + 1}, because it would overlap with other wall.")
-                return None
-            else:
+                print(f"Couldn't add Wall #{self.walls_counter + 1}, because it would overlap with other Wall.")
+                can_create = False
+            if enemy and wall.rect.colliderect(enemy):
+                print(f"Couldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
+                can_create = False
+            
+            if can_create:
                 self.walls_counter += 1
+                walls_group.add(wall)
                 print(f"Added wall #{self.walls_counter}")
-                return wall
+            else:
+                del wall
 
-    def take_action(self):
-        return random.choice(self.actions)
+    def update(self, local_env, walls_group):
+        new_action = copy.deepcopy(random.choice(self.actions))
 
-    def update(self, action):
-        if action['type'] == 'movement':
-            self.move_action(action['content'])
-        elif action['type'] == 'add_wall':
-            return self.add_wall(action['content'], action['walls'])
-        else:
-            raise ValueError(f"Given action type ({action['type']}) is unknown for game engine.")
+        if new_action['type'] == 'movement':
+            new_pos = self.pos + self.velocity * Point((new_action['content'].x, new_action['content'].y))
+            new_rect = pygame.Rect((new_pos.x - self.width / 2, new_pos.y - self.height / 2), (self.width, self.height))
+            if new_rect.collidelist(local_env['walls']) == -1: # no collision
+                self.move_action(new_pos)
+        elif new_action['type'] == 'add_wall':
+            self.add_wall(new_action['content'], walls_group, local_env['enemy'])
+
 
 class Seeker(Player):
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
@@ -183,15 +192,26 @@ class Seeker(Player):
             },
         ]
 
-    def remove_wall(self, wall):
+    def remove_wall(self, wall, walls_group):
         print(f"Removed wall {wall.pos}")
+        walls_group.remove(wall)
+        wall.owner.walls_counter -= 1
         del wall
 
-    def take_action(self):
+    def take_action(self, local_env):
         return random.choice(self.actions)
 
-    def update(self, action):
-        if action['type'] == 'movement':
-            self.move_action(action['content'])
-        elif action['type'] == 'remove_wall':
-            self.remove_wall(action['content'])
+    def update(self, local_env, walls_group):
+        new_action = copy.deepcopy(random.choice(self.actions))
+
+        if new_action['type'] == 'movement':
+            new_pos = self.pos + self.velocity * Point((new_action['content'].x, new_action['content'].y))
+            new_rect = pygame.Rect((new_pos.x - self.width / 2, new_pos.y - self.height / 2), (self.width, self.height))
+            if new_rect.collidelist(local_env['walls']) == -1: # no collision
+                self.move_action(new_pos)
+        elif new_action['type'] == 'remove_wall':
+            if local_env['walls']:
+                new_action['content'] = random.choice(local_env['walls'])
+                self.remove_wall(new_action['content'], walls_group)
+            else:
+                print("No Wall to remove, doing... nothing.")

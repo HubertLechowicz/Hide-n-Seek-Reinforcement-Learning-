@@ -33,6 +33,9 @@ class HideNSeek(object):
         self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
         self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio, (.7, .7), (255, 0, 0), self.width, self.height, 5)
 
+        self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
+        self.player_hide.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1)
+
         self.players_group = pygame.sprite.Group()
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
@@ -50,46 +53,20 @@ class HideNSeek(object):
         # clean screen
         self.screen.fill((0, 0, 0))
 
-        # choose Agent actions
-        player_seek_action = self.player_seek.take_action()
-        player_hide_action = self.player_hide.take_action()
+        player_seek_env = {
+            'walls': self.walls_in_radius(self.player_seek.vision),
+            'enemy': self.player_hide if self.circle_rect_collision(self.player_seek.vision, self.player_hide.rect) else None,
+        }
+        player_hide_env = {
+            'walls': self.walls_in_radius(self.player_hide.vision),
+            'enemy': self.player_seek if self.circle_rect_collision(self.player_hide.vision, self.player_seek.rect) else None,
+        }
 
-        # draw Agent circles
-        player_hide_circle = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1) # last - border width, 0 - fill
-        player_seek_circle = pygame.draw.circle(self.screen, (0, 0, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1) # last - border width, 0 - fill
+        self.player_seek.update(player_seek_env, self.walls_group)
+        self.player_hide.update(player_hide_env, self.walls_group)
 
-        # update Agent Seeker based on its action
-        new_action_seek = copy.deepcopy(player_seek_action)
-        if new_action_seek['type'] == 'remove_wall':
-            walls = self.walls_in_radius(player_seek_circle)
-            
-            for wall in walls:
-                wall.owner.walls_counter -= 1
-                new_action_seek['content'] = wall
-                self.player_seek.update(new_action_seek)
-
-            self.walls_group = pygame.sprite.Group([wall for wall in self.walls_group if wall not in walls])
-        else:
-            wall_rects = [wall.rect for wall in self.walls_group]
-            if self.player_seek.rect.collidelist(wall_rects) > -1 and new_action_seek['type'] == 'movement': # it returns -1 if there is no collision (intersection)
-                new_action_seek['content'] *= -1 # move in other way
-            self.player_seek.update(new_action_seek)
-
-
-        wall_rects = [wall.rect for wall in self.walls_group]
-        new_wall = None
-
-        # update Agent Hiding based on its action
-        new_action_hide = copy.deepcopy(player_hide_action)
-        if self.player_hide.rect.collidelist(wall_rects) > -1 and new_action_hide['type'] == 'movement': # it returns -1 if there is no collision (intersection)
-            new_action_hide['content'] *= -1 # move in other way
-        elif new_action_hide['type'] == 'add_wall':
-            new_action_hide['walls'] = wall_rects
-        new_wall = self.player_hide.update(new_action_hide)
-
-        # if Agent Hiding created a wall, add it to the Walls Sprite Group
-        if new_wall:
-            self.walls_group.add(new_wall)
+        self.player_hide.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1)
+        self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
 
         self.players_group.draw(self.screen)
         self.walls_group.draw(self.screen)
