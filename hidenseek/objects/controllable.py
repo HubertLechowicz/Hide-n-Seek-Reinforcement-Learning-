@@ -174,13 +174,14 @@ class Hiding(Player):
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if new_action['type'] == 'movement':
-            new_pos = self.pos + self.velocity * Point((new_action['content'].x, new_action['content'].y))
+            new_pos = (self.pos + self.velocity * new_action['content']).round(4)
             new_rect = pygame.Rect((new_pos.x - self.width / 2, new_pos.y - self.height / 2), (self.width, self.height))
             if new_rect.collidelist(local_env['walls']) == -1: # no collision
                 self.move_action(new_pos)
+            else:
+                self.move_action((self.pos + self.velocity * new_action['content'] * -1).round(4))
         elif new_action['type'] == 'add_wall':
             self.add_wall(new_action['content'], walls_group, local_env['enemy'])
-
 
 class Seeker(Player):
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
@@ -205,10 +206,12 @@ class Seeker(Player):
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if new_action['type'] == 'movement':
-            new_pos = self.pos + self.velocity * Point((new_action['content'].x, new_action['content'].y))
+            new_pos = (self.pos + self.velocity * new_action['content']).round(4)
             new_rect = pygame.Rect((new_pos.x - self.width / 2, new_pos.y - self.height / 2), (self.width, self.height))
             if new_rect.collidelist(local_env['walls']) == -1: # no collision
                 self.move_action(new_pos)
+            else:
+                self.move_action((self.pos + self.velocity * new_action['content'] * -1).round(4))
         elif new_action['type'] == 'remove_wall':
             if local_env['walls']:
                 new_action['content'] = random.choice(local_env['walls'])
