@@ -27,5 +27,6 @@ if __name__ == "__main__":
         pygame.display.update()
         
         if game.game_over():
+            print("Game over")
             pygame.quit()
             sys.exit()

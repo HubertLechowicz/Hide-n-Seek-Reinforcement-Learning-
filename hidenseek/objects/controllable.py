@@ -38,6 +38,9 @@ class Player(pygame.sprite.Sprite):
         # base class Player actions
         self.actions = [
             {
+                'type': 'NOOP', # do nothing
+            },
+            {
                 'type': 'movement',
                 'content': Point((-1, -1))
             },
@@ -135,7 +138,6 @@ class Hiding(Player):
         ]
 
     def add_wall(self, direction, walls_group, enemy):
-        walls = [wall.rect for wall in walls_group]
         if self.walls_counter < self. walls_max:
             wall_pos = copy.deepcopy(self.pos)
             wall_width = 15
@@ -162,24 +164,28 @@ class Hiding(Player):
 
             can_create = True
 
-            if wall.rect.collidelist(walls) > -1:
-                print(f"Couldn't add Wall #{self.walls_counter + 1}, because it would overlap with other Wall.")
-                can_create = False
-            if enemy and wall.rect.colliderect(enemy):
-                print(f"Couldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
+            for _wall in walls_group:
+                if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
+                    print(self, f"Couldn't add Wall #{self.walls_counter + 1}, because it would overlap with other Wall.")
+                    can_create = False
+                    break
+            if enemy and Collision.aabb(enemy.pos, (enemy.width, enemy.height), wall.pos, (wall.width, wall.height)):
+                print(self, f"Couldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
                 can_create = False
             
             if can_create:
                 self.walls_counter += 1
                 walls_group.add(wall)
-                print(f"Added wall #{self.walls_counter}")
+                print(self, f"Added wall #{self.walls_counter}")
             else:
                 del wall
 
     def update(self, local_env, walls_group):
         new_action = copy.deepcopy(random.choice(self.actions))
 
-        if new_action['type'] == 'movement':
+        if new_action['type'] == 'NOOP':
+            print(self, "NOOP! NOOP!")
+        elif new_action['type'] == 'movement':
             new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
@@ -188,6 +194,9 @@ class Hiding(Player):
             self.move_action(new_pos)
         elif new_action['type'] == 'add_wall':
             self.add_wall(new_action['content'], walls_group, local_env['enemy'])
+
+    def __str__(self):
+        return "[Hiding Agent]"
 
 class Seeker(Player):
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
@@ -200,7 +209,7 @@ class Seeker(Player):
         ]
 
     def remove_wall(self, wall, walls_group):
-        print(f"Removed wall {wall.pos}")
+        print(self, f"Removed wall {wall.pos}")
         walls_group.remove(wall)
         wall.owner.walls_counter -= 1
         del wall
@@ -211,7 +220,9 @@ class Seeker(Player):
     def update(self, local_env, walls_group):
         new_action = copy.deepcopy(random.choice(self.actions))
 
-        if new_action['type'] == 'movement':
+        if new_action['type'] == 'NOOP':
+            print(self, "NOOP! NOOP!")
+        elif new_action['type'] == 'movement':
             new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
@@ -223,4 +234,6 @@ class Seeker(Player):
                 new_action['content'] = random.choice(local_env['walls'])
                 self.remove_wall(new_action['content'], walls_group)
             else:
-                print("No Wall to remove, doing... nothing.")
+                print(self, "No Wall to remove, doing... nothing.")
+    def __str__(self):
+        return "[Seeker]"

@@ -42,13 +42,12 @@ class HideNSeek(object):
         self.init()
 
     def game_over(self):
-        return self.player_seek.rect.colliderect(self.player_hide.rect)
+        return Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height))
 
     def step(self):
         # clean screen
         self.screen.fill((0, 0, 0))
-        dt = self.clock.tick(self.fps)
-        self.dt = dt
+        self.dt = self.clock.tick_busy_loop(self.fps)
         self.player_seek.velocity = self.dt / 1000.
         self.player_hide.velocity = self.dt / 1000.
 
