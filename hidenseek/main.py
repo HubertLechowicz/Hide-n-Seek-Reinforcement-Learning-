@@ -7,11 +7,11 @@ from ext.engine import HideNSeek
 
 if __name__ == "__main__":
     os.environ['SDL_VIDEO_CENTERED'] = '1'
-    fps = 60
+    fps = 24
     pygame.init()
     players_speed_ratio = { # by how many pixels they should move in every 'movement' action step
-        'p_hide': .1,
-        'p_seek': .1,
+        'p_hide': fps,
+        'p_seek': fps,
     }
 
     game = HideNSeek(width=512, height=512, fps=fps, speed_ratio=players_speed_ratio)

@@ -1,5 +1,5 @@
 import pygame
-from ext.supportive import Point
+from ext.supportive import Point, Collision
 from objects.fixed import Wall
 import copy
 import random
@@ -17,7 +17,8 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
-        self.velocity = speed # how fast it should move
+        self.speed = speed # speed ratio for player
+        self.velocity = 0
         self.vision = None
 
         image_inplace = pygame.Surface((width, height))
@@ -80,21 +81,26 @@ class Player(pygame.sprite.Sprite):
 
         if old_pos != self.pos: # if moving
             self.image_index = (self.image_index + 1) % len(self.images)
-            self.image = self.images[self.image_index]
+            if not self.image_index: 
+                self.image_index += 1
 
-        if self.pos.y - self.height / 2 <= 0:
-            self.pos.y = self.height / 2
+            if self.pos.y - self.height / 2 <= 0:
+                self.pos.y = self.height / 2
 
-        elif self.pos.y + self.height / 2 >= self.SCREEN_HEIGHT:
-            self.pos.y = self.SCREEN_HEIGHT - self.height / 2
+            elif self.pos.y + self.height / 2 >= self.SCREEN_HEIGHT:
+                self.pos.y = self.SCREEN_HEIGHT - self.height / 2
 
-        if self.pos.x - self.width / 2 <= 0:
-            self.pos.x = self.width / 2
+            if self.pos.x - self.width / 2 <= 0:
+                self.pos.x = self.width / 2
 
-        elif self.pos.x + self.width / 2 >= self.SCREEN_WIDTH:
-            self.pos.x = self.SCREEN_WIDTH - self.width / 2
+            elif self.pos.x + self.width / 2 >= self.SCREEN_WIDTH:
+                self.pos.x = self.SCREEN_WIDTH - self.width / 2
 
-        self.rect.center = (self.pos.x, self.pos.y)
+            self.rect.center = (self.pos.x, self.pos.y)
+        else: # if not moving
+            self.image_index = 0
+
+        self.image = self.images[self.image_index]
 
     def take_action(self, local_env, walls_group):
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
@@ -174,12 +180,12 @@ class Hiding(Player):
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if new_action['type'] == 'movement':
-            new_pos = (self.pos + self.velocity * new_action['content']).round(4)
-            new_rect = pygame.Rect((new_pos.x - self.width / 2, new_pos.y - self.height / 2), (self.width, self.height))
-            if new_rect.collidelist(local_env['walls']) == -1: # no collision
-                self.move_action(new_pos)
-            else:
-                self.move_action((self.pos + self.velocity * new_action['content'] * -1).round(4))
+            new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
+            for wall in local_env['walls']:
+                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
+                    self.move_action(self.pos)
+                    return
+            self.move_action(new_pos)
         elif new_action['type'] == 'add_wall':
             self.add_wall(new_action['content'], walls_group, local_env['enemy'])
 
@@ -206,12 +212,12 @@ class Seeker(Player):
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if new_action['type'] == 'movement':
-            new_pos = (self.pos + self.velocity * new_action['content']).round(4)
-            new_rect = pygame.Rect((new_pos.x - self.width / 2, new_pos.y - self.height / 2), (self.width, self.height))
-            if new_rect.collidelist(local_env['walls']) == -1: # no collision
-                self.move_action(new_pos)
-            else:
-                self.move_action((self.pos + self.velocity * new_action['content'] * -1).round(4))
+            new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
+            for wall in local_env['walls']:
+                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
+                    self.move_action(self.pos)
+                    return
+            self.move_action(new_pos)
         elif new_action['type'] == 'remove_wall':
             if local_env['walls']:
                 new_action['content'] = random.choice(local_env['walls'])
