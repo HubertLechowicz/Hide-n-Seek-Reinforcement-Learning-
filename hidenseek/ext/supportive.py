@@ -62,22 +62,34 @@ class Collision:
             raise TypeError(f"Rectangle is not a pygame.Rect object. It is {type(rect)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
         
         x = circle.center[0]
-        y = circle.y
-        if circle.center[0] < rect.center[0]:
-            x = rect.left
-        elif circle.center[0] > rect.center[0]:
-            x = rect.right
+        y = circle.center[1]
+        if x < rect.center[0]:
+            if abs(x - rect.center[0]) < abs(x - rect.left):
+                x = rect.center[0]
+            else:
+                x = rect.left
+        elif x > rect.center[0]:
+            if abs(x - rect.center[0]) < abs(x - rect.right):
+                x = rect.center[0]
+            else:
+                x = rect.right
 
-        if circle.center[1] < rect.center[1]:
-            y = rect.top
-        elif circle.center[1] > rect.center[1]:
-            y = rect.bottom
+        if y < rect.center[1]:
+            if abs(y - rect.center[1]) < abs(y - rect.top):
+                y = rect.center[1]
+            else:
+                y = rect.top
+        elif y > rect.center[1]:
+            if abs(y - rect.center[1]) < abs(y - rect.bottom):
+                y = rect.center[1]
+            else:
+                y = rect.bottom
             
         dist_x = circle.center[0] - x
         dist_y = circle.center[1] - y
-        dist = math.sqrt(dist_x**2 + dist_y**2)
+        dist = dist_x**2 + dist_y**2
 
-        if dist <= circle.width / 2:
+        if dist < (circle.width / 2)**2:
             return True
 
         return False

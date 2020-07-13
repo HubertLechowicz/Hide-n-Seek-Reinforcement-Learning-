@@ -10,7 +10,7 @@ if __name__ == "__main__":
     logger_engine.info(f"{LOGGING_DASHES} Initializing game {LOGGING_DASHES}")
     os.environ['SDL_VIDEO_CENTERED'] = '1'
 
-    fps = 24
+    fps = 60
     pygame.init()
 
     players_speed_ratio = { # by how many pixels they should move in every 'movement' action step

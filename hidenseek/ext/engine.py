@@ -65,6 +65,7 @@ class HideNSeek(object):
         self.screen.fill((0, 0, 0))
         logger_engine.debug("\tLocking FPS")
         self.dt = self.clock.tick_busy_loop(self.fps)
+        logger_engine.info(f"\tFPS: {self.clock.get_fps()}")
         self.player_seek.velocity = self.dt / 1000.
         self.player_hide.velocity = self.dt / 1000.
         logger_engine.debug("\tNew Velocity for Agents")
@@ -90,9 +91,8 @@ class HideNSeek(object):
         self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
 
         logger_engine.info("\tDrawing frame")
-        self.players_group.draw(self.screen)
         self.walls_group.draw(self.screen)
-
+        self.players_group.draw(self.screen)
 
     def walls_in_radius(self, circle):
         in_radius = []

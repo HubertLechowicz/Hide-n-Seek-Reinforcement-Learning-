@@ -157,7 +157,7 @@ class Hiding(Player):
             wall_width = 15
             wall_height = 50
 
-            DIST = 5
+            DIST = 10
 
             if direction == 1:
                 wall_width = 50
