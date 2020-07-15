@@ -94,8 +94,8 @@ class Player(pygame.sprite.Sprite):
             },
         ]
 
-    def get_abs_vertex(self):
-        """ Return absolute coordinates of Vertex in Polygon """
+    def get_abs_vertices(self):
+        """ Return absolute coordinates of Vertices in Polygon """
         return [Point((x + self.rect.left, y + self.rect.top)) for x, y in self.polygon_points]
 
     def move_action(self, new_pos):
@@ -199,12 +199,14 @@ class Hiding(Player):
 
             for _wall in walls_group:
                 if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
-                    logger_hiding.info(f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with other Wall.")
-                    can_create = False
-                    break
+                    if Collision.sat(wall.get_abs_vertices(), _wall.get_abs_vertices()):
+                        logger_hiding.info(f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with other Wall.")
+                        can_create = False
+                        break
             if enemy and Collision.aabb(enemy.pos, (enemy.width, enemy.height), wall.pos, (wall.width, wall.height)):
-                logger_hiding.info(f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
-                can_create = False
+                if Collision.sat(self.get_abs_vertices(), enemy.get_abs_vertices()):
+                    logger_hiding.info(f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
+                    can_create = False
             
             if can_create:
                 self.walls_counter += 1
@@ -222,14 +224,17 @@ class Hiding(Player):
            logger_hiding.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
             logger_hiding.info(f"Moving to {new_action['content']}")
+            old_pos = copy.deepcopy(self.pos)
             new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
             logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
 
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
-                    self.move_action(self.pos)
-                    return
+                    self.move_action(new_pos)
+                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
+                        logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
+                        self.move_action(old_pos)
+                        return
             self.move_action(new_pos)
         elif new_action['type'] == 'add_wall':
             self.add_wall(new_action['content'], walls_group, local_env['enemy'])
@@ -267,15 +272,18 @@ class Seeker(Player):
         if new_action['type'] == 'NOOP':
             logger_seeker.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            logger_seeker.info(f"Moving to {new_action['content']}")
+            logger_hiding.info(f"Moving to {new_action['content']}")
+            old_pos = copy.deepcopy(self.pos)
             new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
-            logger_seeker.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+            logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
 
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    logger_seeker.info("\tCollision with some Wall! Not moving anywhere")
-                    self.move_action(self.pos)
-                    return
+                    self.move_action(new_pos)
+                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
+                        logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
+                        self.move_action(old_pos)
+                        return
             self.move_action(new_pos)
         elif new_action['type'] == 'remove_wall':
             if local_env['walls']:

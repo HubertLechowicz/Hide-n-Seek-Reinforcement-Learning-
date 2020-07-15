@@ -109,7 +109,7 @@ class Collision:
         return [min(dots), max(dots)]
 
     @staticmethod
-    def sat(vertices_obj1, vertices_obj2, SCREEN_WIDTH, SCREEN_HEIGHT):
+    def sat(vertices_obj1, vertices_obj2):
         """ Separating Axis Theorem to detect complex polygon collision """
         # edges function
         edges_1 = [vertices_obj1[(i + 1) % len(vertices_obj1)] - vertices_obj1[i] for i in range(len(vertices_obj1))]
