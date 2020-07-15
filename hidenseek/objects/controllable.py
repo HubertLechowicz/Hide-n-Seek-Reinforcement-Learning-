@@ -37,11 +37,13 @@ class Player(pygame.sprite.Sprite):
 
         ############### POLYGON SPRITE ##############
         self.polygon_points = [(width / 2, 0), (width, .27 * height), (width, .73 * height), (width / 2, height), (0, .73 * height), (0, .27 * height)]
-        image_inplace = pygame.Surface((width, height)) 
+        image_inplace = pygame.Surface((width, height))
+        image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, color, self.polygon_points)
         pygame.draw.rect(image_inplace, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
 
-        image_movement = pygame.Surface((width, height)) 
+        image_movement = pygame.Surface((width, height))
+        image_movement.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_movement, color_anim, self.polygon_points)
         pygame.draw.rect(image_movement, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
         ############### POLYGON SPRITE ##############
