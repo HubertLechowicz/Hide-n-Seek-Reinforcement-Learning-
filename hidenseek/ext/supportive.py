@@ -41,6 +41,9 @@ class Point():
     def round(self, n=0):
         return Point((round(self.x, n), round(self.y, n)))
 
+    def orthogonally(self):
+        return (self.y, -self.x)
+
 class Collision:
     @staticmethod
     def aabb(r1, r1_size, r2, r2_size):
@@ -93,3 +96,35 @@ class Collision:
             return True
 
         return False
+
+    @staticmethod
+    def normalize_point_tuple(point):
+        norm = math.sqrt(point[0]**2 + point[1]**2)
+        return (point[0] / norm, point[1] / norm)
+
+    @staticmethod
+    def sat_project_to_axis(vertices, axis):
+        """ Projects Vertices to Axis for Separating Axis Theorem ('sat' method)"""
+        dots = [vertex.x * axis[0] + vertex.y * axis[1] for vertex in vertices]
+        return [min(dots), max(dots)]
+
+    @staticmethod
+    def sat(vertices_obj1, vertices_obj2, SCREEN_WIDTH, SCREEN_HEIGHT):
+        """ Separating Axis Theorem to detect complex polygon collision """
+        # edges function
+        edges_1 = [vertices_obj1[(i + 1) % len(vertices_obj1)] - vertices_obj1[i] for i in range(len(vertices_obj1))]
+        edges_2 = [vertices_obj2[(i + 1) % len(vertices_obj2)] - vertices_obj2[i] for i in range(len(vertices_obj2))]
+
+        # all edges
+        edges = edges_1 + edges_2
+
+        # axes
+        axes = [Collision.normalize_point_tuple(edge.orthogonally()) for edge in edges]
+        for axis in axes:
+            projection_1 = Collision.sat_project_to_axis(vertices_obj1, axis)
+            projection_2 = Collision.sat_project_to_axis(vertices_obj2, axis)
+
+            if not projection_2[0] <= projection_1[0] <= projection_2[1] and not projection_2[0] <= projection_1[1] <= projection_2[1] and not projection_1[0] <= projection_2[0] <= projection_1[1] and not projection_1[0] <= projection_2[1] <= projection_1[1]:
+                return False
+
+        return True

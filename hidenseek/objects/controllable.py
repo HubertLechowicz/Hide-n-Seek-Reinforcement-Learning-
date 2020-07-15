@@ -24,14 +24,27 @@ class Player(pygame.sprite.Sprite):
         self.velocity = 0
         self.vision = None
 
-        image_inplace = pygame.Surface((width, height))
-        image_inplace.fill(color)
-        image_inplace.set_colorkey((0, 0, 0))
-
         self.image_index = 0
-        image_movement = pygame.Surface((width, height))
-        image_movement.fill(color_anim)
-        image_movement.set_colorkey((0, 0, 0))
+        ############### SQUARE SPRITE ###############
+        # image_inplace = pygame.Surface((width, height))
+        # image_inplace.fill(color)
+        # image_inplace.set_colorkey((0, 0, 0))
+
+        # image_movement = pygame.Surface((width, height))
+        # image_movement.fill(color_anim)
+        # image_movement.set_colorkey((0, 0, 0))
+        ############### SQUARE SPRITE ###############
+
+        ############### POLYGON SPRITE ##############
+        self.polygon_points = [(width / 2, 0), (width, .27 * height), (width, .73 * height), (width / 2, height), (0, .73 * height), (0, .27 * height)]
+        image_inplace = pygame.Surface((width, height)) 
+        pygame.draw.polygon(image_inplace, color, self.polygon_points)
+        pygame.draw.rect(image_inplace, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
+
+        image_movement = pygame.Surface((width, height)) 
+        pygame.draw.polygon(image_movement, color_anim, self.polygon_points)
+        pygame.draw.rect(image_movement, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
+        ############### POLYGON SPRITE ##############
 
         self.images = [image_inplace] + [image_movement for _ in range(10)] # animations
         self.image = image_inplace
@@ -80,6 +93,10 @@ class Player(pygame.sprite.Sprite):
                 'content': Point((1, 1))
             },
         ]
+
+    def get_abs_vertex(self):
+        """ Return absolute coordinates of Vertex in Polygon """
+        return [Point((x + self.rect.left, y + self.rect.top)) for x, y in self.polygon_points]
 
     def move_action(self, new_pos):
         old_pos = copy.deepcopy(self.pos)
@@ -197,7 +214,6 @@ class Hiding(Player):
                 del wall
         else:
             logger_hiding.info(f"\tLimit reached")
-
 
     def update(self, local_env, walls_group):
         new_action = copy.deepcopy(random.choice(self.actions))

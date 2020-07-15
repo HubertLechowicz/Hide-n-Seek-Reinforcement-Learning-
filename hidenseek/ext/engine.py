@@ -57,7 +57,14 @@ class HideNSeek(object):
         self.init()
 
     def game_over(self):
-        return Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height))
+        # only rectangle check by using AABB method
+        # return Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height))
+        if Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height)):
+            logger_engine.info("Rectangle collision, checking Polygon Collision by using SAM Method.")
+            if Collision.sat(self.player_seek.get_abs_vertex(), self.player_hide.get_abs_vertex(), self.width, self.height):
+                logger_engine.info("Polygon Collision! Ending the game!")
+                return True
+        return False
 
     def step(self):
         # clean screen
