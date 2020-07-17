@@ -5,6 +5,20 @@ LOGGING_DASHES = "===================="
 
 # https://stackoverflow.com/a/11233293
 def setup_logger(name, log_file, level=logging.WARNING, console=False):
+    """
+    Setups logger for future usage
+
+    Parameters
+    ----------
+        name : string
+            logger name
+        log_file : string
+            path to file where logs should be saved
+        level : logging.LEVEL
+            built-in logging levels, default: logging.WARNING
+        console : bool
+            whenever logs should also be printed in console
+    """
     handler = logging.FileHandler(log_file)        
     handler.setFormatter(formatter)
 
