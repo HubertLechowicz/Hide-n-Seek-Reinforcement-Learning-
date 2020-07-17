@@ -8,8 +8,81 @@ import json
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
 
 class Player(pygame.sprite.Sprite):
+    """
+    Parent Player Class for Hide'n'Seek Game, inherits from pygame.sprite.Sprite.
+    Shouldn't be used because it doesn't have implementation of few methods
+
+    Attributes
+    ----------
+        width : int
+            width of the Player Rectangle
+        height : int
+            height of the Player Rectangle
+        SCREEN_WIDTH : int
+            width of the game window
+        SCREEN_HEIGHT : int
+            height of the game window
+        pos : hidenseek.ext.supportive.Point
+            object position on the game display
+        speed : float
+            speed ratio for Player movement
+        velocity : float
+            velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
+        vision : pygame.Rect
+            Player POV
+            TODO: Probably will be standalone Object after implementing proper POV
+        image_index : int
+            determines which image should be drawn
+        images : list of pygame.Surface
+            objects with sprite/images from which the proper one will be drawn
+        image : pygame.Surface
+            object with sprite/image, chosen by 'image_index'
+        rect : pygame.Rect
+            object Rectangle, to be drawn
+        polygon_points : list of tuples
+            vertices, used for collision check in SAT
+        actions : list of dict
+            contains all possible Player actions
+
+    Methods
+    -------
+        get_abs_vertices():
+            returns absolute vertices coordinates (in game screen coordinates system)
+        move_action(new_pos):
+            algorithm which moves the Player object to given poisition
+        take_action(local_env, walls_group):
+            Not implemented in Parent Class
+        update(local_env, walls_group):
+            Not implemented in Parent Class
+    """
+
     # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
+        """
+        Constructs all neccesary attributes for the Player Object
+
+        Parameters
+        ----------
+            width : int
+                width of the Player Rectangle
+            height : int
+                height of the Player Rectangle
+            speed : float
+                speed ratio for Player movement
+            pos_ratio : tuple
+                used to calculate initial position of the Player in absolute coordinate system (game screen)
+            color : tuple
+                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
+                TODO: ONCE USING IMAGE - DELETE THIS
+            SCREEN_WIDTH : int
+                width of the game window
+            SCREEN_HEIGHT : int
+                height of the game window
+            color_anim : tuple
+                if no image, represents the shape fill color for animation in RGB format, i.e. (0, 0, 0)
+                TODO: ONCE USING IMAGE - DELETE THIS
+        """
+
         super().__init__()
         self.width = width
         self.height = height
@@ -97,10 +170,34 @@ class Player(pygame.sprite.Sprite):
         ]
 
     def get_abs_vertices(self):
-        """ Return absolute coordinates of Vertices in Polygon """
+        """
+        Returns absolute coordinates of Vertices in Polygon
+
+        Parameters
+        ----------
+            None
+        
+        Returns
+        -------
+            points : list of hidenseek.ext.supportive.Point
+                self.pylogon_points mapped to the absolute coordinates system
+        """
+        
         return [Point((x + self.rect.left, y + self.rect.top)) for x, y in self.polygon_points]
 
     def move_action(self, new_pos):
+        """
+        Algorithm which moves the Player object to given position, if not outside map (game screen)
+
+        Parameters
+        ----------
+            new_pos : hidenseek.ext.supportive.Point
+                Point object of the new position
+
+        Returns
+        -------
+            None
+        """
         old_pos = copy.deepcopy(self.pos)
         self.pos = new_pos
 
@@ -128,13 +225,94 @@ class Player(pygame.sprite.Sprite):
         self.image = self.images[self.image_index]
 
     def take_action(self, local_env, walls_group):
+        """
+        Not implemented in Parent Class
+        """
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
 
-    def update(self, action):
+    def update(self, local_env, walls_group):
+        """
+        Not implemented in Parent Class
+        """
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
 
 class Hiding(Player):
+    """
+    Child Hiding Class for Hide'n'Seek Game, inherits from Player.
+
+    Attributes
+    ----------
+        width : int
+            width of the Player Rectangle
+        height : int
+            height of the Player Rectangle
+        SCREEN_WIDTH : int
+            width of the game window
+        SCREEN_HEIGHT : int
+            height of the game window
+        pos : hidenseek.ext.supportive.Point
+            object position on the game display
+        speed : float
+            speed ratio for Player movement
+        velocity : float
+            velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
+        vision : pygame.Rect
+            Player POV
+            TODO: Probably will be standalone Object after implementing proper POV
+        image_index : int
+            determines which image should be drawn
+        images : list of pygame.Surface
+            objects with sprite/images from which the proper one will be drawn
+        image : pygame.Surface
+            object with sprite/image, chosen by 'image_index'
+        rect : pygame.Rect
+            object Rectangle, to be drawn
+        polygon_points : list of tuples
+            vertices, used for collision check in SAT
+        actions : list of dict
+            contains all possible Player actions
+        walls_counter : int
+            existing hidenseek.objects.fixes.Wall objects made by Hiding Player
+        walls_max : int
+            maximum amount of existing hidenseek.objects.fixes.Wall objects that may be created by Hiding Player 
+
+    Methods
+    -------
+        get_abs_vertices():
+            returns absolute vertices coordinates (in game screen coordinates system)
+        move_action(new_pos):
+            algorithm which moves the Player object to given poisition
+        add_wall(direction, walls_group, enemy):
+            creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
+        update(local_env, walls_group):
+            takes and performs the action
+    """
+
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, walls_max=5):
+        """
+        Constructs all neccesary attributes for the Hiding Object
+
+        Parameters
+        ----------
+            width : int
+                width of the Player Rectangle
+            height : int
+                height of the Player Rectangle
+            speed : float
+                speed ratio for Player movement
+            pos_ratio : tuple
+                used to calculate initial position of the Player in absolute coordinate system (game screen)
+            color : tuple
+                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
+                TODO: ONCE USING IMAGE - DELETE THIS
+            SCREEN_WIDTH : int
+                width of the game window
+            SCREEN_HEIGHT : int
+                height of the game window
+            walls_max : int
+                maximum amount of existing hidenseek.objects.fixes.Wall objects that may be created by Hiding Player 
+        """
+
         super().__init__(width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         logger_hiding.info(f"{LOGGING_DASHES} Creating New Hiding Agent (probably new game) {LOGGING_DASHES} ")
@@ -169,6 +347,29 @@ class Hiding(Player):
         ]
 
     def add_wall(self, direction, walls_group, enemy):
+        """
+        Creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
+
+        Parameters
+        ----------
+            direction : int
+                it determines in which direction Wall should be created
+                1 - UP
+                2 - RIGHT
+                3 - DOWN
+                4 - LEFT
+                TODO: Once Agent POV done - DELETE
+            walls_group : list of hidenseek.objects.fixes.Wall
+                contains all walls in the area
+                TODO: Once Agent POV done - REPLACE WITH local_env['walls']
+            enemy : hidenseek.objects.controllable.Seeker, None
+                if enemy in radius then it contains its object, else None
+        
+        Returns
+        -------
+            None
+        """
+
         logger_hiding.info("Checking if it's possible to create new wall")
         if self.walls_counter < self. walls_max:
             logger_hiding.info(f"\tAdding Wall #{self.walls_counter + 1}")
@@ -220,6 +421,21 @@ class Hiding(Player):
             logger_hiding.info(f"\tLimit reached")
 
     def update(self, local_env, walls_group):
+        """
+        Takes and performs the action
+
+        Parameters
+        ----------
+            local_env : dict
+                contains Player Local Environment
+            walls_group : list of hidenseek.objects.fixes.Wall
+                contains all walls in the area
+                TODO: Once Agent POV done - REPLACE WITH local_env['walls']
+        
+        Returns
+        -------
+            None
+        """
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if new_action['type'] == 'NOOP':
@@ -245,7 +461,78 @@ class Hiding(Player):
         return "[Hiding Agent]"
 
 class Seeker(Player):
+    """
+    Child Seeker Class for Hide'n'Seek Game, inherits from Player.
+
+    Attributes
+    ----------
+        width : int
+            width of the Player Rectangle
+        height : int
+            height of the Player Rectangle
+        SCREEN_WIDTH : int
+            width of the game window
+        SCREEN_HEIGHT : int
+            height of the game window
+        pos : hidenseek.ext.supportive.Point
+            object position on the game display
+        speed : float
+            speed ratio for Player movement
+        velocity : float
+            velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
+        vision : pygame.Rect
+            Player POV
+            TODO: Probably will be standalone Object after implementing proper POV
+        image_index : int
+            determines which image should be drawn
+        images : list of pygame.Surface
+            objects with sprite/images from which the proper one will be drawn
+        image : pygame.Surface
+            object with sprite/image, chosen by 'image_index'
+        rect : pygame.Rect
+            object Rectangle, to be drawn
+        polygon_points : list of tuples
+            vertices, used for collision check in SAT
+        actions : list of dict
+            contains all possible Player actions
+
+    Methods
+    -------
+        get_abs_vertices():
+            returns absolute vertices coordinates (in game screen coordinates system)
+        move_action(new_pos):
+            algorithm which moves the Player object to given poisition
+        remove_wall(wall, walls_group):
+            creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
+        update(local_env, walls_group):
+            takes and performs the action
+    """
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
+        """
+        Constructs all neccesary attributes for the Seeker Object
+
+        Parameters
+        ----------
+            width : int
+                width of the Player Rectangle
+            height : int
+                height of the Player Rectangle
+            speed : float
+                speed ratio for Player movement
+            pos_ratio : tuple
+                used to calculate initial position of the Player in absolute coordinate system (game screen)
+            color : tuple
+                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
+                TODO: ONCE USING IMAGE - DELETE THIS
+            SCREEN_WIDTH : int
+                width of the game window
+            SCREEN_HEIGHT : int
+                height of the game window
+            color_anim : tuple
+                if no image, represents the shape fill color for animation in RGB format, i.e. (0, 0, 0)
+                TODO: ONCE USING IMAGE - DELETE THIS
+        """
+
         super().__init__(width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
 
         logger_seeker.info(f"{LOGGING_DASHES} Creating New Seeker Agent (probably new game) {LOGGING_DASHES} ")
@@ -263,12 +550,44 @@ class Seeker(Player):
         ]
 
     def remove_wall(self, wall, walls_group):
+        """
+        Removes the Wall if in radius and lowers the Wall counter for the Wall owner
+
+        Parameters
+        ----------
+            wall : hidenseek.objects.fixed.Wall
+                hidenseek.objects.fixed.Wall object to delete
+            walls_group : list of hidenseek.objects.fixes.Wall
+                contains all walls in the area
+                TODO: Once Agent POV done - REPLACE WITH local_env['walls']
+        
+        Returns
+        -------
+            None
+        """
+
         logger_seeker.info(f"Removed wall {wall.pos}")
         walls_group.remove(wall)
         wall.owner.walls_counter -= 1
         del wall
 
     def update(self, local_env, walls_group):
+        """
+        Takes and performs the action
+
+        Parameters
+        ----------
+            local_env : dict
+                contains Player Local Environment
+            walls_group : list of hidenseek.objects.fixes.Wall
+                contains all walls in the area
+                TODO: Once Agent POV done - REPLACE WITH local_env['walls']
+        
+        Returns
+        -------
+            None
+        """
+
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if new_action['type'] == 'NOOP':

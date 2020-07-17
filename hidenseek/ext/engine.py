@@ -75,7 +75,6 @@ class HideNSeek(object):
                 movement speed ratio for Hiding Agent
             p_seek_speed_ratio : float
                 movement speed ratio for Seeker Agent
-
         """
 
         self.width = width
