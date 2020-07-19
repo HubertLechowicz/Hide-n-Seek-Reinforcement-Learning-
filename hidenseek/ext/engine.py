@@ -1,11 +1,10 @@
 import pygame
-
+import math
 from objects.controllable import Hiding, Seeker
 from objects.fixed import Wall
 from ext.supportive import Point, Collision
 
 from ext.loggers import LOGGING_DASHES, logger_engine
-
 class HideNSeek(object):
     """
     Engine Class for Hide'n'Seek Game
@@ -229,8 +228,47 @@ class HideNSeek(object):
         self.player_hide.update(player_hide_env, self.walls_group)
 
         logger_engine.debug("\tUpdating vision")
-        self.player_hide.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1)
-        self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
+        # self.player_hide.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1)
+        # self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
+
+        self.player_hide.vision = pygame.draw.arc(self.screen, (0, 255, 255), self.player_hide.rect.inflate(self.player_hide.height,self.player_hide.width), -self.player_hide.direction - self.player_hide.vision_rad/2,-self.player_hide.direction + self.player_hide.vision_rad/2, 1)
+        self.player_seek.vision = pygame.draw.arc(self.screen, (0, 255, 255), self.player_seek.rect.inflate(self.player_seek.height,self.player_seek.width), -self.player_seek.direction - self.player_seek.vision_rad/2,-self.player_seek.direction + self.player_seek.vision_rad/2, 1)
+
+
+        # region temp
+        x = math.cos(self.player_hide.direction) * self.player_hide.width
+        y = math.sin(self.player_hide.direction) * self.player_hide.width
+        self.player_hide.vision_points['top'] = self.player_hide.pos + Point((x, y))
+        x = math.cos(self.player_hide.direction - self.player_hide.vision_rad / 2) * self.player_hide.width
+        y = math.sin(self.player_hide.direction - self.player_hide.vision_rad / 2) * self.player_hide.width
+        self.player_hide.vision_points['left'] = self.player_hide.pos + Point((x, y))
+        x = math.cos(self.player_hide.direction + self.player_hide.vision_rad / 2) * self.player_hide.width
+        y = math.sin(self.player_hide.direction + self.player_hide.vision_rad / 2) * self.player_hide.width
+        self.player_hide.vision_points['right'] = self.player_hide.pos + Point((x, y))
+        self.player_hide.vision_points['center'] = self.player_hide.pos
+        pygame.draw.line(self.screen, (255, 0, 0),(self.player_hide.pos.x,self.player_hide.pos.y),(self.player_hide.vision_points['top'].x,self.player_hide.vision_points['top'].y))
+        pygame.draw.line(self.screen, (0, 255, 255), (self.player_hide.pos.x, self.player_hide.pos.y),
+                         (self.player_hide.vision_points['left'].x, self.player_hide.vision_points['left'].y))
+        pygame.draw.line(self.screen, (0, 255, 255), (self.player_hide.pos.x, self.player_hide.pos.y),
+                         (self.player_hide.vision_points['right'].x, self.player_hide.vision_points['right'].y))
+
+
+        x = math.cos(self.player_seek.direction) * self.player_seek.width
+        y = math.sin(self.player_seek.direction) * self.player_seek.width
+        self.player_seek.vision_points['top'] = self.player_seek.pos + Point((x, y))
+        x = math.cos(self.player_seek.direction - self.player_seek.vision_rad / 2) * self.player_seek.width
+        y = math.sin(self.player_seek.direction - self.player_seek.vision_rad / 2) * self.player_seek.width
+        self.player_seek.vision_points['left'] = self.player_seek.pos + Point((x, y))
+        x = math.cos(self.player_seek.direction + self.player_seek.vision_rad / 2) * self.player_seek.width
+        y = math.sin(self.player_seek.direction + self.player_seek.vision_rad / 2) * self.player_seek.width
+        self.player_seek.vision_points['right'] = self.player_seek.pos + Point((x, y))
+        self.player_seek.vision_points['center'] = self.player_seek.pos
+        pygame.draw.line(self.screen, (255, 0, 0),(self.player_seek.pos.x,self.player_seek.pos.y),(self.player_seek.vision_points['top'].x,self.player_seek.vision_points['top'].y))
+        pygame.draw.line(self.screen, (0, 255, 255), (self.player_seek.pos.x, self.player_seek.pos.y),
+                         (self.player_seek.vision_points['left'].x, self.player_seek.vision_points['left'].y))
+        pygame.draw.line(self.screen, (0, 255, 255), (self.player_seek.pos.x, self.player_seek.pos.y),
+                         (self.player_seek.vision_points['right'].x, self.player_seek.vision_points['right'].y))
+        # endregion
 
         logger_engine.info("\tDrawing frame")
         self.walls_group.draw(self.screen)

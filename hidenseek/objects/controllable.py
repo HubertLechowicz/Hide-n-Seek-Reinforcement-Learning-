@@ -4,7 +4,7 @@ from objects.fixed import Wall
 import copy
 import random
 import json
-
+import math
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
 
 class Player(pygame.sprite.Sprite):
@@ -28,7 +28,7 @@ class Player(pygame.sprite.Sprite):
             speed ratio for Player movement
         velocity : float
             velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
-        vision : pygame.Rect
+        vision : pygame.Rect kąt, kierunek
             Player POV
             TODO: Probably will be standalone Object after implementing proper POV
         image_index : int
@@ -57,6 +57,8 @@ class Player(pygame.sprite.Sprite):
     """
 
     # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
+
+
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
         """
         Constructs all neccesary attributes for the Player Object
@@ -96,8 +98,16 @@ class Player(pygame.sprite.Sprite):
         self.speed = speed # speed ratio for player
         self.velocity = 0
         self.vision = None
-
+        self.vision_points = {
+            'left': None,
+            'top': None,
+            'right': None,
+            'center': None,
+        }
+        self.vision_rad = math.pi/6
         self.image_index = 0
+        self.direction = 0  # radians from which vision_rad is added/substracted
+
         ############### SQUARE SPRITE ###############
         # image_inplace = pygame.Surface((width, height))
         # image_inplace.fill(color)
@@ -125,49 +135,40 @@ class Player(pygame.sprite.Sprite):
         self.image = image_inplace
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos_init.x, self.pos_init.y)
-
         # base class Player actions
         self.actions = [
             {
                 'type': 'NOOP', # do nothing
             },
             {
-                'type': 'movement',
-                'content': Point((-1, -1))
+                'type': 'movement'
             },
             {
-                'type': 'movement',
-                'content': Point((-1, 0))
+                'type': 'rotation',
+                'content': -1
             },
             {
-                'type': 'movement',
-                'content': Point((-1, 1))
+                'type': 'rotation',
+                'content': 1
             },
-            {
-                'type': 'movement',
-                'content': Point((0, -1))
-            },
-            {
-                'type': 'movement',
-                'content': Point((0, 0))
-            },
-            {
-                'type': 'movement',
-                'content': Point((0, 1))
-            },
-            {
-                'type': 'movement',
-                'content': Point((1, -1))
-            },
-            {
-                'type': 'movement',
-                'content': Point((1, 0))
-            },
-            {
-                'type': 'movement',
-                'content': Point((1, 1))
-            },
+
         ]
+
+    def rotate(self,turn):
+        """
+        Rotates the object, accrodingly to the value, along it's axis.
+
+        Parameters
+        ----------
+            turn : int, [-1,1]
+                TODO XD
+
+        Returns
+        -------
+            None
+        """
+        self.direction += self.velocity * turn
+
 
     def get_abs_vertices(self):
         """
@@ -185,21 +186,23 @@ class Player(pygame.sprite.Sprite):
         
         return [Point((x + self.rect.left, y + self.rect.top)) for x, y in self.polygon_points]
 
-    def move_action(self, new_pos):
+    def move_action(self, ):
         """
-        Algorithm which moves the Player object to given position, if not outside map (game screen)
+        Algorithm which moves the Player object to given direction, if not outside map (game screen)
 
         Parameters
         ----------
-            new_pos : hidenseek.ext.supportive.Point
-                Point object of the new position
+            None
 
         Returns
         -------
             None
         """
         old_pos = copy.deepcopy(self.pos)
-        self.pos = new_pos
+        x = math.cos(self.direction) * self.velocity * self.speed
+        y = math.sin(self.direction) * self.velocity * self.speed
+
+        self.pos += Point((x,y))
 
         if old_pos != self.pos: # if moving
             self.image_index = (self.image_index + 1) % len(self.images)
@@ -235,6 +238,8 @@ class Player(pygame.sprite.Sprite):
         Not implemented in Parent Class
         """
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
+
+
 
 class Hiding(Player):
     """
@@ -327,24 +332,24 @@ class Hiding(Player):
         self.walls_max = walls_max
         logger_hiding.info(f"\tWalls/Max: {self.walls_counter}/{self.walls_max}")
 
-        self.actions += [
-            {
-                'type': 'add_wall',
-                'content': 1, # up
-            },
-            {
-                'type': 'add_wall',
-                'content': 2, # right
-            },
-            {
-                'type': 'add_wall',
-                'content': 3, # down
-            },
-            {
-                'type': 'add_wall',
-                'content': 4, # left
-            },
-        ]
+        # self.actions += [
+        #     {
+        #         'type': 'add_wall',
+        #         'content': 1, # up
+        #     },
+        #     {
+        #         'type': 'add_wall',
+        #         'content': 2, # right
+        #     },
+        #     {
+        #         'type': 'add_wall',
+        #         'content': 3, # down
+        #     },
+        #     {
+        #         'type': 'add_wall',
+        #         'content': 4, # left
+        #     },
+        # ]
 
     def add_wall(self, direction, walls_group, enemy):
         """
@@ -441,19 +446,21 @@ class Hiding(Player):
         if new_action['type'] == 'NOOP':
            logger_hiding.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            logger_hiding.info(f"Moving to {new_action['content']}")
-            old_pos = copy.deepcopy(self.pos)
-            new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
-            logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+            # logger_hiding.info(f"Moving to {new_action['content']}")
 
-            for wall in local_env['walls']:
-                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    self.move_action(new_pos)
-                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                        logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
-                        self.move_action(old_pos)
-                        return
-            self.move_action(new_pos)
+            # logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+
+            # for wall in local_env['walls']:
+            #     if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
+            #         self.move_action(new_pos)
+            #         if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
+            #             logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
+            #             self.move_action(old_pos)
+            #             return
+
+            self.move_action()
+        elif new_action['type'] == 'rotation':
+            self.rotate(new_action['content'])
         elif new_action['type'] == 'add_wall':
             self.add_wall(new_action['content'], walls_group, local_env['enemy'])
 
@@ -593,19 +600,23 @@ class Seeker(Player):
         if new_action['type'] == 'NOOP':
             logger_seeker.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            logger_hiding.info(f"Moving to {new_action['content']}")
-            old_pos = copy.deepcopy(self.pos)
-            new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
-            logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+            # logger_hiding.info(f"Moving to {new_action['content']}")
 
-            for wall in local_env['walls']:
-                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    self.move_action(new_pos)
-                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                        logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
-                        self.move_action(old_pos)
-                        return
-            self.move_action(new_pos)
+            # logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+
+            # for wall in local_env['walls']:
+            #     if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
+            #         self.move_action(new_pos)
+            #         if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
+            #             logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
+            #             self.move_action(old_pos)
+            #             return
+
+            self.move_action()
+
+        elif new_action['type'] == 'rotation':
+            self.rotate(new_action['content'])
+
         elif new_action['type'] == 'remove_wall':
             if local_env['walls']:
                 new_action['content'] = random.choice(local_env['walls'])
