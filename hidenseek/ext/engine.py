@@ -217,11 +217,11 @@ class HideNSeek(object):
 
         logger_engine.debug("\tCalculating new Local Environments")
         player_seek_env = {
-            'walls': self.walls_in_radius(self.player_seek.vision),
+            'walls': self.walls_in_local_env(self.player_seek.vision, list(self.player_hide.vision_points.values())),
             'enemy': self.player_hide if Collision.circle_with_rect(self.player_seek.vision, self.player_hide.rect) else None,
         }
         player_hide_env = {
-            'walls': self.walls_in_radius(self.player_hide.vision),
+            'walls': self.walls_in_local_env(self.player_hide.vision, list(self.player_hide.vision_points.values())),
             'enemy': self.player_seek if Collision.circle_with_rect(self.player_hide.vision, self.player_seek.rect) else None,
         }
 
@@ -273,14 +273,16 @@ class HideNSeek(object):
 
         return Point((x, y))
 
-    def walls_in_radius(self, circle):
+    def walls_in_local_env(self, circle, vertices):
         """
-        Checks if hidenseek.objects.fixed.Wall is in Circle object (pygame.Rect) radius 
+        Checks if hidenseek.objects.fixed.Wall is in Agent Local Environment
 
         Parameters
         ----------
             circle : pygame.Rect
                 circle in which walls should be found
+            vertices : list of tuples
+                list of Agent POV vertices
 
         Returns
         -------
@@ -291,7 +293,7 @@ class HideNSeek(object):
         in_radius = []
 
         for wall in self.walls_group:
-            if Collision.circle_with_rect(circle, wall.rect):
+            if Collision.circle_with_rect(circle, wall.rect) and Collision.sat(wall.get_abs_vertices(), vertices):
                 in_radius.append(wall)
-
+        
         return in_radius
