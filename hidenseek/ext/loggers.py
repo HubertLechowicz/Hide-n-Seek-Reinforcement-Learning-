@@ -1,7 +1,9 @@
 import logging
 
+
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 LOGGING_DASHES = "===================="
+
 
 # https://stackoverflow.com/a/11233293
 def setup_logger(name, log_file, level=logging.WARNING, console=False):

@@ -5,6 +5,8 @@ from objects.fixed import Wall
 from ext.supportive import Point, Collision
 
 from ext.loggers import LOGGING_DASHES, logger_engine
+
+
 class HideNSeek(object):
     """
     Engine Class for Hide'n'Seek Game
@@ -128,12 +130,12 @@ class HideNSeek(object):
         logger_engine.info("\tSeeker Agent")
         self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
         logger_engine.info("\tSeeker Vision")
-        self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
-
+        self.player_seek.update_vision(self.screen, self.triangle_unit_circle)
+        
         logger_engine.info("\tHiding Agent")
         self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio, (.7, .7), (255, 0, 0), self.width, self.height, 5)
         logger_engine.info("\tHiding Vision")
-        self.player_hide.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1)
+        self.player_hide.update_vision(self.screen, self.triangle_unit_circle)
 
         logger_engine.info("\tAgents Sprite Group")
         self.players_group = pygame.sprite.Group()
@@ -228,55 +230,52 @@ class HideNSeek(object):
         self.player_hide.update(player_hide_env, self.walls_group)
 
         logger_engine.debug("\tUpdating vision")
-        # self.player_hide.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1)
-        # self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
-
-        self.player_hide.vision = pygame.draw.arc(self.screen, (0, 255, 255), self.player_hide.rect.inflate(self.player_hide.height,self.player_hide.width), -self.player_hide.direction - self.player_hide.vision_rad/2,-self.player_hide.direction + self.player_hide.vision_rad/2, 1)
-        self.player_seek.vision = pygame.draw.arc(self.screen, (0, 255, 255), self.player_seek.rect.inflate(self.player_seek.height,self.player_seek.width), -self.player_seek.direction - self.player_seek.vision_rad/2,-self.player_seek.direction + self.player_seek.vision_rad/2, 1)
-
-
-        # region temp
-        x = math.cos(self.player_hide.direction) * self.player_hide.width
-        y = math.sin(self.player_hide.direction) * self.player_hide.width
-        self.player_hide.vision_points['top'] = self.player_hide.pos + Point((x, y))
-        x = math.cos(self.player_hide.direction - self.player_hide.vision_rad / 2) * self.player_hide.width
-        y = math.sin(self.player_hide.direction - self.player_hide.vision_rad / 2) * self.player_hide.width
-        self.player_hide.vision_points['left'] = self.player_hide.pos + Point((x, y))
-        x = math.cos(self.player_hide.direction + self.player_hide.vision_rad / 2) * self.player_hide.width
-        y = math.sin(self.player_hide.direction + self.player_hide.vision_rad / 2) * self.player_hide.width
-        self.player_hide.vision_points['right'] = self.player_hide.pos + Point((x, y))
-        self.player_hide.vision_points['center'] = self.player_hide.pos
-        pygame.draw.line(self.screen, (255, 0, 0),(self.player_hide.pos.x,self.player_hide.pos.y),(self.player_hide.vision_points['top'].x,self.player_hide.vision_points['top'].y))
-        pygame.draw.line(self.screen, (0, 255, 255), (self.player_hide.pos.x, self.player_hide.pos.y),
-                         (self.player_hide.vision_points['left'].x, self.player_hide.vision_points['left'].y))
-        pygame.draw.line(self.screen, (0, 255, 255), (self.player_hide.pos.x, self.player_hide.pos.y),
-                         (self.player_hide.vision_points['right'].x, self.player_hide.vision_points['right'].y))
-
-
-        x = math.cos(self.player_seek.direction) * self.player_seek.width
-        y = math.sin(self.player_seek.direction) * self.player_seek.width
-        self.player_seek.vision_points['top'] = self.player_seek.pos + Point((x, y))
-        x = math.cos(self.player_seek.direction - self.player_seek.vision_rad / 2) * self.player_seek.width
-        y = math.sin(self.player_seek.direction - self.player_seek.vision_rad / 2) * self.player_seek.width
-        self.player_seek.vision_points['left'] = self.player_seek.pos + Point((x, y))
-        x = math.cos(self.player_seek.direction + self.player_seek.vision_rad / 2) * self.player_seek.width
-        y = math.sin(self.player_seek.direction + self.player_seek.vision_rad / 2) * self.player_seek.width
-        self.player_seek.vision_points['right'] = self.player_seek.pos + Point((x, y))
-        self.player_seek.vision_points['center'] = self.player_seek.pos
-        pygame.draw.line(self.screen, (255, 0, 0),(self.player_seek.pos.x,self.player_seek.pos.y),(self.player_seek.vision_points['top'].x,self.player_seek.vision_points['top'].y))
-        pygame.draw.line(self.screen, (0, 255, 255), (self.player_seek.pos.x, self.player_seek.pos.y),
-                         (self.player_seek.vision_points['left'].x, self.player_seek.vision_points['left'].y))
-        pygame.draw.line(self.screen, (0, 255, 255), (self.player_seek.pos.x, self.player_seek.pos.y),
-                         (self.player_seek.vision_points['right'].x, self.player_seek.vision_points['right'].y))
-        # endregion
+        self.player_hide.update_vision(self.screen, self.triangle_unit_circle)
+        self.player_seek.update_vision(self.screen, self.triangle_unit_circle)
 
         logger_engine.info("\tDrawing frame")
         self.walls_group.draw(self.screen)
         self.players_group.draw(self.screen)
 
+    def triangle_unit_circle(self, radians, **kwargs):
+        """
+        Calculates relocation/movement in absolute coordinate system (display) based on radians
+
+        Parameters
+        ----------
+            radians : float
+                Movement angle in radians
+            side_size : float
+                Width or Height value, depending on the axes (x = width, y = height), optional
+            velocity : float
+                Based on FPS value, increases/lowers movement, optional
+            speed : float
+                Based on Agent Speed Ratio, increases/lowers movement, optional
+
+        Returns
+        -------
+            Point : hidenseek.ext.supportive.Point
+                Relocation/movement in absolute coordinate system
+        """
+
+        x = math.cos(radians)
+        y = math.sin(radians)
+
+        if 'side_size' in kwargs:
+            x *= kwargs['side_size']
+            y *= kwargs['side_size']
+        if 'velocity' in kwargs:
+            x *= kwargs['velocity']
+            y *= kwargs['velocity']
+        if 'speed' in kwargs:
+            x *= kwargs['speed']
+            y *= kwargs['speed']
+
+        return Point((x, y))
+
     def walls_in_radius(self, circle):
         """
-        Setups game environment, which consists of creating display & initializing pygame.time.Clock object
+        Checks if hidenseek.objects.fixed.Wall is in Circle object (pygame.Rect) radius 
 
         Parameters
         ----------

@@ -143,6 +143,7 @@ class Point():
 
         return (self.y, -self.x)
 
+
 class Collision:
     """
     Static Collision class, basically Collision Detection System

@@ -1,6 +1,7 @@
 import pygame
 from ext.supportive import Point
 
+
 class Wall(pygame.sprite.Sprite):
     """
     Wall Class for Hide'n'Seek Game, inherits from pygame.sprite.Sprite

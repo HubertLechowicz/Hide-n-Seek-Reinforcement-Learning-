@@ -7,6 +7,7 @@ import json
 import math
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
 
+
 class Player(pygame.sprite.Sprite):
     """
     Parent Player Class for Hide'n'Seek Game, inherits from pygame.sprite.Sprite.
@@ -28,7 +29,7 @@ class Player(pygame.sprite.Sprite):
             speed ratio for Player movement
         velocity : float
             velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
-        vision : pygame.Rect kąt, kierunek
+        vision : pygame.Rect
             Player POV
             TODO: Probably will be standalone Object after implementing proper POV
         image_index : int
@@ -135,6 +136,7 @@ class Player(pygame.sprite.Sprite):
         self.image = image_inplace
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos_init.x, self.pos_init.y)
+
         # base class Player actions
         self.actions = [
             {
@@ -169,7 +171,6 @@ class Player(pygame.sprite.Sprite):
         """
         self.direction += self.velocity * turn
 
-
     def get_abs_vertices(self):
         """
         Returns absolute coordinates of Vertices in Polygon
@@ -186,23 +187,21 @@ class Player(pygame.sprite.Sprite):
         
         return [Point((x + self.rect.left, y + self.rect.top)) for x, y in self.polygon_points]
 
-    def move_action(self, ):
+    def move_action(self, new_pos):
         """
         Algorithm which moves the Player object to given direction, if not outside map (game screen)
 
         Parameters
         ----------
-            None
+            new_pos : hidenseek.ext.supportive.Point
+                Point object of the new position
 
         Returns
         -------
             None
-        """
+        """            
         old_pos = copy.deepcopy(self.pos)
-        x = math.cos(self.direction) * self.velocity * self.speed
-        y = math.sin(self.direction) * self.velocity * self.speed
-
-        self.pos += Point((x,y))
+        self.pos = new_pos
 
         if old_pos != self.pos: # if moving
             self.image_index = (self.image_index + 1) % len(self.images)
@@ -233,12 +232,44 @@ class Player(pygame.sprite.Sprite):
         """
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
 
+    def update_vision(self, display, triangle_unit_circle):
+        """
+        Updates Agent Vision
+
+        Parameters
+        ----------
+            display : pygame.display
+                Game Display (Window)
+            triangle_unit_circle : hidenseek.ext.engine.triangle_unit_circle(radians, **kwargs)
+                Function used to calculate movement/relocation in Triangle Unit Circle based on given Radians
+        
+        Returns
+        -------
+            None
+        """
+
+        self.vision = pygame.draw.arc(display, (0, 255, 255), self.rect.inflate(self.height, self.width), -self.direction - self.vision_rad / 2, -self.direction + self.vision_rad / 2, 1)
+        
+        new_point = triangle_unit_circle(self.direction, side_size=self.width)
+        self.vision_points['top'] = self.pos + new_point
+
+        new_point = triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width)
+        self.vision_points['left'] = self.pos + new_point
+
+        new_point = triangle_unit_circle(self.direction + self.vision_rad / 2, side_size=self.width)
+        self.vision_points['right'] = self.pos + new_point
+
+        self.vision_points['center'] = self.pos
+
+        pygame.draw.line(display, (255, 0, 0), (self.pos.x, self.pos.y), (self.vision_points['top'].x, self.vision_points['top'].y))
+        pygame.draw.line(display, (0, 255, 255), (self.pos.x, self.pos.y), (self.vision_points['left'].x, self.vision_points['left'].y))
+        pygame.draw.line(display, (0, 255, 255), (self.pos.x, self.pos.y), (self.vision_points['right'].x, self.vision_points['right'].y))
+
     def update(self, local_env, walls_group):
         """
         Not implemented in Parent Class
         """
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
-
 
 
 class Hiding(Player):
@@ -332,24 +363,24 @@ class Hiding(Player):
         self.walls_max = walls_max
         logger_hiding.info(f"\tWalls/Max: {self.walls_counter}/{self.walls_max}")
 
-        # self.actions += [
-        #     {
-        #         'type': 'add_wall',
-        #         'content': 1, # up
-        #     },
-        #     {
-        #         'type': 'add_wall',
-        #         'content': 2, # right
-        #     },
-        #     {
-        #         'type': 'add_wall',
-        #         'content': 3, # down
-        #     },
-        #     {
-        #         'type': 'add_wall',
-        #         'content': 4, # left
-        #     },
-        # ]
+        self.actions += [
+            {
+                'type': 'add_wall',
+                'content': 1, # up
+            },
+            {
+                'type': 'add_wall',
+                'content': 2, # right
+            },
+            {
+                'type': 'add_wall',
+                'content': 3, # down
+            },
+            {
+                'type': 'add_wall',
+                'content': 4, # left
+            },
+        ]
 
     def add_wall(self, direction, walls_group, enemy):
         """
@@ -446,19 +477,23 @@ class Hiding(Player):
         if new_action['type'] == 'NOOP':
            logger_hiding.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            # logger_hiding.info(f"Moving to {new_action['content']}")
+            x = math.cos(self.direction) * self.velocity * self.speed
+            y = math.sin(self.direction) * self.velocity * self.speed
+            old_pos = copy.deepcopy(self.pos)
+            new_pos = self.pos + Point((x,y))
+            logger_hiding.info(f"Moving to {new_pos}")
 
-            # logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+            logger_hiding.info(f"\tChecking collisions with other Objects")
 
-            # for wall in local_env['walls']:
-            #     if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-            #         self.move_action(new_pos)
-            #         if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-            #             logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
-            #             self.move_action(old_pos)
-            #             return
+            for wall in local_env['walls']:
+                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
+                    self.move_action(new_pos)
+                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
+                        logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
+                        self.move_action(old_pos)
+                        return
 
-            self.move_action()
+            self.move_action(new_pos)
         elif new_action['type'] == 'rotation':
             self.rotate(new_action['content'])
         elif new_action['type'] == 'add_wall':
@@ -466,6 +501,7 @@ class Hiding(Player):
 
     def __str__(self):
         return "[Hiding Agent]"
+
 
 class Seeker(Player):
     """
@@ -514,6 +550,7 @@ class Seeker(Player):
         update(local_env, walls_group):
             takes and performs the action
     """
+    
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
         """
         Constructs all neccesary attributes for the Seeker Object
@@ -600,20 +637,23 @@ class Seeker(Player):
         if new_action['type'] == 'NOOP':
             logger_seeker.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            # logger_hiding.info(f"Moving to {new_action['content']}")
+            x = math.cos(self.direction) * self.velocity * self.speed
+            y = math.sin(self.direction) * self.velocity * self.speed
+            old_pos = copy.deepcopy(self.pos)
+            new_pos = self.pos + Point((x,y))
+            logger_hiding.info(f"Moving to {new_pos}")
 
-            # logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+            logger_hiding.info(f"\tChecking collisions with other Objects")
 
-            # for wall in local_env['walls']:
-            #     if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-            #         self.move_action(new_pos)
-            #         if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-            #             logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
-            #             self.move_action(old_pos)
-            #             return
+            for wall in local_env['walls']:
+                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
+                    self.move_action(new_pos)
+                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
+                        logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
+                        self.move_action(old_pos)
+                        return
 
-            self.move_action()
-
+            self.move_action(new_pos)
         elif new_action['type'] == 'rotation':
             self.rotate(new_action['content'])
 
