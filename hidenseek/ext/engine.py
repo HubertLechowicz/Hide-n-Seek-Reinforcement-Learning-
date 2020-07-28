@@ -24,6 +24,8 @@ class HideNSeek(object):
             pygame module to control display window and screen
         dt : float
             time per frame (in miliseconds)
+        duration : float
+            gameplay maximum duration, if no other game over event
         p_hide_speed_ratio : float
             movement speed ratio for Hiding Agent
         p_seek_speed_ratio : float
@@ -53,7 +55,7 @@ class HideNSeek(object):
             check if any of Wall objects (hidenseek.objects.fixed.Wall) collides with circle
     """
 
-    def __init__(self, width, height, fps, speed_ratio):
+    def __init__(self, width, height, fps, speed_ratio, duration):
         """
         Constructs all neccesary attributes for the HideNSeek Object
 
@@ -65,16 +67,10 @@ class HideNSeek(object):
                 height of the game window
             fps : int
                 amount of fps you want to lock on
-            clock : pygame.time.Clock
-                pygame Clock objects to lock FPS and use timer
-            screen : pygame.display
-                pygame module to control display window and screen
-            dt : float
-                time per frame (in miliseconds)
-            p_hide_speed_ratio : float
-                movement speed ratio for Hiding Agent
-            p_seek_speed_ratio : float
-                movement speed ratio for Seeker Agent
+            speed_ratio : dict
+                movement speed ratio for Agents, expects { 'p_hide': float, 'p_seek': float }
+            duration : int
+                gameplay maximum duration, if no other game over event
         """
 
         self.width = width
@@ -83,6 +79,7 @@ class HideNSeek(object):
         self.clock = None
         self.screen = None
         self.dt = None
+        self.duration = duration
         
         self.p_hide_speed_ratio = speed_ratio['p_hide']
         self.p_seek_speed_ratio = speed_ratio['p_seek']
@@ -163,8 +160,9 @@ class HideNSeek(object):
 
     def game_over(self):
         """
-        Checks whenever game should end or not. Right now it checks the collision between 2 Agents
-        by using 2 methods: AABB and - if first return POSSIBLE collision - SAT
+        Whenever game should end or not. Events:
+        - checks whether game duration exceeded given time
+        - checks the collision between 2 Agents by using 2 methods: AABB and - if first return POSSIBLE collision - SAT
 
         Parameters
         ----------
@@ -174,6 +172,9 @@ class HideNSeek(object):
         -------
             None
         """
+
+        if self.duration <= 0:
+            return True
 
         if Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height)):
             logger_engine.info("Rectangle collision, checking Polygon Collision by using SAM Method.")
@@ -208,8 +209,10 @@ class HideNSeek(object):
         logger_engine.debug("\tLocking FPS")
         self.dt = self.clock.tick_busy_loop(self.fps)
         logger_engine.info(f"\tFPS: {self.clock.get_fps()}")
-        self.player_seek.velocity = self.dt / 1000.
-        self.player_hide.velocity = self.dt / 1000.
+
+        seconds_per_frame = self.dt / 1000.
+        self.player_seek.velocity = seconds_per_frame
+        self.player_hide.velocity = seconds_per_frame
         logger_engine.debug("\tNew Velocity for Agents")
         logger_engine.debug(f"\t\tSeeker Agent: {self.player_seek.velocity}")
         logger_engine.debug(f"\t\tHiding Agent: {self.player_hide.velocity}")
@@ -235,6 +238,9 @@ class HideNSeek(object):
         logger_engine.info("\tDrawing frame")
         self.walls_group.draw(self.screen)
         self.players_group.draw(self.screen)
+
+        self.duration -= seconds_per_frame
+        logger_engine.info(f"\tLeft: {round(self.duration, 4)} seconds")
 
     def walls_in_radius(self, circle):
         """

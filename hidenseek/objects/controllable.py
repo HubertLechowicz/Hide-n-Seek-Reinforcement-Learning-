@@ -7,6 +7,8 @@ import json
 
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
 
+WALL_TIMER = 5
+
 class Player(pygame.sprite.Sprite):
     """
     Parent Player Class for Hide'n'Seek Game, inherits from pygame.sprite.Sprite.
@@ -28,6 +30,8 @@ class Player(pygame.sprite.Sprite):
             speed ratio for Player movement
         velocity : float
             velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
+        wall_timer : float
+            cooldown (in seconds) for any wall-specific action
         vision : pygame.Rect
             Player POV
             TODO: Probably will be standalone Object after implementing proper POV
@@ -96,6 +100,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = speed # speed ratio for player
         self.velocity = 0
         self.vision = None
+        self.wall_timer = WALL_TIMER
 
         self.image_index = 0
         ############### SQUARE SPRITE ###############
@@ -438,6 +443,10 @@ class Hiding(Player):
         """
         new_action = copy.deepcopy(random.choice(self.actions))
 
+        if self.wall_timer > 0:
+            self.wall_timer -= self.velocity
+        self.wall_timer = max(self.wall_timer, 0.) # for negative it's 0, for positive - higher than 0
+
         if new_action['type'] == 'NOOP':
            logger_hiding.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
@@ -455,7 +464,11 @@ class Hiding(Player):
                         return
             self.move_action(new_pos)
         elif new_action['type'] == 'add_wall':
-            self.add_wall(new_action['content'], walls_group, local_env['enemy'])
+            if not self.wall_timer: # if no cooldown
+                self.add_wall(new_action['content'], walls_group, local_env['enemy'])
+                self.wall_timer = WALL_TIMER
+            else:
+                logger_hiding.info(f"\tCouldn't add wall. Cooldown: {round(self.wall_timer)}")
 
     def __str__(self):
         return "[Hiding Agent]"
@@ -590,6 +603,10 @@ class Seeker(Player):
 
         new_action = copy.deepcopy(random.choice(self.actions))
 
+        if self.wall_timer > 0:
+            self.wall_timer -= self.velocity
+        self.wall_timer = max(self.wall_timer, 0.) # for negative it's 0, for positive - higher than 0
+
         if new_action['type'] == 'NOOP':
             logger_seeker.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
@@ -607,9 +624,14 @@ class Seeker(Player):
                         return
             self.move_action(new_pos)
         elif new_action['type'] == 'remove_wall':
+            
             if local_env['walls']:
-                new_action['content'] = random.choice(local_env['walls'])
-                self.remove_wall(new_action['content'], walls_group)
+                if not self.wall_timer: # if no cooldown
+                    new_action['content'] = random.choice(local_env['walls'])
+                    self.remove_wall(new_action['content'], walls_group)
+                    self.wall_timer = WALL_TIMER
+                else:
+                    logger_hiding.info(f"\tCouldn't remove any wall. Cooldown: {round(self.wall_timer)}")
             else:
                 logger_seeker.info(f"No Wall to remove, doing... nothing.")
         
