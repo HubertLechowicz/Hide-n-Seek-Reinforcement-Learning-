@@ -1,4 +1,7 @@
+import math
+
 import pygame
+import copy
 from ext.supportive import Point
 
 
@@ -72,7 +75,7 @@ class Wall(pygame.sprite.Sprite):
         self.image = image
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
-        self.polygon_points = [(self.rect.left, self.rect.top), (self.rect.right, self.rect.top), (self.rect.right, self.rect.bottom), (self.rect.left, self.rect.bottom)]
+        self.polygon_points = [Point((self.rect.left, self.rect.top)), Point((self.rect.right, self.rect.top)), Point((self.rect.right, self.rect.bottom)), Point((self.rect.left, self.rect.bottom))]
 
     def is_outside_map(self, SCREEN_WIDTH, SCREEN_HEIGHT):
         """
@@ -108,4 +111,33 @@ class Wall(pygame.sprite.Sprite):
                 self.pylogon_points mapped to the absolute coordinates system
         """
 
-        return [Point((x, y)) for x, y in self.polygon_points]
+        return self.polygon_points
+
+    def rotate(self,angle,position):
+        """
+        Rotates the sprite, updates its polygon points for collisions.
+
+        TODO
+            check polygon points
+
+        Parameters
+        ----------
+            angle : float
+                    radians
+            position : Point
+                center fo the wall
+
+        Returns
+        -------
+            None
+        """
+        # Copy and then rotate the original image.
+        copied_image = self.image.copy()
+        self.image = pygame.transform.rotozoom(copied_image, -angle*180/math.pi, 1)
+
+        # Create a new rect with the center of the sprite.
+        self.rect = self.image.get_rect()
+        self.rect.center = (position.x,position.y)
+        vector_shift = Point.triangle_unit_circle(angle)
+        #Update the polygon points for collisions
+        self.polygon_points = [vector_shift + polygon_point for polygon_point in self.polygon_points]

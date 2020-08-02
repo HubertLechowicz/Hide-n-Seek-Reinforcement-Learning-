@@ -130,12 +130,12 @@ class HideNSeek(object):
         logger_engine.info("\tSeeker Agent")
         self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
         logger_engine.info("\tSeeker Vision")
-        self.player_seek.update_vision(self.screen, self.triangle_unit_circle)
+        self.player_seek.update_vision(self.screen)
         
         logger_engine.info("\tHiding Agent")
         self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio, (.7, .7), (255, 0, 0), self.width, self.height, 5)
         logger_engine.info("\tHiding Vision")
-        self.player_hide.update_vision(self.screen, self.triangle_unit_circle)
+        self.player_hide.update_vision(self.screen)
 
         logger_engine.info("\tAgents Sprite Group")
         self.players_group = pygame.sprite.Group()
@@ -144,7 +144,8 @@ class HideNSeek(object):
 
         logger_engine.info("\tWalls Sprite Group")
         self.walls_group = pygame.sprite.Group()
-    
+
+
     def reset(self):
         """
         Resets the environment by running init() function
@@ -230,48 +231,18 @@ class HideNSeek(object):
         self.player_hide.update(player_hide_env, self.walls_group)
 
         logger_engine.debug("\tUpdating vision")
-        self.player_hide.update_vision(self.screen, self.triangle_unit_circle)
-        self.player_seek.update_vision(self.screen, self.triangle_unit_circle)
+        self.player_hide.update_vision(self.screen )
+        self.player_seek.update_vision(self.screen)
+
+
+
 
         logger_engine.info("\tDrawing frame")
         self.walls_group.draw(self.screen)
+
         self.players_group.draw(self.screen)
 
-    def triangle_unit_circle(self, radians, **kwargs):
-        """
-        Calculates relocation/movement in absolute coordinate system (display) based on radians
 
-        Parameters
-        ----------
-            radians : float
-                Movement angle in radians
-            side_size : float
-                Width or Height value, depending on the axes (x = width, y = height), optional
-            velocity : float
-                Based on FPS value, increases/lowers movement, optional
-            speed : float
-                Based on Agent Speed Ratio, increases/lowers movement, optional
-
-        Returns
-        -------
-            Point : hidenseek.ext.supportive.Point
-                Relocation/movement in absolute coordinate system
-        """
-
-        x = math.cos(radians)
-        y = math.sin(radians)
-
-        if 'side_size' in kwargs:
-            x *= kwargs['side_size']
-            y *= kwargs['side_size']
-        if 'velocity' in kwargs:
-            x *= kwargs['velocity']
-            y *= kwargs['velocity']
-        if 'speed' in kwargs:
-            x *= kwargs['speed']
-            y *= kwargs['speed']
-
-        return Point((x, y))
 
     def walls_in_local_env(self, circle, vertices):
         """

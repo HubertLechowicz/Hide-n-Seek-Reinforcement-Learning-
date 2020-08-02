@@ -232,7 +232,7 @@ class Player(pygame.sprite.Sprite):
         """
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
 
-    def update_vision(self, display, triangle_unit_circle):
+    def update_vision(self, display):
         """
         Updates Agent Vision
 
@@ -249,14 +249,14 @@ class Player(pygame.sprite.Sprite):
         """
 
         self.vision = pygame.draw.arc(display, (0, 255, 255), self.rect.inflate(self.height, self.width), -self.direction - self.vision_rad / 2, -self.direction + self.vision_rad / 2, 1)
-        
-        new_point = triangle_unit_circle(self.direction, side_size=self.width)
+
+        new_point = Point.triangle_unit_circle(self.direction, side_size=self.width)
         self.vision_points['top'] = self.pos + new_point
 
-        new_point = triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width)
+        new_point = Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width)
         self.vision_points['left'] = self.pos + new_point
 
-        new_point = triangle_unit_circle(self.direction + self.vision_rad / 2, side_size=self.width)
+        new_point = Point.triangle_unit_circle(self.direction + self.vision_rad / 2, side_size=self.width)
         self.vision_points['right'] = self.pos + new_point
 
         self.vision_points['center'] = self.pos
@@ -366,35 +366,17 @@ class Hiding(Player):
         self.actions += [
             {
                 'type': 'add_wall',
-                'content': 1, # up
-            },
-            {
-                'type': 'add_wall',
-                'content': 2, # right
-            },
-            {
-                'type': 'add_wall',
-                'content': 3, # down
-            },
-            {
-                'type': 'add_wall',
-                'content': 4, # left
-            },
+            }
         ]
 
-    def add_wall(self, direction, walls_group, enemy):
+
+
+    def add_wall(self, walls_group, enemy):
         """
         Creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
 
         Parameters
         ----------
-            direction : int
-                it determines in which direction Wall should be created
-                1 - UP
-                2 - RIGHT
-                3 - DOWN
-                4 - LEFT
-                TODO: Once Agent POV done - DELETE
             walls_group : list of hidenseek.objects.fixes.Wall
                 contains all walls in the area
                 TODO: Once Agent POV done - REPLACE WITH local_env['walls']
@@ -409,30 +391,15 @@ class Hiding(Player):
         logger_hiding.info("Checking if it's possible to create new wall")
         if self.walls_counter < self. walls_max:
             logger_hiding.info(f"\tAdding Wall #{self.walls_counter + 1}")
-            wall_pos = copy.deepcopy(self.pos)
-            wall_width = 15
+            wall_pos = copy.deepcopy(self.vision_points['top'])
+            wall_width = 25
             wall_height = 50
 
-            DIST = 10
 
-            if direction == 1:
-                wall_width = 50
-                wall_height = 15
-                wall_pos.y = self.pos.y - self.height / 2 - wall_height / 2 - DIST
-            elif direction == 2:
-                wall_pos.x = self.pos.x + self.width / 2 + wall_width / 2 + DIST
-            elif direction == 3:
-                wall_width = 50
-                wall_height = 15
-                wall_pos.y = self.pos.y + self.height / 2 + wall_height / 2 + DIST
-            elif direction == 4:
-                wall_pos.x = self.pos.x - self.width / 2 - wall_width / 2 - DIST
-            else:
-                raise ValueError(f"Can't create Wall. Given direction is unknown. 1 - UP, 2 - RIGHT, 3 - DOWN, 4 - LEFT")
-            
             wall = Wall(self, wall_width, wall_height, wall_pos.x, wall_pos.y)
             logger_hiding.info(f"\t\tSize: {wall_width}x{wall_height}")
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
+            wall.rotate(self.direction,wall_pos)
 
             can_create = True
 
@@ -497,7 +464,7 @@ class Hiding(Player):
         elif new_action['type'] == 'rotation':
             self.rotate(new_action['content'])
         elif new_action['type'] == 'add_wall':
-            self.add_wall(new_action['content'], walls_group, local_env['enemy'])
+            self.add_wall(walls_group, local_env['enemy'])
 
     def __str__(self):
         return "[Hiding Agent]"
