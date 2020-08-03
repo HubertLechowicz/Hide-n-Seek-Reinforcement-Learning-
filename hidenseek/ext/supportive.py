@@ -180,6 +180,33 @@ class Point():
 
         return Point((x, y))
 
+    @staticmethod
+    def triangle_unit_circle_relative(radians, center, target):
+        """
+        Calculates relocation/movement in relative coordinate system (i.e. Rectangle) based on radians
+
+        Parameters
+        ----------
+            radians : float
+                Movement angle in radians
+            center : Point
+                Center of the Relative Object (i.e. Rectangle)
+            target : Point
+                Target Point moving around the center
+
+        Returns
+        -------
+            Point : hidenseek.ext.supportive.Point
+                Relocation/movement in relative coordinate system
+        """
+
+        dist_axes = target - center
+
+        x = center.x + math.cos(radians) * dist_axes.x - math.sin(radians) * dist_axes.y
+        y = center.y + math.sin(radians) * dist_axes.x + math.cos(radians) * dist_axes.y
+
+        return Point((x, y))
+
 
 class Collision:
     """

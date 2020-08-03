@@ -145,7 +145,6 @@ class HideNSeek(object):
         logger_engine.info("\tWalls Sprite Group")
         self.walls_group = pygame.sprite.Group()
 
-
     def reset(self):
         """
         Resets the environment by running init() function
@@ -241,8 +240,6 @@ class HideNSeek(object):
         self.walls_group.draw(self.screen)
 
         self.players_group.draw(self.screen)
-
-
 
     def walls_in_local_env(self, circle, vertices):
         """

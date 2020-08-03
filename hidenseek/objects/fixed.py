@@ -113,19 +113,16 @@ class Wall(pygame.sprite.Sprite):
 
         return self.polygon_points
 
-    def rotate(self,angle,position):
+    def rotate(self, angle, position):
         """
-        Rotates the sprite, updates its polygon points for collisions.
-
-        TODO
-            check polygon points
+        Rotates the sprite by creating new Rectangle and updates its polygon points
 
         Parameters
         ----------
             angle : float
-                    radians
+                player direction in radians
             position : Point
-                center fo the wall
+                center of the wall
 
         Returns
         -------
@@ -134,10 +131,13 @@ class Wall(pygame.sprite.Sprite):
         # Copy and then rotate the original image.
         copied_image = self.image.copy()
         self.image = pygame.transform.rotozoom(copied_image, -angle*180/math.pi, 1)
-
+        self.image.set_colorkey((0, 0, 0))
+        
         # Create a new rect with the center of the sprite.
         self.rect = self.image.get_rect()
         self.rect.center = (position.x,position.y)
-        vector_shift = Point.triangle_unit_circle(angle)
-        #Update the polygon points for collisions
-        self.polygon_points = [vector_shift + polygon_point for polygon_point in self.polygon_points]
+        self.width = self.rect.width
+        self.height = self.rect.height
+
+        # Update the polygon points for collisions
+        self.polygon_points = [Point.triangle_unit_circle_relative(angle, self.pos, polygon_point) for polygon_point in self.polygon_points]

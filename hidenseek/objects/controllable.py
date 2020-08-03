@@ -58,8 +58,6 @@ class Player(pygame.sprite.Sprite):
     """
 
     # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
-
-
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
         """
         Constructs all neccesary attributes for the Player Object
@@ -105,7 +103,7 @@ class Player(pygame.sprite.Sprite):
             'right': None,
             'center': None,
         }
-        self.vision_rad = math.pi/6
+        self.vision_rad = math.pi
         self.image_index = 0
         self.direction = 0  # radians from which vision_rad is added/substracted
 
@@ -153,23 +151,23 @@ class Player(pygame.sprite.Sprite):
                 'type': 'rotation',
                 'content': 1
             },
-
         ]
 
-    def rotate(self,turn):
+    def rotate(self, turn):
         """
         Rotates the object, accrodingly to the value, along it's axis.
 
         Parameters
         ----------
             turn : int, [-1,1]
-                TODO XD
+                in which direction should agent rotate (clockwise or counterclockwise)
 
         Returns
         -------
             None
         """
         self.direction += self.velocity * turn
+        self.direction = self.direction % (2 * math.pi) # base 2PI, because it's circle
 
     def get_abs_vertices(self):
         """
@@ -199,7 +197,8 @@ class Player(pygame.sprite.Sprite):
         Returns
         -------
             None
-        """            
+        """
+
         old_pos = copy.deepcopy(self.pos)
         self.pos = new_pos
 
@@ -225,13 +224,7 @@ class Player(pygame.sprite.Sprite):
             self.image_index = 0
 
         self.image = self.images[self.image_index]
-
-    def take_action(self, local_env, walls_group):
-        """
-        Not implemented in Parent Class
-        """
-        raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
-
+    
     def update_vision(self, display):
         """
         Updates Agent Vision
@@ -369,8 +362,6 @@ class Hiding(Player):
             }
         ]
 
-
-
     def add_wall(self, walls_group, enemy):
         """
         Creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
@@ -395,14 +386,12 @@ class Hiding(Player):
             wall_width = 25
             wall_height = 50
 
-
             wall = Wall(self, wall_width, wall_height, wall_pos.x, wall_pos.y)
             logger_hiding.info(f"\t\tSize: {wall_width}x{wall_height}")
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
-            wall.rotate(self.direction,wall_pos)
+            wall.rotate(self.direction, wall_pos)
 
             can_create = True
-
             for _wall in walls_group:
                 if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
                     if Collision.sat(wall.get_abs_vertices(), _wall.get_abs_vertices()):
@@ -442,7 +431,9 @@ class Hiding(Player):
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if new_action['type'] == 'NOOP':
-           logger_hiding.info("NOOP! NOOP!")
+            self.image_index = 0
+            self.image = self.images[self.image_index]
+            logger_hiding.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
             x = math.cos(self.direction) * self.velocity * self.speed
             y = math.sin(self.direction) * self.velocity * self.speed
@@ -602,21 +593,23 @@ class Seeker(Player):
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if new_action['type'] == 'NOOP':
+            self.image_index = 0
+            self.image = self.images[self.image_index]
             logger_seeker.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
             x = math.cos(self.direction) * self.velocity * self.speed
             y = math.sin(self.direction) * self.velocity * self.speed
             old_pos = copy.deepcopy(self.pos)
             new_pos = self.pos + Point((x,y))
-            logger_hiding.info(f"Moving to {new_pos}")
+            logger_seeker.info(f"Moving to {new_pos}")
 
-            logger_hiding.info(f"\tChecking collisions with other Objects")
+            logger_seeker.info(f"\tChecking collisions with other Objects")
 
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
                     self.move_action(new_pos)
                     if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                        logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
+                        logger_seeker.info("\tCollision with some Wall! Not moving anywhere")
                         self.move_action(old_pos)
                         return
 
