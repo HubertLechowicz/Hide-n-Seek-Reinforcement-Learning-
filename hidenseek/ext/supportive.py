@@ -143,6 +143,71 @@ class Point():
 
         return (self.y, -self.x)
 
+    @staticmethod
+    def triangle_unit_circle(radians, **kwargs):
+        """
+        Calculates relocation/movement in absolute coordinate system (display) based on radians
+
+        Parameters
+        ----------
+            radians : float
+                Movement angle in radians
+            side_size : float
+                Width or Height value, depending on the axes (x = width, y = height), optional
+            velocity : float
+                Based on FPS value, increases/lowers movement, optional
+            speed : float
+                Based on Agent Speed Ratio, increases/lowers movement, optional
+
+        Returns
+        -------
+            Point : hidenseek.ext.supportive.Point
+                Relocation/movement in absolute coordinate system
+        """
+
+        x = math.cos(radians)
+        y = math.sin(radians)
+
+        if 'side_size' in kwargs:
+            x *= kwargs['side_size']
+            y *= kwargs['side_size']
+        if 'velocity' in kwargs:
+            x *= kwargs['velocity']
+            y *= kwargs['velocity']
+        if 'speed' in kwargs:
+            x *= kwargs['speed']
+            y *= kwargs['speed']
+
+        return Point((x, y))
+
+    @staticmethod
+    def triangle_unit_circle_relative(radians, center, target):
+        """
+        Calculates relocation/movement in relative coordinate system (i.e. Rectangle) based on radians
+
+        Parameters
+        ----------
+            radians : float
+                Movement angle in radians
+            center : Point
+                Center of the Relative Object (i.e. Rectangle)
+            target : Point
+                Target Point moving around the center
+
+        Returns
+        -------
+            Point : hidenseek.ext.supportive.Point
+                Relocation/movement in relative coordinate system
+        """
+
+        dist_axes = target - center
+
+        x = center.x + math.cos(radians) * dist_axes.x - math.sin(radians) * dist_axes.y
+        y = center.y + math.sin(radians) * dist_axes.x + math.cos(radians) * dist_axes.y
+
+        return Point((x, y))
+
+
 class Collision:
     """
     Static Collision class, basically Collision Detection System
