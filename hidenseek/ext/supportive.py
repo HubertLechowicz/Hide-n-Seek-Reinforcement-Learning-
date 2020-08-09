@@ -1,5 +1,6 @@
 import pygame
 import math
+from PIL import Image
 
 class Point():
     """
@@ -382,3 +383,58 @@ class Collision:
                 return False
 
         return True
+
+class MapGenerator:
+
+    @staticmethod 
+    def open_bmp(filename):
+        map_in_bmp = Image.open(filename)
+        return map_in_bmp
+    
+    @staticmethod 
+    def get_predefined_palette():
+        return 
+        {
+            # colours in HEX
+            # white : background
+            "#000000": "wall", # black
+            "#0000ff" : "hider", # dark blue 
+            "#ff0000" : "seeker", # red 
+            #
+            #
+            # #00ff00 : bushes - green 
+            # #00ffff : glass - light blue
+            # ...
+        }
+        
+
+    @staticmethod 
+    def get_objects_coordinates(map, palette):
+            def get_objects_coordinates(map, palette):
+            for i in range(map.size[0]):
+                for j in range(map.size[1]):
+                    print(map.getpixel((i, j)))
+            
+
+
+        # How should it look like
+        # objects = [
+        #     {
+        #         "type": "wall",
+        #         "vertices": [
+        #         {
+        #             "x": 0,
+        #             "y": 0
+        #         },
+        #         {
+        #             "x": 1,
+        #             "y": 1
+        #         },
+        #         ]
+        #     }
+        # ]
+        #return objects
+
+
+    
+    
