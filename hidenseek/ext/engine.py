@@ -126,16 +126,21 @@ class HideNSeek(object):
         -------
             None
         """
+        init_local_env = {
+            'walls': [],
+            'enemy': None,
+        }
+
         logger_engine.info("Initializing Environment Objects")
         logger_engine.info("\tSeeker Agent")
         self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
         logger_engine.info("\tSeeker Vision")
-        self.player_seek.update_vision(self.screen)
+        self.player_seek.update_vision(self.screen,init_local_env)
         
         logger_engine.info("\tHiding Agent")
         self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio, (.7, .7), (255, 0, 0), self.width, self.height, 5)
         logger_engine.info("\tHiding Vision")
-        self.player_hide.update_vision(self.screen)
+        self.player_hide.update_vision(self.screen,init_local_env)
 
         logger_engine.info("\tAgents Sprite Group")
         self.players_group = pygame.sprite.Group()
@@ -217,7 +222,7 @@ class HideNSeek(object):
 
         logger_engine.debug("\tCalculating new Local Environments")
         player_seek_env = {
-            'walls': self.walls_in_local_env(self.player_seek.vision, list(self.player_hide.vision_points.values())),
+            'walls': self.walls_in_local_env(self.player_seek.vision, list(self.player_seek.vision_points.values())),
             'enemy': self.player_hide if Collision.circle_with_rect(self.player_seek.vision, self.player_hide.rect) else None,
         }
         player_hide_env = {
@@ -230,8 +235,9 @@ class HideNSeek(object):
         self.player_hide.update(player_hide_env, self.walls_group)
 
         logger_engine.debug("\tUpdating vision")
-        self.player_hide.update_vision(self.screen )
-        self.player_seek.update_vision(self.screen)
+        self.player_seek.update_vision(self.screen, player_seek_env)
+        self.player_hide.update_vision(self.screen,player_hide_env)
+
 
 
 

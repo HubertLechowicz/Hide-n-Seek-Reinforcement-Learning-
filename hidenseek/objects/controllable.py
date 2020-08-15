@@ -6,7 +6,7 @@ import random
 import json
 import math
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
-
+import numpy as np
 
 class Player(pygame.sprite.Sprite):
     """
@@ -166,7 +166,8 @@ class Player(pygame.sprite.Sprite):
         -------
             None
         """
-        self.direction += self.velocity * turn
+        self.direction += self.velocity * turn *5
+
         self.direction = self.direction % (2 * math.pi) # base 2PI, because it's circle
 
     def get_abs_vertices(self):
@@ -225,16 +226,18 @@ class Player(pygame.sprite.Sprite):
 
         self.image = self.images[self.image_index]
     
-    def update_vision(self, display):
+    def update_vision(self, display,local_env):
         """
         Updates Agent Vision
 
         Parameters
         ----------
+
             display : pygame.display
                 Game Display (Window)
-            triangle_unit_circle : hidenseek.ext.engine.triangle_unit_circle(radians, **kwargs)
-                Function used to calculate movement/relocation in Triangle Unit Circle based on given Radians
+
+            local_env : dict
+                contains Player Local Environment
         
         Returns
         -------
@@ -257,7 +260,20 @@ class Player(pygame.sprite.Sprite):
         pygame.draw.line(display, (255, 0, 0), (self.pos.x, self.pos.y), (self.vision_points['top'].x, self.vision_points['top'].y))
         pygame.draw.line(display, (0, 255, 255), (self.pos.x, self.pos.y), (self.vision_points['left'].x, self.vision_points['left'].y))
         pygame.draw.line(display, (0, 255, 255), (self.pos.x, self.pos.y), (self.vision_points['right'].x, self.vision_points['right'].y))
+        self.ray_points = []
 
+        for angle in np.linspace(0,self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi)*0.33),endpoint=True):
+            self.ray_point = Point.triangle_unit_circle_relative(angle,self.vision_points['center'],self.vision_points['left'])
+            pygame.draw.line(display, (5, 85, 55), (self.pos.x, self.pos.y),(self.ray_point.x, self.ray_point.y))
+            self.ray_points.append(self.ray_point)
+
+        for vertex in self.ray_points:
+            line_segment = [vertex,self.pos]
+            for wall in local_env['walls']:
+                Collision.sat(line_segment,wall.get_abs_vertices())
+
+
+        # print(Point.triangle_unit_circle_relative())
     def update(self, local_env, walls_group):
         """
         Not implemented in Parent Class

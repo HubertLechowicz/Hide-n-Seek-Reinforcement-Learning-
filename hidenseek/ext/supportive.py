@@ -366,8 +366,8 @@ class Collision:
                 returns if objects collide
         """
         # edges function
-        edges_1 = [vertices_obj1[(i + 1) % len(vertices_obj1)] - vertices_obj1[i] for i in range(len(vertices_obj1))]
-        edges_2 = [vertices_obj2[(i + 1) % len(vertices_obj2)] - vertices_obj2[i] for i in range(len(vertices_obj2))]
+        edges_1 = [vertices_obj1[(i + 1) % len(vertices_obj1)] - vertices_obj1[i] for i in range(len(vertices_obj1))] if len(vertices_obj1) > 2 else [vertices_obj1[1] - vertices_obj1[0]]
+        edges_2 = [vertices_obj2[(i + 1) % len(vertices_obj2)] - vertices_obj2[i] for i in range(len(vertices_obj2))] if len(vertices_obj2) > 2 else [vertices_obj2[1] - vertices_obj2[0]]
 
         # all edges
         edges = edges_1 + edges_2
