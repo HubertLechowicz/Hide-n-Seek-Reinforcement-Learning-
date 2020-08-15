@@ -166,7 +166,7 @@ class Player(pygame.sprite.Sprite):
         -------
             None
         """
-        self.direction += self.velocity * turn *5
+        self.direction += self.velocity * turn 
 
         self.direction = self.direction % (2 * math.pi) # base 2PI, because it's circle
 
@@ -264,13 +264,24 @@ class Player(pygame.sprite.Sprite):
 
         for angle in np.linspace(0,self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi)*0.33),endpoint=True):
             self.ray_point = Point.triangle_unit_circle_relative(angle,self.vision_points['center'],self.vision_points['left'])
-            pygame.draw.line(display, (5, 85, 55), (self.pos.x, self.pos.y),(self.ray_point.x, self.ray_point.y))
+            # pygame.draw.line(display, (5, 85, 55), (self.pos.x, self.pos.y),(self.ray_point.x, self.ray_point.y))
             self.ray_points.append(self.ray_point)
-
+        temp_ray_points = []
         for vertex in self.ray_points:
-            line_segment = [vertex,self.pos]
-            for wall in local_env['walls']:
-                Collision.sat(line_segment,wall.get_abs_vertices())
+            temp_ray_points.append(vertex)
+            line_segment = [self.pos,vertex]  # first must me the center point
+            try:
+                for wall in local_env['walls']:
+                    if Collision.sat(line_segment,wall.get_abs_vertices()):
+                        point = Collision.line_with_polygon(line_segment,wall.get_abs_vertices())
+                        if point is None:
+                            continue
+                        temp_ray_points[-1] = point
+            except ZeroDivisionError:
+                temp_ray_points = temp_ray_points[:-1]
+        for vertex in temp_ray_points:
+            pygame.draw.line(display, (5, 85, 55), (self.pos.x, self.pos.y), (vertex.x, vertex.y))
+
 
 
         # print(Point.triangle_unit_circle_relative())
