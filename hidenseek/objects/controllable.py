@@ -104,7 +104,7 @@ class Player(pygame.sprite.Sprite):
         self.wall_timer = WALL_TIMER
         
         self.vision = None
-        self.vision_top None
+        self.vision_top = None
         self.ray_objects = None
         self.vision_rad = math.pi
         
