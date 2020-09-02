@@ -1,10 +1,11 @@
 import pygame
-
+import math
 from objects.controllable import Hiding, Seeker
 from objects.fixed import Wall
 from ext.supportive import Point, Collision
 
 from ext.loggers import LOGGING_DASHES, logger_engine
+
 
 class HideNSeek(object):
     """
@@ -122,16 +123,21 @@ class HideNSeek(object):
         -------
             None
         """
+        init_local_env = {
+            'walls': [],
+            'enemy': None,
+        }
+
         logger_engine.info("Initializing Environment Objects")
         logger_engine.info("\tSeeker Agent")
         self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
         logger_engine.info("\tSeeker Vision")
-        self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
-
+        self.player_seek.update_vision(self.screen, init_local_env)
+        
         logger_engine.info("\tHiding Agent")
         self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio, (.7, .7), (255, 0, 0), self.width, self.height, 5)
         logger_engine.info("\tHiding Vision")
-        self.player_hide.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1)
+        self.player_hide.update_vision(self.screen, init_local_env)
 
         logger_engine.info("\tAgents Sprite Group")
         self.players_group = pygame.sprite.Group()
@@ -140,7 +146,7 @@ class HideNSeek(object):
 
         logger_engine.info("\tWalls Sprite Group")
         self.walls_group = pygame.sprite.Group()
-    
+
     def reset(self):
         """
         Resets the environment by running init() function
@@ -219,11 +225,11 @@ class HideNSeek(object):
 
         logger_engine.debug("\tCalculating new Local Environments")
         player_seek_env = {
-            'walls': self.walls_in_radius(self.player_seek.vision),
+            'walls': self.walls_in_local_env(self.player_seek.vision, self.player_seek.ray_objects, multi=True),
             'enemy': self.player_hide if Collision.circle_with_rect(self.player_seek.vision, self.player_hide.rect) else None,
         }
         player_hide_env = {
-            'walls': self.walls_in_radius(self.player_hide.vision),
+            'walls': self.walls_in_local_env(self.player_hide.vision, self.player_hide.ray_objects, multi=True),
             'enemy': self.player_seek if Collision.circle_with_rect(self.player_hide.vision, self.player_seek.rect) else None,
         }
 
@@ -232,24 +238,26 @@ class HideNSeek(object):
         self.player_hide.update(player_hide_env, self.walls_group)
 
         logger_engine.debug("\tUpdating vision")
-        self.player_hide.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_hide.pos.x), int(self.player_hide.pos.y)), 5 + self.player_hide.width, 1)
-        self.player_seek.vision = pygame.draw.circle(self.screen, (0, 255, 255), (int(self.player_seek.pos.x), int(self.player_seek.pos.y)), 5 + self.player_seek.width, 1)
+        self.player_seek.update_vision(self.screen, player_seek_env)
+        self.player_hide.update_vision(self.screen, player_hide_env)
 
         logger_engine.info("\tDrawing frame")
         self.walls_group.draw(self.screen)
-        self.players_group.draw(self.screen)
 
+        self.players_group.draw(self.screen)
         self.duration -= seconds_per_frame
         logger_engine.info(f"\tLeft: {round(self.duration, 4)} seconds")
 
-    def walls_in_radius(self, circle):
+    def walls_in_local_env(self, circle, vertices, multi=False):
         """
-        Setups game environment, which consists of creating display & initializing pygame.time.Clock object
+        Checks if hidenseek.objects.fixed.Wall is in Agent Local Environment
 
         Parameters
         ----------
             circle : pygame.Rect
                 circle in which walls should be found
+            vertices : list of tuples
+                list of Agent POV vertices
 
         Returns
         -------
@@ -260,7 +268,12 @@ class HideNSeek(object):
         in_radius = []
 
         for wall in self.walls_group:
-            if Collision.circle_with_rect(circle, wall.rect):
-                in_radius.append(wall)
-
+            if multi:
+                for vertices_obj in vertices:
+                    if Collision.circle_with_rect(circle, wall.rect) and Collision.sat(wall.get_abs_vertices(), vertices_obj):
+                        in_radius.append(wall)
+            else:
+                if Collision.circle_with_rect(circle, wall.rect) and Collision.sat(wall.get_abs_vertices(), vertices):
+                    in_radius.append(wall)
+        
         return in_radius

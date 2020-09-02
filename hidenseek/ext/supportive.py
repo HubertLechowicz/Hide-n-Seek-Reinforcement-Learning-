@@ -1,5 +1,7 @@
 import pygame
 import math
+import tripy
+
 
 class Point():
     """
@@ -109,6 +111,8 @@ class Point():
 
     def __str__(self):
         return "Point( " + str(self.x) + ' , ' + str(self.y) + ' )'
+    def __repr__(self):
+        return self.__str__()
 
     def round(self, n=0):
         """
@@ -142,6 +146,71 @@ class Point():
         """
 
         return (self.y, -self.x)
+
+    @staticmethod
+    def triangle_unit_circle(radians, **kwargs):
+        """
+        Calculates relocation/movement in absolute coordinate system (display) based on radians
+
+        Parameters
+        ----------
+            radians : float
+                Movement angle in radians
+            side_size : float
+                Width or Height value, depending on the axes (x = width, y = height), optional
+            velocity : float
+                Based on FPS value, increases/lowers movement, optional
+            speed : float
+                Based on Agent Speed Ratio, increases/lowers movement, optional
+
+        Returns
+        -------
+            Point : hidenseek.ext.supportive.Point
+                Relocation/movement in absolute coordinate system
+        """
+
+        x = math.cos(radians)
+        y = math.sin(radians)
+
+        if 'side_size' in kwargs:
+            x *= kwargs['side_size']
+            y *= kwargs['side_size']
+        if 'velocity' in kwargs:
+            x *= kwargs['velocity']
+            y *= kwargs['velocity']
+        if 'speed' in kwargs:
+            x *= kwargs['speed']
+            y *= kwargs['speed']
+
+        return Point((x, y))
+
+    @staticmethod
+    def triangle_unit_circle_relative(radians, center, target):
+        """
+        Calculates relocation/movement in relative coordinate system (i.e. Rectangle) based on radians
+
+        Parameters
+        ----------
+            radians : float
+                Movement angle in radians
+            center : Point
+                Center of the Relative Object (i.e. Rectangle)
+            target : Point
+                Target Point moving around the center
+
+        Returns
+        -------
+            Point : hidenseek.ext.supportive.Point
+                Relocation/movement in relative coordinate system
+        """
+
+        dist_axes = target - center
+
+        x = center.x + math.cos(radians) * dist_axes.x - math.sin(radians) * dist_axes.y
+        y = center.y + math.sin(radians) * dist_axes.x + math.cos(radians) * dist_axes.y
+
+        return Point((x, y))
+
 
 class Collision:
     """
@@ -284,6 +353,23 @@ class Collision:
         return [min(dots), max(dots)]
 
     @staticmethod
+    def get_polygon_edges(vertices):
+        """
+        Makes edges from polygon verticies
+
+        Parameters
+        ----------
+            vertices_: list
+                list of vertices objects (hidenseek.ext.supportive.Point)
+        Returns
+        -------
+            edges : list
+                returns list of edges (hidenseek.ext.supportive.Point)
+        """
+        return [vertices[(i + 1) % len(vertices)] - vertices[i] for i in
+                   range(len(vertices))] if len(vertices) > 2 else [vertices[1] - vertices[0]]
+
+    @staticmethod
     def sat(vertices_obj1, vertices_obj2):
         """ 
         Checks if 2 objects collide by using Separating Axis Theorem
@@ -301,8 +387,8 @@ class Collision:
                 returns if objects collide
         """
         # edges function
-        edges_1 = [vertices_obj1[(i + 1) % len(vertices_obj1)] - vertices_obj1[i] for i in range(len(vertices_obj1))]
-        edges_2 = [vertices_obj2[(i + 1) % len(vertices_obj2)] - vertices_obj2[i] for i in range(len(vertices_obj2))]
+        edges_1 = Collision.get_polygon_edges(vertices_obj1)
+        edges_2 = Collision.get_polygon_edges(vertices_obj2)
 
         # all edges
         edges = edges_1 + edges_2
@@ -310,6 +396,7 @@ class Collision:
         # axes
         axes = [Collision.normalize_point_tuple(edge.orthogonally()) for edge in edges]
         for axis in axes:
+
             projection_1 = Collision.sat_project_to_axis(vertices_obj1, axis)
             projection_2 = Collision.sat_project_to_axis(vertices_obj2, axis)
 
@@ -317,3 +404,58 @@ class Collision:
                 return False
 
         return True
+
+    @staticmethod
+    def line_with_polygon(line,vertices):
+        """
+        Checks for collision between line and polygon, returns closest intersection Point.
+
+        Parameters
+        ----------
+            line: list
+                list of vertices objects of lenghth 2 (hidenseek.ext.supportive.Point)
+            vertices_: list
+                list of vertices objects (hidenseek.ext.supportive.Point)
+        Returns
+        -------
+            point : Point
+                returns closest intersection Point (hidenseek.ext.supportive.Point)
+        """
+        # https://ncase.me/sight-and-light/
+
+        if len(line) != 2:
+            raise ValueError(f'Line argument should consist of exactly 2 points, found {len(line)}')
+
+        v = Collision.get_polygon_edges(line)[0]
+        r = line[0] # srodek??
+        r_direction = math.sqrt(v.x * v.x + v.y * v.y)
+        min_t_x = None
+        edges = Collision.get_polygon_edges(vertices)
+        for vertex,edge in zip(vertices,edges):
+            edge_direction = math.sqrt(edge.x * edge.x + edge.y * edge.y)
+            if v.x / r_direction == edge.x / edge_direction and v.y / r_direction == edge.y / edge_direction:
+                continue
+                # directions are the same, check other edge
+            t_y = (v.x * (vertex.y - r.y) + v.y * (r.x - vertex.x)) / (edge.x * v.y - edge.y * v.x)
+            t_x = (vertex.x + edge.x * t_y - r.x) / v.x
+            if t_x < 0 or t_y < 0 or t_y > 1:
+                continue
+                # If they aren't, then the supposed intersection is not on the ray/segment, and there is no intersection after all.
+
+            if min_t_x is None or min_t_x > t_x:
+                min_t_x = t_x
+                # smallest t_x is the closest intersection
+
+        if min_t_x is None:
+            return None
+
+        return Point((r.x + v.x * min_t_x,r.y+v.y+min_t_x))
+
+    @staticmethod
+    def triangulate_polygon(points):
+        points_naive = [(p.x, p.y) for p in points]
+        triangles = tripy.earclip(points_naive)
+
+        triangles = [[Point((x, y)) for x, y in triangle_naive] for triangle_naive in triangles]
+        
+        return triangles

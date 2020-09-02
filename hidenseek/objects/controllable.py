@@ -4,8 +4,9 @@ from objects.fixed import Wall
 import copy
 import random
 import json
-
+import math
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
+import numpy as np
 
 WALL_TIMER = 5
 
@@ -34,7 +35,8 @@ class Player(pygame.sprite.Sprite):
             cooldown (in seconds) for any wall-specific action
         vision : pygame.Rect
             Player POV
-            TODO: Probably will be standalone Object after implementing proper POV
+        ray_objects : list of Objects (3-el or 4-el list of Point or)
+            Player Ray POV
         image_index : int
             determines which image should be drawn
         images : list of pygame.Surface
@@ -99,10 +101,16 @@ class Player(pygame.sprite.Sprite):
 
         self.speed = speed # speed ratio for player
         self.velocity = 0
-        self.vision = None
         self.wall_timer = WALL_TIMER
-
+        
+        self.vision = None
+        self.vision_top None
+        self.ray_objects = None
+        self.vision_rad = math.pi
+        
         self.image_index = 0
+        self.direction = 0  # radians from which vision_rad is added/substracted
+
         ############### SQUARE SPRITE ###############
         # image_inplace = pygame.Surface((width, height))
         # image_inplace.fill(color)
@@ -114,7 +122,7 @@ class Player(pygame.sprite.Sprite):
         ############### SQUARE SPRITE ###############
 
         ############### POLYGON SPRITE ##############
-        self.polygon_points = [(width / 2, 0), (width, .27 * height), (width, .73 * height), (width / 2, height), (0, .73 * height), (0, .27 * height)]
+        self.polygon_points = [(width / 2, 5), (width - 5, .27 * height), (width - 5, .73 * height), (width / 2, height - 5), (5, .73 * height), (5, .27 * height)]
         image_inplace = pygame.Surface((width, height))
         image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, color, self.polygon_points)
@@ -137,42 +145,34 @@ class Player(pygame.sprite.Sprite):
                 'type': 'NOOP', # do nothing
             },
             {
-                'type': 'movement',
-                'content': Point((-1, -1))
+                'type': 'movement'
             },
             {
-                'type': 'movement',
-                'content': Point((-1, 0))
+                'type': 'rotation',
+                'content': -1
             },
             {
-                'type': 'movement',
-                'content': Point((-1, 1))
-            },
-            {
-                'type': 'movement',
-                'content': Point((0, -1))
-            },
-            {
-                'type': 'movement',
-                'content': Point((0, 0))
-            },
-            {
-                'type': 'movement',
-                'content': Point((0, 1))
-            },
-            {
-                'type': 'movement',
-                'content': Point((1, -1))
-            },
-            {
-                'type': 'movement',
-                'content': Point((1, 0))
-            },
-            {
-                'type': 'movement',
-                'content': Point((1, 1))
+                'type': 'rotation',
+                'content': 1
             },
         ]
+
+    def rotate(self, turn):
+        """
+        Rotates the object, accrodingly to the value, along it's axis.
+
+        Parameters
+        ----------
+            turn : int, [-1,1]
+                in which direction should agent rotate (clockwise or counterclockwise)
+
+        Returns
+        -------
+            None
+        """
+        self.direction += self.velocity * turn
+
+        self.direction = self.direction % (2 * math.pi) # base 2PI, because it's circle
 
     def get_abs_vertices(self):
         """
@@ -192,7 +192,7 @@ class Player(pygame.sprite.Sprite):
 
     def move_action(self, new_pos):
         """
-        Algorithm which moves the Player object to given position, if not outside map (game screen)
+        Algorithm which moves the Player object to given direction, if not outside map (game screen)
 
         Parameters
         ----------
@@ -203,6 +203,7 @@ class Player(pygame.sprite.Sprite):
         -------
             None
         """
+
         old_pos = copy.deepcopy(self.pos)
         self.pos = new_pos
 
@@ -228,18 +229,79 @@ class Player(pygame.sprite.Sprite):
             self.image_index = 0
 
         self.image = self.images[self.image_index]
+    
+    def update_vision(self, display,local_env):
+        """
+        Updates Agent Vision
 
-    def take_action(self, local_env, walls_group):
+        Parameters
+        ----------
+
+            display : pygame.display
+                Game Display (Window)
+
+            local_env : dict
+                contains Player Local Environment
+        
+        Returns
+        -------
+            None
         """
-        Not implemented in Parent Class
-        """
-        raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
+
+        self.vision = pygame.draw.arc(display, (0, 255, 255), self.rect.inflate(self.height, self.width), -self.direction - self.vision_rad / 2, -self.direction + self.vision_rad / 2, 1)
+        new_point = Point.triangle_unit_circle(self.direction, side_size=self.width)
+        self.vision_top = self.pos + new_point
+    
+        self.ray_points = []
+        for angle in np.linspace(0,self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True):
+            self.ray_point = Point.triangle_unit_circle_relative(angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width))
+            self.ray_points.append(self.ray_point)
+
+        temp_ray_points = []
+        for vertex in self.ray_points:
+            temp_ray_points.append(vertex)
+            line_segment = [self.pos, vertex]  # first must me the center point
+            try:
+                for wall in local_env['walls']:
+                    if Collision.sat(line_segment, wall.get_abs_vertices()):
+                        point = Collision.line_with_polygon(line_segment, wall.get_abs_vertices())
+                        if point is None:
+                            continue
+                        temp_ray_points[-1] = point
+            except ZeroDivisionError:
+                temp_ray_points = temp_ray_points[:-1]
+
+            try:
+                if local_env['enemy'] is not None:
+                    if Collision.sat(line_segment, local_env['enemy'].get_abs_vertices()):
+                        point = Collision.line_with_polygon(line_segment, local_env['enemy'].get_abs_vertices())
+                        if point is None:
+                            continue
+                        temp_ray_points[-1] = point
+            except ZeroDivisionError:
+                temp_ray_points = temp_ray_points[:-1]
+
+        self.ray_objects = Collision.triangulate_polygon(temp_ray_points)
+
+        for obj in self.ray_objects:
+            for i in range(len(obj)):
+                start = (obj[i].x, obj[i].y)
+                end = (obj[(i + 1) % 3].x, obj[(i + 1) % 3].y)
+                pygame.draw.line(display, (255, 85, 55), start, end)
+
+        self.ray_objects.append([
+            Point((self.rect.topleft)),
+            Point((self.rect.topright)),
+            Point((self.rect.bottomright)),
+            Point((self.rect.bottomleft)),
+        ])
 
     def update(self, local_env, walls_group):
         """
         Not implemented in Parent Class
         """
         raise NotImplementedError("This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
+
 
 class Hiding(Player):
     """
@@ -335,35 +397,15 @@ class Hiding(Player):
         self.actions += [
             {
                 'type': 'add_wall',
-                'content': 1, # up
-            },
-            {
-                'type': 'add_wall',
-                'content': 2, # right
-            },
-            {
-                'type': 'add_wall',
-                'content': 3, # down
-            },
-            {
-                'type': 'add_wall',
-                'content': 4, # left
-            },
+            }
         ]
 
-    def add_wall(self, direction, walls_group, enemy):
+    def add_wall(self, walls_group, enemy):
         """
         Creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
 
         Parameters
         ----------
-            direction : int
-                it determines in which direction Wall should be created
-                1 - UP
-                2 - RIGHT
-                3 - DOWN
-                4 - LEFT
-                TODO: Once Agent POV done - DELETE
             walls_group : list of hidenseek.objects.fixes.Wall
                 contains all walls in the area
                 TODO: Once Agent POV done - REPLACE WITH local_env['walls']
@@ -378,33 +420,16 @@ class Hiding(Player):
         logger_hiding.info("Checking if it's possible to create new wall")
         if self.walls_counter < self. walls_max:
             logger_hiding.info(f"\tAdding Wall #{self.walls_counter + 1}")
-            wall_pos = copy.deepcopy(self.pos)
-            wall_width = 15
+            wall_pos = copy.deepcopy(self.vision_top)
+            wall_width = 25
             wall_height = 50
 
-            DIST = 10
-
-            if direction == 1:
-                wall_width = 50
-                wall_height = 15
-                wall_pos.y = self.pos.y - self.height / 2 - wall_height / 2 - DIST
-            elif direction == 2:
-                wall_pos.x = self.pos.x + self.width / 2 + wall_width / 2 + DIST
-            elif direction == 3:
-                wall_width = 50
-                wall_height = 15
-                wall_pos.y = self.pos.y + self.height / 2 + wall_height / 2 + DIST
-            elif direction == 4:
-                wall_pos.x = self.pos.x - self.width / 2 - wall_width / 2 - DIST
-            else:
-                raise ValueError(f"Can't create Wall. Given direction is unknown. 1 - UP, 2 - RIGHT, 3 - DOWN, 4 - LEFT")
-            
             wall = Wall(self, wall_width, wall_height, wall_pos.x, wall_pos.y)
             logger_hiding.info(f"\t\tSize: {wall_width}x{wall_height}")
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
+            wall.rotate(self.direction, wall_pos)
 
             can_create = True
-
             for _wall in walls_group:
                 if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
                     if Collision.sat(wall.get_abs_vertices(), _wall.get_abs_vertices()):
@@ -448,12 +473,17 @@ class Hiding(Player):
         self.wall_timer = max(self.wall_timer, 0.) # for negative it's 0, for positive - higher than 0
 
         if new_action['type'] == 'NOOP':
-           logger_hiding.info("NOOP! NOOP!")
+            self.image_index = 0
+            self.image = self.images[self.image_index]
+            logger_hiding.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            logger_hiding.info(f"Moving to {new_action['content']}")
+            x = math.cos(self.direction) * self.velocity * self.speed
+            y = math.sin(self.direction) * self.velocity * self.speed
             old_pos = copy.deepcopy(self.pos)
-            new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
-            logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+            new_pos = self.pos + Point((x,y))
+            logger_hiding.info(f"Moving to {new_pos}")
+
+            logger_hiding.info(f"\tChecking collisions with other Objects")
 
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
@@ -462,16 +492,20 @@ class Hiding(Player):
                         logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
                         self.move_action(old_pos)
                         return
+
             self.move_action(new_pos)
+        elif new_action['type'] == 'rotation':
+            self.rotate(new_action['content'])
         elif new_action['type'] == 'add_wall':
             if not self.wall_timer: # if no cooldown
-                self.add_wall(new_action['content'], walls_group, local_env['enemy'])
+                self.add_wall(walls_group, local_env['enemy'])
                 self.wall_timer = WALL_TIMER
             else:
                 logger_hiding.info(f"\tCouldn't add wall. Cooldown: {round(self.wall_timer)}")
 
     def __str__(self):
         return "[Hiding Agent]"
+
 
 class Seeker(Player):
     """
@@ -520,6 +554,7 @@ class Seeker(Player):
         update(local_env, walls_group):
             takes and performs the action
     """
+    
     def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
         """
         Constructs all neccesary attributes for the Seeker Object
@@ -608,21 +643,30 @@ class Seeker(Player):
         self.wall_timer = max(self.wall_timer, 0.) # for negative it's 0, for positive - higher than 0
 
         if new_action['type'] == 'NOOP':
+            self.image_index = 0
+            self.image = self.images[self.image_index]
             logger_seeker.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            logger_hiding.info(f"Moving to {new_action['content']}")
+            x = math.cos(self.direction) * self.velocity * self.speed
+            y = math.sin(self.direction) * self.velocity * self.speed
             old_pos = copy.deepcopy(self.pos)
-            new_pos = (self.pos + self.velocity * new_action['content'] * self.speed).round(4)
-            logger_hiding.info(f"\tNew Position {new_pos}, checking collisions with other Objects")
+            new_pos = self.pos + Point((x,y))
+            logger_seeker.info(f"Moving to {new_pos}")
+
+            logger_seeker.info(f"\tChecking collisions with other Objects")
 
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
                     self.move_action(new_pos)
                     if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                        logger_hiding.info("\tCollision with some Wall! Not moving anywhere")
+                        logger_seeker.info("\tCollision with some Wall! Not moving anywhere")
                         self.move_action(old_pos)
                         return
+
             self.move_action(new_pos)
+        elif new_action['type'] == 'rotation':
+            self.rotate(new_action['content'])
+
         elif new_action['type'] == 'remove_wall':
             
             if local_env['walls']:
