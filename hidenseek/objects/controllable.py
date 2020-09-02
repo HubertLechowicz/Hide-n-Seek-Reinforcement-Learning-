@@ -31,7 +31,8 @@ class Player(pygame.sprite.Sprite):
             velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
         vision : pygame.Rect
             Player POV
-            TODO: Probably will be standalone Object after implementing proper POV
+        ray_objects : list of Objects (3-el or 4-el list of Point or)
+            Player Ray POV
         image_index : int
             determines which image should be drawn
         images : list of pygame.Surface
@@ -103,6 +104,7 @@ class Player(pygame.sprite.Sprite):
             'right': None,
             'center': None,
         }
+        self.ray_objects = None
         self.vision_rad = math.pi
         self.image_index = 0
         self.direction = 0  # radians from which vision_rad is added/substracted
@@ -118,14 +120,16 @@ class Player(pygame.sprite.Sprite):
         ############### SQUARE SPRITE ###############
 
         ############### POLYGON SPRITE ##############
-        self.polygon_points = [(width / 2, 0), (width, .27 * height), (width, .73 * height), (width / 2, height), (0, .73 * height), (0, .27 * height)]
+        self.polygon_points = [(width / 2, 5), (width - 5, .27 * height), (width - 5, .73 * height), (width / 2, height - 5), (5, .73 * height), (5, .27 * height)]
         image_inplace = pygame.Surface((width, height))
         image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, color, self.polygon_points)
+        pygame.draw.rect(image_inplace, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
 
         image_movement = pygame.Surface((width, height))
         image_movement.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_movement, color_anim, self.polygon_points)
+        pygame.draw.rect(image_movement, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
         ############### POLYGON SPRITE ##############
 
         self.images = [image_inplace] + [image_movement for _ in range(10)] # animations
@@ -243,28 +247,12 @@ class Player(pygame.sprite.Sprite):
         """
 
         self.vision = pygame.draw.arc(display, (0, 255, 255), self.rect.inflate(self.height, self.width), -self.direction - self.vision_rad / 2, -self.direction + self.vision_rad / 2, 1)
-
         new_point = Point.triangle_unit_circle(self.direction, side_size=self.width)
-        self.vision_points['top'] = self.pos + new_point
-
-        new_point = Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width)
-        self.vision_points['left'] = self.pos + new_point
-
-        new_point = Point.triangle_unit_circle(self.direction + self.vision_rad / 2, side_size=self.width)
-        self.vision_points['right'] = self.pos + new_point
-
-        self.vision_points['center'] = self.pos
-
-        pygame.draw.line(display, (255, 0, 0), (self.pos.x, self.pos.y), (self.vision_points['top'].x, self.vision_points['top'].y))
-        pygame.draw.line(display, (0, 255, 255), (self.pos.x, self.pos.y), (self.vision_points['left'].x, self.vision_points['left'].y))
-        pygame.draw.line(display, (0, 255, 255), (self.pos.x, self.pos.y), (self.vision_points['right'].x, self.vision_points['right'].y))
+        self.vision_top = self.pos + new_point
+    
         self.ray_points = []
-
-
-        for angle in np.linspace(0,self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi)*0.10),endpoint=True):
-
-            self.ray_point = Point.triangle_unit_circle_relative(angle,self.vision_points['center'],self.vision_points['left'])
-            # pygame.draw.line(display, (5, 85, 55), (self.pos.x, self.pos.y),(self.ray_point.x, self.ray_point.y))
+        for angle in np.linspace(0,self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True):
+            self.ray_point = Point.triangle_unit_circle_relative(angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width))
             self.ray_points.append(self.ray_point)
 
         temp_ray_points = []
@@ -291,8 +279,20 @@ class Player(pygame.sprite.Sprite):
             except ZeroDivisionError:
                 temp_ray_points = temp_ray_points[:-1]
 
-        for vertex in temp_ray_points:
-            pygame.draw.line(display, (255, 85, 55), (self.pos.x, self.pos.y), (vertex.x, vertex.y))
+        self.ray_objects = Collision.triangulate_polygon(temp_ray_points)
+
+        for obj in self.ray_objects:
+            for i in range(len(obj)):
+                start = (obj[i].x, obj[i].y)
+                end = (obj[(i + 1) % 3].x, obj[(i + 1) % 3].y)
+                pygame.draw.line(display, (255, 85, 55), start, end)
+
+        self.ray_objects.append([
+            Point((self.rect.topleft)),
+            Point((self.rect.topright)),
+            Point((self.rect.bottomright)),
+            Point((self.rect.bottomleft)),
+        ])
 
     def update(self, local_env, walls_group):
         """
@@ -418,7 +418,7 @@ class Hiding(Player):
         logger_hiding.info("Checking if it's possible to create new wall")
         if self.walls_counter < self. walls_max:
             logger_hiding.info(f"\tAdding Wall #{self.walls_counter + 1}")
-            wall_pos = copy.deepcopy(self.vision_points['top'])
+            wall_pos = copy.deepcopy(self.vision_top)
             wall_width = 25
             wall_height = 50
 

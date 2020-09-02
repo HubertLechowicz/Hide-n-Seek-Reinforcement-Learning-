@@ -9,6 +9,7 @@ verify_ssl = true
 pygame = "*"
 hidenseek = {editable = true,path = "."}
 numpy = "*"
+tripy = "*"
 
 [requires]
 python_version = "3.8"

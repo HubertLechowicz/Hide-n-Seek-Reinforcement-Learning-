@@ -1,5 +1,7 @@
 import pygame
 import math
+import tripy
+
 
 class Point():
     """
@@ -350,7 +352,6 @@ class Collision:
         dots = [vertex.x * axis[0] + vertex.y * axis[1] for vertex in vertices]
         return [min(dots), max(dots)]
 
-
     @staticmethod
     def get_polygon_edges(vertices):
         """
@@ -449,3 +450,12 @@ class Collision:
             return None
 
         return Point((r.x + v.x * min_t_x,r.y+v.y+min_t_x))
+
+    @staticmethod
+    def triangulate_polygon(points):
+        points_naive = [(p.x, p.y) for p in points]
+        triangles = tripy.earclip(points_naive)
+
+        triangles = [[Point((x, y)) for x, y in triangle_naive] for triangle_naive in triangles]
+        
+        return triangles
