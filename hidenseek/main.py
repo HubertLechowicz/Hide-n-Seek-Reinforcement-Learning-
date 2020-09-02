@@ -21,7 +21,7 @@ if __name__ == "__main__":
     game_width = 512
     game_height = 512
 
-    game = HideNSeek(width=game_width, height=game_height, fps=fps, speed_ratio=players_speed_ratio)
+    game = HideNSeek(width=game_width, height=game_height, fps=fps, speed_ratio=players_speed_ratio, duration=60)
     game.setup()
     game.init()
 
