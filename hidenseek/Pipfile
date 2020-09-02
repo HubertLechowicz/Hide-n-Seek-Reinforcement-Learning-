@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 pygame = "*"
 hidenseek = {editable = true,path = "."}
+numpy = "*"
 
 [requires]
 python_version = "3.8"

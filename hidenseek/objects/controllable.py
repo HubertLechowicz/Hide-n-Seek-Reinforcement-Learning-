@@ -6,7 +6,7 @@ import random
 import json
 import math
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
-
+import numpy as np
 
 class Player(pygame.sprite.Sprite):
     """
@@ -122,12 +122,10 @@ class Player(pygame.sprite.Sprite):
         image_inplace = pygame.Surface((width, height))
         image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, color, self.polygon_points)
-        pygame.draw.rect(image_inplace, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
 
         image_movement = pygame.Surface((width, height))
         image_movement.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_movement, color_anim, self.polygon_points)
-        pygame.draw.rect(image_movement, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
         ############### POLYGON SPRITE ##############
 
         self.images = [image_inplace] + [image_movement for _ in range(10)] # animations
@@ -167,6 +165,7 @@ class Player(pygame.sprite.Sprite):
             None
         """
         self.direction += self.velocity * turn
+
         self.direction = self.direction % (2 * math.pi) # base 2PI, because it's circle
 
     def get_abs_vertices(self):
@@ -225,16 +224,18 @@ class Player(pygame.sprite.Sprite):
 
         self.image = self.images[self.image_index]
     
-    def update_vision(self, display):
+    def update_vision(self, display,local_env):
         """
         Updates Agent Vision
 
         Parameters
         ----------
+
             display : pygame.display
                 Game Display (Window)
-            triangle_unit_circle : hidenseek.ext.engine.triangle_unit_circle(radians, **kwargs)
-                Function used to calculate movement/relocation in Triangle Unit Circle based on given Radians
+
+            local_env : dict
+                contains Player Local Environment
         
         Returns
         -------
@@ -257,6 +258,41 @@ class Player(pygame.sprite.Sprite):
         pygame.draw.line(display, (255, 0, 0), (self.pos.x, self.pos.y), (self.vision_points['top'].x, self.vision_points['top'].y))
         pygame.draw.line(display, (0, 255, 255), (self.pos.x, self.pos.y), (self.vision_points['left'].x, self.vision_points['left'].y))
         pygame.draw.line(display, (0, 255, 255), (self.pos.x, self.pos.y), (self.vision_points['right'].x, self.vision_points['right'].y))
+        self.ray_points = []
+
+
+        for angle in np.linspace(0,self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi)*0.10),endpoint=True):
+
+            self.ray_point = Point.triangle_unit_circle_relative(angle,self.vision_points['center'],self.vision_points['left'])
+            # pygame.draw.line(display, (5, 85, 55), (self.pos.x, self.pos.y),(self.ray_point.x, self.ray_point.y))
+            self.ray_points.append(self.ray_point)
+
+        temp_ray_points = []
+        for vertex in self.ray_points:
+            temp_ray_points.append(vertex)
+            line_segment = [self.pos, vertex]  # first must me the center point
+            try:
+                for wall in local_env['walls']:
+                    if Collision.sat(line_segment, wall.get_abs_vertices()):
+                        point = Collision.line_with_polygon(line_segment, wall.get_abs_vertices())
+                        if point is None:
+                            continue
+                        temp_ray_points[-1] = point
+            except ZeroDivisionError:
+                temp_ray_points = temp_ray_points[:-1]
+
+            try:
+                if local_env['enemy'] is not None:
+                    if Collision.sat(line_segment, local_env['enemy'].get_abs_vertices()):
+                        point = Collision.line_with_polygon(line_segment, local_env['enemy'].get_abs_vertices())
+                        if point is None:
+                            continue
+                        temp_ray_points[-1] = point
+            except ZeroDivisionError:
+                temp_ray_points = temp_ray_points[:-1]
+
+        for vertex in temp_ray_points:
+            pygame.draw.line(display, (255, 85, 55), (self.pos.x, self.pos.y), (vertex.x, vertex.y))
 
     def update(self, local_env, walls_group):
         """
