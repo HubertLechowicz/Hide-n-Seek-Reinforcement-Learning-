@@ -26,11 +26,13 @@ class HideNSeek(object):
         dt : float
             time per frame (in miliseconds)
         duration : float
-            gameplay maximum duration, if no other game over event
-        p_hide_speed_ratio : float
-            movement speed ratio for Hiding Agent
-        p_seek_speed_ratio : float
-            movement speed ratio for Seeker Agent
+            gameplay maximum duration (in seconds), if no other game over event
+        p_hide_cfg : configparser Object
+            config for Hiding Agent
+        p_seek_cfg : configparser Object
+            config for Seeker Agent
+        p_wall_cfg : configparser Object
+            config for Wall Object
         player_seek : hidenseek.objects.controllable.Seeker
             instance of Seeker Agent
         player_hide : hidenseek.objects.controllable.Hiding
@@ -56,40 +58,31 @@ class HideNSeek(object):
             check if any of Wall objects (hidenseek.objects.fixed.Wall) collides with circle
     """
 
-    def __init__(self, width, height, fps, speed_ratio, duration):
+    def __init__(self, config):
         """
         Constructs all neccesary attributes for the HideNSeek Object
 
         Parameters
         ----------
-            width : int
-                width of the game window
-            height : int
-                height of the game window
-            fps : int
-                amount of fps you want to lock on
-            speed_ratio : dict
-                movement speed ratio for Agents, expects { 'p_hide': float, 'p_seek': float }
-            duration : int
-                gameplay maximum duration, if no other game over event
+            config : configparser Object
+                contains config file in configparser (dict-like) Object
         """
 
-        self.width = width
-        self.height = height
-        self.fps = fps
+        self.width = config['VIDEO'].getint('WIDTH', fallback=512)
+        self.height = config['VIDEO'].getint('HEIGHT', fallback=512)
+        self.fps = config['GAME'].getint('FPS', fallback=30)
         self.clock = None
         self.screen = None
         self.dt = None
-        self.duration = duration
+        self.duration = config['GAME'].getint('DURATION', fallback=60)
         
-        self.p_hide_speed_ratio = speed_ratio['p_hide']
-        self.p_seek_speed_ratio = speed_ratio['p_seek']
+        self.wall_cfg = config['WALL']
+        self.p_hide_cfg = config['AGENT_HIDING']
+        self.p_seek_cfg = config['AGENT_SEEKER']
 
         logger_engine.info("Initializing Game Engine")
-        logger_engine.info(f"\tFPS: {fps}")
-        logger_engine.info(f"\tSpeed Ratio for Hiding Agent: {speed_ratio['p_hide']}")
-        logger_engine.info(f"\tSpeed Ratio for Seeker Agent: {speed_ratio['p_seek']}")
-        logger_engine.info(f"\tResolution: {width}x{height}")
+        logger_engine.info(f"\tFPS: {self.fps}")
+        logger_engine.info(f"\tResolution: {self.width}x{self.height}")
 
     def setup(self):
         """
@@ -130,12 +123,12 @@ class HideNSeek(object):
 
         logger_engine.info("Initializing Environment Objects")
         logger_engine.info("\tSeeker Agent")
-        self.player_seek = Seeker(50, 50, self.p_seek_speed_ratio, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
+        self.player_seek = Seeker(self.p_seek_cfg, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
         logger_engine.info("\tSeeker Vision")
         self.player_seek.update_vision(self.screen, init_local_env)
         
         logger_engine.info("\tHiding Agent")
-        self.player_hide = Hiding(50, 50, self.p_hide_speed_ratio, (.7, .7), (255, 0, 0), self.width, self.height, 5)
+        self.player_hide = Hiding(self.p_hide_cfg, (.7, .7), (255, 0, 0), self.width, self.height, self.wall_cfg)
         logger_engine.info("\tHiding Vision")
         self.player_hide.update_vision(self.screen, init_local_env)
 
@@ -180,14 +173,14 @@ class HideNSeek(object):
         """
 
         if self.duration <= 0:
-            return True
+            return True, "HIDING"
 
         if Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height)):
             logger_engine.info("Rectangle collision, checking Polygon Collision by using SAM Method.")
             if Collision.sat(self.player_seek.get_abs_vertices(), self.player_hide.get_abs_vertices()):
                 logger_engine.info("Polygon Collision! Ending the game!")
-                return True
-        return False
+                return True, "SEEKER"
+        return False, None
 
     def step(self):
         """

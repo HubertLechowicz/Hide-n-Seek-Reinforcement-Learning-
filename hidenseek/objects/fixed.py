@@ -34,7 +34,7 @@ class Wall(pygame.sprite.Sprite):
             returns absolute vertices coordinates (in game screen coordinates system)
     """
 
-    def __init__(self, owner, width, height, x, y):
+    def __init__(self, owner, cfg, x, y):
         """
         Constructs all neccesary attributes for the Wall Object
 
@@ -42,10 +42,8 @@ class Wall(pygame.sprite.Sprite):
         ----------
             owner : None, hidenseek.objects.controllable.Hiding, hidenseek.objects.controllable.Seeker
                 Wall owner, None for game environment
-            width : int
-                width of the Wall
-            height : int
-                height of the Wall
+            cfg : configparser Object
+                Wall Config
             x : float
                 center of the rectangle in 'x' axis for absolute coordinate system (game screen)
             y : float
@@ -56,19 +54,19 @@ class Wall(pygame.sprite.Sprite):
 
         self.owner = owner
 
-        self.width = width
-        self.height = height
+        self.width = cfg.getint('WIDTH', fallback=15)
+        self.height = cfg.getint('HEIGHT', fallback=15)
 
         self.pos = Point((x, y))
 
-        image = pygame.Surface((width, height))
+        image = pygame.Surface((self.width, self.height))
         image.fill((0, 0, 0, 0))
         image.set_colorkey((0, 0, 0))
 
         pygame.draw.rect(
             image,
             (0, 255, 0), # green
-            (0, 0, width, height),
+            (0, 0, self.width, self.height),
             0
         )
 

@@ -63,18 +63,14 @@ class Player(pygame.sprite.Sprite):
     """
 
     # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
-    def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
+    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
         """
         Constructs all neccesary attributes for the Player Object
 
         Parameters
         ----------
-            width : int
-                width of the Player Rectangle
-            height : int
-                height of the Player Rectangle
-            speed : float
-                speed ratio for Player movement
+            cfg : configparser Object
+                Agent Config Object
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen)
             color : tuple
@@ -90,8 +86,8 @@ class Player(pygame.sprite.Sprite):
         """
 
         super().__init__()
-        self.width = width
-        self.height = height
+        self.width = cfg.getint('WIDTH', fallback=50)
+        self.height = cfg.getint('HEIGHT', fallback=50)
 
         self.pos_init = Point((pos_ratio[0] * SCREEN_WIDTH, pos_ratio[1] * SCREEN_HEIGHT))
         self.pos = Point((pos_ratio[0] * SCREEN_WIDTH, pos_ratio[1] * SCREEN_HEIGHT))
@@ -99,7 +95,7 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
-        self.speed = speed # speed ratio for player
+        self.speed = cfg.getint('SPEED_RATIO', fallback=30)
         self.velocity = 0
         self.wall_timer = WALL_TIMER
         
@@ -122,16 +118,16 @@ class Player(pygame.sprite.Sprite):
         ############### SQUARE SPRITE ###############
 
         ############### POLYGON SPRITE ##############
-        self.polygon_points = [(width / 2, 5), (width - 5, .27 * height), (width - 5, .73 * height), (width / 2, height - 5), (5, .73 * height), (5, .27 * height)]
-        image_inplace = pygame.Surface((width, height))
+        self.polygon_points = [(self.width / 2, 5), (self.width - 5, .27 * self.height), (self.width - 5, .73 * self.height), (self.width / 2, self.height - 5), (5, .73 * self.height), (5, .27 * self.height)]
+        image_inplace = pygame.Surface((self.width, self.height))
         image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, color, self.polygon_points)
-        pygame.draw.rect(image_inplace, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
+        pygame.draw.rect(image_inplace, (255, 255, 255), pygame.Rect(0, 0, self.width, self.height), 1)
 
-        image_movement = pygame.Surface((width, height))
+        image_movement = pygame.Surface((self.width, self.height))
         image_movement.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_movement, color_anim, self.polygon_points)
-        pygame.draw.rect(image_movement, (255, 255, 255), pygame.Rect(0, 0, width, height), 1)
+        pygame.draw.rect(image_movement, (255, 255, 255), pygame.Rect(0, 0, self.width, self.height), 1)
         ############### POLYGON SPRITE ##############
 
         self.images = [image_inplace] + [image_movement for _ in range(10)] # animations
@@ -326,6 +322,8 @@ class Hiding(Player):
         vision : pygame.Rect
             Player POV
             TODO: Probably will be standalone Object after implementing proper POV
+        wall_cfg : configparser Object
+            Wall Config Object
         image_index : int
             determines which image should be drawn
         images : list of pygame.Surface
@@ -355,18 +353,14 @@ class Hiding(Player):
             takes and performs the action
     """
 
-    def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, walls_max=5):
+    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, wall_cfg):
         """
         Constructs all neccesary attributes for the Hiding Object
 
         Parameters
         ----------
-            width : int
-                width of the Player Rectangle
-            height : int
-                height of the Player Rectangle
-            speed : float
-                speed ratio for Player movement
+            cfg : configparser Object
+                Hiding Agent Config
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen)
             color : tuple
@@ -376,11 +370,11 @@ class Hiding(Player):
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
-            walls_max : int
-                maximum amount of existing hidenseek.objects.fixes.Wall objects that may be created by Hiding Player 
+            wall_cfg : configparser Object
+                Wall Config
         """
 
-        super().__init__(width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
+        super().__init__(cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         logger_hiding.info(f"{LOGGING_DASHES} Creating New Hiding Agent (probably new game) {LOGGING_DASHES} ")
         logger_hiding.info("Initializing object")
@@ -391,7 +385,8 @@ class Hiding(Player):
         logger_hiding.info(f"\tSprite for Animation: ---PLACEHOLDER---")
         
         self.walls_counter = 0
-        self.walls_max = walls_max
+        self.walls_max = cfg.getint('WALLS_MAX', fallback=5)
+        self.wall_cfg = wall_cfg
         logger_hiding.info(f"\tWalls/Max: {self.walls_counter}/{self.walls_max}")
 
         self.actions += [
@@ -424,7 +419,7 @@ class Hiding(Player):
             wall_width = 25
             wall_height = 50
 
-            wall = Wall(self, wall_width, wall_height, wall_pos.x, wall_pos.y)
+            wall = Wall(self, self.wall_cfg, wall_pos.x, wall_pos.y)
             logger_hiding.info(f"\t\tSize: {wall_width}x{wall_height}")
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
             wall.rotate(self.direction, wall_pos)
@@ -555,18 +550,14 @@ class Seeker(Player):
             takes and performs the action
     """
     
-    def __init__(self, width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
+    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
         """
         Constructs all neccesary attributes for the Seeker Object
 
         Parameters
         ----------
-            width : int
-                width of the Player Rectangle
-            height : int
-                height of the Player Rectangle
-            speed : float
-                speed ratio for Player movement
+            cfg : configparser Object
+                Seeker Agent Config
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen)
             color : tuple
@@ -581,7 +572,7 @@ class Seeker(Player):
                 TODO: ONCE USING IMAGE - DELETE THIS
         """
 
-        super().__init__(width, height, speed, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
+        super().__init__(cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
 
         logger_seeker.info(f"{LOGGING_DASHES} Creating New Seeker Agent (probably new game) {LOGGING_DASHES} ")
         logger_seeker.info("Initializing object")
