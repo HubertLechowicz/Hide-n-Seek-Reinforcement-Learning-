@@ -95,7 +95,7 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
-        self.speed = cfg.getint('SPEED_RATIO', fallback=30)
+        self.speed = cfg.getfloat('SPEED_RATIO', fallback=30.0)
         self.velocity = 0
         self.wall_timer = WALL_TIMER
         
@@ -166,7 +166,7 @@ class Player(pygame.sprite.Sprite):
         -------
             None
         """
-        self.direction += self.velocity * turn
+        self.direction += self.velocity * turn * 10
 
         self.direction = self.direction % (2 * math.pi) # base 2PI, because it's circle
 
@@ -249,11 +249,12 @@ class Player(pygame.sprite.Sprite):
         self.vision_top = self.pos + new_point
     
         self.ray_points = []
-        for angle in np.linspace(0,self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True):
+        # print(np.linspace(0, self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True))
+        for angle in np.linspace(0, self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True):
             self.ray_point = Point.triangle_unit_circle_relative(angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width))
             self.ray_points.append(self.ray_point)
 
-        temp_ray_points = []
+        temp_ray_points = [Point(self.rect.center)]
         for vertex in self.ray_points:
             temp_ray_points.append(vertex)
             line_segment = [self.pos, vertex]  # first must me the center point
@@ -277,13 +278,18 @@ class Player(pygame.sprite.Sprite):
             except ZeroDivisionError:
                 temp_ray_points = temp_ray_points[:-1]
 
+        for i in range(len(temp_ray_points)):
+            start = (temp_ray_points[i].x, temp_ray_points[i].y)
+            end = (temp_ray_points[(i + 1) % len(temp_ray_points)].x, temp_ray_points[(i + 1) % len(temp_ray_points)].y)
+            pygame.draw.line(display, (255, 0, 0), start, end)
+
         self.ray_objects = Collision.triangulate_polygon(temp_ray_points)
 
-        for obj in self.ray_objects:
-            for i in range(len(obj)):
-                start = (obj[i].x, obj[i].y)
-                end = (obj[(i + 1) % 3].x, obj[(i + 1) % 3].y)
-                pygame.draw.line(display, (255, 85, 55), start, end)
+        # for obj in self.ray_objects:
+        #     for i in range(len(obj)):
+        #         start = (obj[i].x, obj[i].y)
+        #         end = (obj[(i + 1) % 3].x, obj[(i + 1) % 3].y)
+        #         pygame.draw.line(display, (255, 85, 55), start, end)
 
         self.ray_objects.append([
             Point((self.rect.topleft)),

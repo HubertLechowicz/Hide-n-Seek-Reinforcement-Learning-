@@ -10,6 +10,7 @@ pygame = "*"
 hidenseek = {editable = true,path = "."}
 numpy = "*"
 tripy = "*"
+scikit-learn = "*"
 
 [requires]
 python_version = "3.8"

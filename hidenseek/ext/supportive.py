@@ -1,6 +1,6 @@
 import pygame
 import math
-import tripy
+from scipy.spatial import Delaunay
 
 
 class Point():
@@ -454,8 +454,9 @@ class Collision:
     @staticmethod
     def triangulate_polygon(points):
         points_naive = [(p.x, p.y) for p in points]
-        triangles = tripy.earclip(points_naive)
+        triangles = Delaunay(points_naive)
 
-        triangles = [[Point((x, y)) for x, y in triangle_naive] for triangle_naive in triangles]
+        triangles_points = triangles.points
+        triangles = [[Point(tuple(triangles_points[triangle_id])) for triangle_id in triangle_ids] for triangle_ids in triangles.simplices]
         
         return triangles

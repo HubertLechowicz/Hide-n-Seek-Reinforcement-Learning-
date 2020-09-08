@@ -230,12 +230,20 @@ class HideNSeek(object):
         self.player_seek.update(player_seek_env, self.walls_group)
         self.player_hide.update(player_hide_env, self.walls_group)
 
+        player_seek_env = {
+            'walls': self.walls_in_local_env(self.player_seek.vision, self.player_seek.ray_objects, multi=True),
+            'enemy': self.player_hide if Collision.circle_with_rect(self.player_seek.vision, self.player_hide.rect) else None,
+        }
+        player_hide_env = {
+            'walls': self.walls_in_local_env(self.player_hide.vision, self.player_hide.ray_objects, multi=True),
+            'enemy': self.player_seek if Collision.circle_with_rect(self.player_hide.vision, self.player_seek.rect) else None,
+        }
         logger_engine.debug("\tUpdating vision")
+        logger_engine.info("\tDrawing frame")
+        self.walls_group.draw(self.screen)
         self.player_seek.update_vision(self.screen, player_seek_env)
         self.player_hide.update_vision(self.screen, player_hide_env)
 
-        logger_engine.info("\tDrawing frame")
-        self.walls_group.draw(self.screen)
 
         self.players_group.draw(self.screen)
         self.duration -= seconds_per_frame
@@ -259,14 +267,16 @@ class HideNSeek(object):
         """
         
         in_radius = []
-
         for wall in self.walls_group:
             if multi:
-                for vertices_obj in vertices:
-                    if Collision.circle_with_rect(circle, wall.rect) and Collision.sat(wall.get_abs_vertices(), vertices_obj):
-                        in_radius.append(wall)
+                if Collision.circle_with_rect(circle, wall.rect):
+                    for vertices_obj in vertices:
+                        if Collision.sat(wall.get_abs_vertices(), vertices_obj):
+                            in_radius.append(wall)
+                            break
             else:
                 if Collision.circle_with_rect(circle, wall.rect) and Collision.sat(wall.get_abs_vertices(), vertices):
                     in_radius.append(wall)
+                    continue
         
         return in_radius
