@@ -1,7 +1,7 @@
 import pygame
 import math
 from scipy.spatial import Delaunay
-
+import tripy
 
 class Point():
     """
@@ -111,6 +111,7 @@ class Point():
 
     def __str__(self):
         return "Point( " + str(self.x) + ' , ' + str(self.y) + ' )'
+    
     def __repr__(self):
         return self.__str__()
 
@@ -146,6 +147,12 @@ class Point():
         """
 
         return (self.y, -self.x)
+
+    def dot(self, obj):
+        return self.x * obj.x + self.y * obj.y
+
+    def square(self):
+        return self.x * self.x + self.y * self.y
 
     @staticmethod
     def triangle_unit_circle(radians, **kwargs):
@@ -406,7 +413,7 @@ class Collision:
         return True
 
     @staticmethod
-    def line_with_polygon(line,vertices):
+    def line_with_polygon(line, vertices, min_t_x_):
         """
         Checks for collision between line and polygon, returns closest intersection Point.
 
@@ -431,7 +438,7 @@ class Collision:
         r_direction = math.sqrt(v.x * v.x + v.y * v.y)
         min_t_x = None
         edges = Collision.get_polygon_edges(vertices)
-        for vertex,edge in zip(vertices,edges):
+        for vertex, edge in zip(vertices, edges):
             edge_direction = math.sqrt(edge.x * edge.x + edge.y * edge.y)
             if v.x / r_direction == edge.x / edge_direction and v.y / r_direction == edge.y / edge_direction:
                 continue
@@ -447,16 +454,19 @@ class Collision:
                 # smallest t_x is the closest intersection
 
         if min_t_x is None:
-            return None
+            return None, min_t_x_
 
-        return Point((r.x + v.x * min_t_x,r.y+v.y+min_t_x))
+        return Point((r.x + v.x * min_t_x, r.y + v.y * min_t_x)), min_t_x
+
 
     @staticmethod
-    def triangulate_polygon(points):
+    def delaunay_polygon(points):
         points_naive = [(p.x, p.y) for p in points]
-        triangles = Delaunay(points_naive)
-
-        triangles_points = triangles.points
-        triangles = [[Point(tuple(triangles_points[triangle_id])) for triangle_id in triangle_ids] for triangle_ids in triangles.simplices]
         
-        return triangles
+        figures = tripy.earclip(points_naive)
+        figures = [[Point(figure_el) for figure_el in figure] for figure in figures]
+        # figures = Delaunay(points_naive)
+        # figures_points = figures.points
+        # figures = [[Point(tuple(figures_points[figures_id])) for figures_id in figures_ids] for figures_ids in figures.simplices]
+        
+        return figures

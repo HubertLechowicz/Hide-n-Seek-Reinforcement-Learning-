@@ -226,7 +226,7 @@ class Player(pygame.sprite.Sprite):
 
         self.image = self.images[self.image_index]
     
-    def update_vision(self, display,local_env):
+    def update_vision(self, display, local_env):
         """
         Updates Agent Vision
 
@@ -249,8 +249,8 @@ class Player(pygame.sprite.Sprite):
         self.vision_top = self.pos + new_point
     
         self.ray_points = []
-        # print(np.linspace(0, self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True))
-        for angle in np.linspace(0, self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True):
+        angles = np.linspace(0, self.vision_rad,num=int(int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True) # clockwise
+        for angle in angles[::-1]: # counter-clockwise
             self.ray_point = Point.triangle_unit_circle_relative(angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width))
             self.ray_points.append(self.ray_point)
 
@@ -258,23 +258,41 @@ class Player(pygame.sprite.Sprite):
         for vertex in self.ray_points:
             temp_ray_points.append(vertex)
             line_segment = [self.pos, vertex]  # first must me the center point
+            vertex_new_point = False
+            min_t_x = None
             try:
                 for wall in local_env['walls']:
-                    if Collision.sat(line_segment, wall.get_abs_vertices()):
-                        point = Collision.line_with_polygon(line_segment, wall.get_abs_vertices())
-                        if point is None:
-                            continue
+                    point, t_x = Collision.line_with_polygon(line_segment, wall.get_abs_vertices(), min_t_x)
+                    if point is None:
+                        continue
+                    if min_t_x is None:
+                        min_t_x = t_x
+                    if not vertex_new_point:
+                        vertex_new_point = True
                         temp_ray_points[-1] = point
+                    else:
+                        temp_ray_points = temp_ray_points[:-1]
+                        if min_t_x > t_x:
+                            min_t_x = t_x
+                            temp_ray_points[-1] = point
             except ZeroDivisionError:
                 temp_ray_points = temp_ray_points[:-1]
 
             try:
                 if local_env['enemy'] is not None:
-                    if Collision.sat(line_segment, local_env['enemy'].get_abs_vertices()):
-                        point = Collision.line_with_polygon(line_segment, local_env['enemy'].get_abs_vertices())
-                        if point is None:
-                            continue
+                    point, t_x = Collision.line_with_polygon(line_segment, local_env['enemy'].get_abs_vertices(), min_t_x)
+                    if point is None:
+                        continue
+                    if min_t_x is None:
+                        min_t_x = t_x
+                    if not vertex_new_point:
+                        vertex_new_point = True
                         temp_ray_points[-1] = point
+                    else:
+                        temp_ray_points = temp_ray_points[:-1]
+                        if min_t_x > t_x:
+                            min_t_x = t_x
+                            temp_ray_points[-1] = point
             except ZeroDivisionError:
                 temp_ray_points = temp_ray_points[:-1]
 
@@ -283,13 +301,16 @@ class Player(pygame.sprite.Sprite):
             end = (temp_ray_points[(i + 1) % len(temp_ray_points)].x, temp_ray_points[(i + 1) % len(temp_ray_points)].y)
             pygame.draw.line(display, (255, 0, 0), start, end)
 
-        self.ray_objects = Collision.triangulate_polygon(temp_ray_points)
+        self.ray_objects = temp_ray_points
 
-        # for obj in self.ray_objects:
-        #     for i in range(len(obj)):
-        #         start = (obj[i].x, obj[i].y)
-        #         end = (obj[(i + 1) % 3].x, obj[(i + 1) % 3].y)
-        #         pygame.draw.line(display, (255, 85, 55), start, end)
+        # NOT GOOD, TRIANGULATION WORKS BETTER BUT WAY LESS FPS (300 - W/O, 150 - DELAUNAY, 80 - TRIANGULATION)
+        self.ray_objects = Collision.delaunay_polygon(temp_ray_points)
+        for obj in self.ray_objects:
+            obj_len = len(obj)
+            for i in range(obj_len):
+                start = (obj[i].x, obj[i].y)
+                end = (obj[(i + 1) % obj_len].x, obj[(i + 1) % obj_len].y)
+                pygame.draw.line(display, (255, 85, 55), start, end)
 
         self.ray_objects.append([
             Point((self.rect.topleft)),
@@ -422,11 +443,8 @@ class Hiding(Player):
         if self.walls_counter < self. walls_max:
             logger_hiding.info(f"\tAdding Wall #{self.walls_counter + 1}")
             wall_pos = copy.deepcopy(self.vision_top)
-            wall_width = 25
-            wall_height = 50
 
             wall = Wall(self, self.wall_cfg, wall_pos.x, wall_pos.y)
-            logger_hiding.info(f"\t\tSize: {wall_width}x{wall_height}")
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
             wall.rotate(self.direction, wall_pos)
 
