@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9c0f253ee0e4db89037565c890aba6c0193e768dea87514872367585a2577799"
+            "sha256": "d6ce157bff2fa75be048ccbbe2673c0566dfbdf613ad147f5790a3d099f48ca3"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -35,6 +35,10 @@
             ],
             "index": "pypi",
             "version": "==0.17.2"
+        },
+        "hidenseek-gym": {
+            "editable": true,
+            "path": "."
         },
         "numpy": {
             "hashes": [

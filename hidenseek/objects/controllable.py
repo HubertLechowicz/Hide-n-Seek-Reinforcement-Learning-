@@ -290,9 +290,9 @@ class Player(pygame.sprite.Sprite):
         """
 
         self.vision = pygame.draw.arc(display, (0, 255, 255), self.rect.inflate(
-            self.height, self.width), -self.direction - self.vision_rad / 2, -self.direction + self.vision_rad / 2, 1)
+            self.height * 3, self.width * 3), -self.direction - self.vision_rad / 2, -self.direction + self.vision_rad / 2, 1)
         new_point = Point.triangle_unit_circle(
-            self.direction, side_size=self.width)
+            self.direction, side_size=self.width * 2)
         self.vision_top = self.pos + new_point
 
         pygame.draw.line(display, (0, 255, 0), (self.pos.x,
@@ -303,7 +303,7 @@ class Player(pygame.sprite.Sprite):
             int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True)  # clockwise
         for angle in angles[::-1]:  # counter-clockwise
             self.ray_point = Point.triangle_unit_circle_relative(
-                angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width))
+                angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width * 2))
             self.ray_points.append(self.ray_point)
 
         temp_ray_points = [Point(self.rect.center)]
