@@ -21,7 +21,7 @@ def setup_logger(name, log_file, level=logging.WARNING, console=False):
         console : bool
             whenever logs should also be printed in console
     """
-    handler = logging.FileHandler(log_file)        
+    handler = logging.FileHandler(log_file)
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
@@ -34,6 +34,10 @@ def setup_logger(name, log_file, level=logging.WARNING, console=False):
 
     return logger
 
-logger_seeker = setup_logger('logger_agent_seeker', 'logs/agent_seeker.log', logging.INFO)
-logger_hiding = setup_logger('logger_agent_hiding', 'logs/agent_hiding.log', logging.INFO)
-logger_engine = setup_logger('logger_engine', 'logs/engine.log', level=logging.INFO, console=True)
+
+logger_seeker = setup_logger(
+    'logger_agent_seeker', 'logs/agent_seeker.log', logging.INFO)
+logger_hiding = setup_logger(
+    'logger_agent_hiding', 'logs/agent_hiding.log', logging.INFO)
+logger_engine = setup_logger(
+    'logger_engine', 'logs/engine.log', level=logging.INFO, console=True)

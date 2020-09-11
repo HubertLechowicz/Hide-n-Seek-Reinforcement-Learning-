@@ -1,7 +1,7 @@
 import pygame
 import math
-from scipy.spatial import Delaunay
 import tripy
+
 
 class Point():
     """
@@ -44,7 +44,8 @@ class Point():
         elif isinstance(obj, int) or isinstance(obj, float):
             return Point((self.x + obj, self.y + obj))
         else:
-            raise TypeError("You can only add Point to the 'Point', 'Integer' and 'Float' value types")
+            raise TypeError(
+                "You can only add Point to the 'Point', 'Integer' and 'Float' value types")
 
     def __sub__(self, obj):
         """
@@ -67,7 +68,8 @@ class Point():
         elif isinstance(obj, int) or isinstance(obj, float):
             return Point((self.x - obj, self.y - obj))
         else:
-            raise TypeError("You can only sub Point with 'Point', 'Integer' and 'Float' value types")
+            raise TypeError(
+                "You can only sub Point with 'Point', 'Integer' and 'Float' value types")
 
     def __eq__(self, obj):
         if isinstance(obj, Point):
@@ -90,7 +92,8 @@ class Point():
         """
 
         if not (isinstance(obj, int) or isinstance(obj, float)):
-            raise TypeError("You can only multiply Point by using 'Integer' or 'Float'")
+            raise TypeError(
+                "You can only multiply Point by using 'Integer' or 'Float'")
         return Point((self.x * obj, self.y * obj))
 
     def __rmul__(self, obj):
@@ -111,7 +114,7 @@ class Point():
 
     def __str__(self):
         return "Point( " + str(self.x) + ' , ' + str(self.y) + ' )'
-    
+
     def __repr__(self):
         return self.__str__()
 
@@ -213,8 +216,10 @@ class Point():
 
         dist_axes = target - center
 
-        x = center.x + math.cos(radians) * dist_axes.x - math.sin(radians) * dist_axes.y
-        y = center.y + math.sin(radians) * dist_axes.x + math.cos(radians) * dist_axes.y
+        x = center.x + math.cos(radians) * dist_axes.x - \
+            math.sin(radians) * dist_axes.y
+        y = center.y + math.sin(radians) * dist_axes.x + \
+            math.cos(radians) * dist_axes.y
 
         return Point((x, y))
 
@@ -246,12 +251,14 @@ class Collision:
         """ 
         Uses Axis-Aligned Bounding Boxes method to determine if objects CAN collide. 
         It is 'certain' for rectangles, for Polygons it is a pre-selection to reduce computation time.
-        
+
         Parameters
         ----------
             r1 : hidenseek.ext.supportive.Point
+                center of rectangle
             r1_size : tuple
             r2 : hidenseek.ext.supportive.Point
+                center of rectangle
             r2_size : tuple
 
         Returns
@@ -272,7 +279,7 @@ class Collision:
     def circle_with_rect(circle, rect):
         """ 
         Uses simple Circle with Rectangle collision detection method to determine if objects collide. 
-        
+
         Parameters
         ----------
             circle : pygame.Rect
@@ -285,10 +292,12 @@ class Collision:
         """
 
         if not isinstance(circle, pygame.Rect):
-            raise TypeError(f"Circle is not a pygame.Rect object. It is {type(circle)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
+            raise TypeError(
+                f"Circle is not a pygame.Rect object. It is {type(circle)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
         if not isinstance(rect, pygame.Rect):
-            raise TypeError(f"Rectangle is not a pygame.Rect object. It is {type(rect)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
-        
+            raise TypeError(
+                f"Rectangle is not a pygame.Rect object. It is {type(rect)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
+
         x = circle.center[0]
         y = circle.center[1]
         if x < rect.center[0]:
@@ -312,7 +321,7 @@ class Collision:
                 y = rect.center[1]
             else:
                 y = rect.bottom
-            
+
         dist_x = circle.center[0] - x
         dist_y = circle.center[1] - y
         dist = dist_x**2 + dist_y**2
@@ -326,7 +335,7 @@ class Collision:
     def normalize_point_tuple(point):
         """ 
         Normalizes input point
-        
+
         Parameters
         ----------
             point : tuple
@@ -344,7 +353,7 @@ class Collision:
     def sat_project_to_axis(vertices, axis):
         """ 
         Projects vertices to axis
-        
+
         Parameters
         ----------
             vertices : list
@@ -374,13 +383,13 @@ class Collision:
                 returns list of edges (hidenseek.ext.supportive.Point)
         """
         return [vertices[(i + 1) % len(vertices)] - vertices[i] for i in
-                   range(len(vertices))] if len(vertices) > 2 else [vertices[1] - vertices[0]]
+                range(len(vertices))] if len(vertices) > 2 else [vertices[1] - vertices[0]]
 
     @staticmethod
     def sat(vertices_obj1, vertices_obj2):
         """ 
         Checks if 2 objects collide by using Separating Axis Theorem
-        
+
         Parameters
         ----------
             vertices_obj1 : list
@@ -401,7 +410,8 @@ class Collision:
         edges = edges_1 + edges_2
 
         # axes
-        axes = [Collision.normalize_point_tuple(edge.orthogonally()) for edge in edges]
+        axes = [Collision.normalize_point_tuple(
+            edge.orthogonally()) for edge in edges]
         for axis in axes:
 
             projection_1 = Collision.sat_project_to_axis(vertices_obj1, axis)
@@ -431,10 +441,11 @@ class Collision:
         # https://ncase.me/sight-and-light/
 
         if len(line) != 2:
-            raise ValueError(f'Line argument should consist of exactly 2 points, found {len(line)}')
+            raise ValueError(
+                f'Line argument should consist of exactly 2 points, found {len(line)}')
 
         v = Collision.get_polygon_edges(line)[0]
-        r = line[0] # srodek??
+        r = line[0]  # srodek??
         r_direction = math.sqrt(v.x * v.x + v.y * v.y)
         min_t_x = None
         edges = Collision.get_polygon_edges(vertices)
@@ -443,7 +454,8 @@ class Collision:
             if v.x / r_direction == edge.x / edge_direction and v.y / r_direction == edge.y / edge_direction:
                 continue
                 # directions are the same, check other edge
-            t_y = (v.x * (vertex.y - r.y) + v.y * (r.x - vertex.x)) / (edge.x * v.y - edge.y * v.x)
+            t_y = (v.x * (vertex.y - r.y) + v.y * (r.x - vertex.x)) / \
+                (edge.x * v.y - edge.y * v.x)
             t_x = (vertex.x + edge.x * t_y - r.x) / v.x
             if t_x < 0 or t_y < 0 or t_y > 1:
                 continue
@@ -456,17 +468,16 @@ class Collision:
         if min_t_x is None:
             return None, min_t_x_
 
+        min_t_x = min(1, min_t_x)
+
         return Point((r.x + v.x * min_t_x, r.y + v.y * min_t_x)), min_t_x
 
-
     @staticmethod
-    def delaunay_polygon(points):
+    def triangulate_polygon(points):
         points_naive = [(p.x, p.y) for p in points]
-        
+
         figures = tripy.earclip(points_naive)
-        figures = [[Point(figure_el) for figure_el in figure] for figure in figures]
-        # figures = Delaunay(points_naive)
-        # figures_points = figures.points
-        # figures = [[Point(tuple(figures_points[figures_id])) for figures_id in figures_ids] for figures_ids in figures.simplices]
-        
+        figures = [[Point(figure_el) for figure_el in figure]
+                   for figure in figures]
+
         return figures

@@ -75,7 +75,7 @@ class HideNSeek(object):
         self.screen = None
         self.dt = None
         self.duration = config['GAME'].getint('DURATION', fallback=60)
-        
+
         self.wall_cfg = config['WALL']
         self.p_hide_cfg = config['AGENT_HIDING']
         self.p_seek_cfg = config['AGENT_SEEKER']
@@ -123,12 +123,14 @@ class HideNSeek(object):
 
         logger_engine.info("Initializing Environment Objects")
         logger_engine.info("\tSeeker Agent")
-        self.player_seek = Seeker(self.p_seek_cfg, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
+        self.player_seek = Seeker(
+            self.p_seek_cfg, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
         logger_engine.info("\tSeeker Vision")
         self.player_seek.update_vision(self.screen, init_local_env)
-        
+
         logger_engine.info("\tHiding Agent")
-        self.player_hide = Hiding(self.p_hide_cfg, (.7, .7), (255, 0, 0), self.width, self.height, self.wall_cfg)
+        self.player_hide = Hiding(
+            self.p_hide_cfg, (.7, .7), (255, 0, 0), self.width, self.height, self.wall_cfg)
         logger_engine.info("\tHiding Vision")
         self.player_hide.update_vision(self.screen, init_local_env)
 
@@ -176,7 +178,8 @@ class HideNSeek(object):
             return True, "HIDING"
 
         if Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height)):
-            logger_engine.info("Rectangle collision, checking Polygon Collision by using SAM Method.")
+            logger_engine.info(
+                "Rectangle collision, checking Polygon Collision by using SAM Method.")
             if Collision.sat(self.player_seek.get_abs_vertices(), self.player_hide.get_abs_vertices()):
                 logger_engine.info("Polygon Collision! Ending the game!")
                 return True, "SEEKER"
@@ -244,7 +247,6 @@ class HideNSeek(object):
         self.player_seek.update_vision(self.screen, player_seek_env)
         self.player_hide.update_vision(self.screen, player_hide_env)
 
-
         self.players_group.draw(self.screen)
         self.duration -= seconds_per_frame
         logger_engine.info(f"\tLeft: {round(self.duration, 4)} seconds")
@@ -265,7 +267,7 @@ class HideNSeek(object):
             in_radius : list
                 list of Wall objects (hidenseek.objects.fixed.Wall) being in circle (radius)
         """
-        
+
         in_radius = []
         for wall in self.walls_group:
             if multi:
@@ -278,5 +280,5 @@ class HideNSeek(object):
                 if Collision.circle_with_rect(circle, wall.rect) and Collision.sat(wall.get_abs_vertices(), vertices):
                     in_radius.append(wall)
                     continue
-        
+
         return in_radius

@@ -19,14 +19,16 @@ if __name__ == "__main__":
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                logger_engine.info(f"{LOGGING_DASHES} Game exited by user {LOGGING_DASHES}")
+                logger_engine.info(
+                    f"{LOGGING_DASHES} Game exited by user {LOGGING_DASHES}")
                 pygame.quit()
                 sys.exit()
         game.step()
         pygame.display.update()
-        
+
         gameover, winner = game.game_over()
         if gameover:
-            logger_engine.info(f"{LOGGING_DASHES} Game over with result: {winner} {LOGGING_DASHES}")
+            logger_engine.info(
+                f"{LOGGING_DASHES} Game over with result: {winner} {LOGGING_DASHES}")
             pygame.quit()
             sys.exit()
