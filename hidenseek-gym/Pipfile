@@ -8,6 +8,8 @@ verify_ssl = true
 [packages]
 gym = "*"
 hidenseek-gym = {editable = true,path = "."}
+pygame = "*"
+tripy = "*"
 
 [requires]
 python_version = "3.8"
