@@ -26,7 +26,7 @@ class HideNSeek(object):
         dt : float
             time per frame (in miliseconds)
         duration : float
-            gameplay maximum duration (in seconds), if no other game over event
+            gameplay maximum duration (in ticks), if no other game over event
         p_hide_cfg : configparser Object
             config for Hiding Agent
         p_seek_cfg : configparser Object
@@ -190,7 +190,6 @@ class HideNSeek(object):
         Runs every frame, does:
             overwrites screen
             locks fps
-            calculates Agents 'velocity'
             creates local environment for Agents
             updates Agents (depending on the Agent Action)
             updates Agents POV
@@ -209,15 +208,9 @@ class HideNSeek(object):
         logger_engine.info("New Frame")
         self.screen.fill((0, 0, 0))
         logger_engine.debug("\tLocking FPS")
+        # makes sure to not exceed FPS Limit, self.clock.tick() is not that CPU-Heavy, not that accurate tho
         self.dt = self.clock.tick_busy_loop(self.fps)
         logger_engine.info(f"\tFPS: {self.clock.get_fps()}")
-
-        seconds_per_frame = self.dt / 1000.
-        self.player_seek.velocity = seconds_per_frame
-        self.player_hide.velocity = seconds_per_frame
-        logger_engine.debug("\tNew Velocity for Agents")
-        logger_engine.debug(f"\t\tSeeker Agent: {self.player_seek.velocity}")
-        logger_engine.debug(f"\t\tHiding Agent: {self.player_hide.velocity}")
 
         logger_engine.debug("\tCalculating new Local Environments")
         player_seek_env = {
@@ -248,8 +241,8 @@ class HideNSeek(object):
         self.player_hide.update_vision(self.screen, player_hide_env)
 
         self.players_group.draw(self.screen)
-        self.duration -= seconds_per_frame
-        logger_engine.info(f"\tLeft: {round(self.duration, 4)} seconds")
+        self.duration -= 1
+        logger_engine.info(f"\tLeft: {self.duration} frames")
 
     def walls_in_local_env(self, circle, vertices, multi=False):
         """

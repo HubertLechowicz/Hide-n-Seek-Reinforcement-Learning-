@@ -8,8 +8,6 @@ import math
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
 import numpy as np
 
-WALL_TIMER = 5
-
 
 class Player(pygame.sprite.Sprite):
     """
@@ -28,12 +26,14 @@ class Player(pygame.sprite.Sprite):
             height of the game window
         pos : hidenseek.ext.supportive.Point
             object position on the game display
-        speed : float
-            speed ratio for Player movement
-        velocity : float
-            velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
-        wall_timer : float
-            cooldown (in seconds) for any wall-specific action
+        speed : int
+            speed ratio for Player movement (in ticks)
+        speed_rotate : float
+            speed ratio for Player rotate
+        wall_timer_init : int
+            init cooldown (in frames) for any wall-specific action
+        wall_timer : int
+            cooldown (in frames)for any wall-specific action
         vision : pygame.Rect
             Player POV
         ray_objects : list of Objects (3-el or 4-el list of Point or)
@@ -98,9 +98,10 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
-        self.speed = cfg.getfloat('SPEED_RATIO', fallback=30.0)
-        self.velocity = 0
-        self.wall_timer = WALL_TIMER
+        self.speed = cfg.getint('SPEED_RATIO', fallback=30)
+        self.speed_rotate = cfg.getfloat('SPEED_ROTATE_RATIO', fallback=0.1)
+        self.wall_timer_init = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
+        self.wall_timer = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
 
         self.vision = None
         self.vision_top = None
@@ -173,7 +174,7 @@ class Player(pygame.sprite.Sprite):
             None
         """
         old_direction = copy.deepcopy(self.direction)
-        self.direction += self.velocity * turn * 10
+        self.direction += self.speed_rotate * turn
         # base 2PI, because it's circle
         self.direction = self.direction % (2 * math.pi)
 
@@ -399,11 +400,10 @@ class Hiding(Player):
             object position on the game display
         speed : float
             speed ratio for Player movement
-        velocity : float
-            velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
+        speed_rotate : float
+            speed ratio for Player rotate
         vision : pygame.Rect
             Player POV
-            TODO: Probably will be standalone Object after implementing proper POV
         wall_cfg : configparser Object
             Wall Config Object
         image_index : int
@@ -547,17 +547,17 @@ class Hiding(Player):
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if self.wall_timer > 0:
-            self.wall_timer -= self.velocity
+            self.wall_timer -= 1
         # for negative it's 0, for positive - higher than 0
-        self.wall_timer = max(self.wall_timer, 0.)
+        self.wall_timer = max(self.wall_timer, 0)
 
         if new_action['type'] == 'NOOP':
             self.image_index = 0
             self.image = self.images[self.image_index]
             logger_hiding.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            x = math.cos(self.direction) * self.velocity * self.speed
-            y = math.sin(self.direction) * self.velocity * self.speed
+            x = math.cos(self.direction) * self.speed
+            y = math.sin(self.direction) * self.speed
             old_pos = copy.deepcopy(self.pos)
             new_pos = self.pos + Point((x, y))
             logger_hiding.info(f"Moving to {new_pos}")
@@ -579,7 +579,7 @@ class Hiding(Player):
         elif new_action['type'] == 'add_wall':
             if not self.wall_timer:  # if no cooldown
                 self.add_wall(walls_group, local_env['enemy'])
-                self.wall_timer = WALL_TIMER
+                self.wall_timer = self.wall_timer_init
             else:
                 logger_hiding.info(
                     f"\tCouldn't add wall. Cooldown: {round(self.wall_timer)}")
@@ -606,11 +606,10 @@ class Seeker(Player):
             object position on the game display
         speed : float
             speed ratio for Player movement
-        velocity : float
-            velocity ratio for Player movement, calculated by using Game Engine FPS Lock value
+        speed_rotate : float
+            speed ratio for Player rotate
         vision : pygame.Rect
             Player POV
-            TODO: Probably will be standalone Object after implementing proper POV
         image_index : int
             determines which image should be drawn
         images : list of pygame.Surface
@@ -717,17 +716,17 @@ class Seeker(Player):
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if self.wall_timer > 0:
-            self.wall_timer -= self.velocity
+            self.wall_timer -= 1
         # for negative it's 0, for positive - higher than 0
-        self.wall_timer = max(self.wall_timer, 0.)
+        self.wall_timer = max(self.wall_timer, 0)
 
         if new_action['type'] == 'NOOP':
             self.image_index = 0
             self.image = self.images[self.image_index]
             logger_seeker.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
-            x = math.cos(self.direction) * self.velocity * self.speed
-            y = math.sin(self.direction) * self.velocity * self.speed
+            x = math.cos(self.direction) * self.speed
+            y = math.sin(self.direction) * self.speed
             old_pos = copy.deepcopy(self.pos)
             new_pos = self.pos + Point((x, y))
             logger_seeker.info(f"Moving to {new_pos}")
@@ -746,14 +745,12 @@ class Seeker(Player):
             self.move_action(new_pos)
         elif new_action['type'] == 'rotation':
             self.rotate(new_action['content'], local_env)
-
         elif new_action['type'] == 'remove_wall':
-
             if local_env['walls']:
                 if not self.wall_timer:  # if no cooldown
                     new_action['content'] = random.choice(local_env['walls'])
                     self.remove_wall(new_action['content'], walls_group)
-                    self.wall_timer = WALL_TIMER
+                    self.wall_timer = self.wall_timer_init
                 else:
                     logger_hiding.info(
                         f"\tCouldn't remove any wall. Cooldown: {round(self.wall_timer)}")
