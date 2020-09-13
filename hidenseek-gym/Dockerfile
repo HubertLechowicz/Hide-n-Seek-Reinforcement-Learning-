@@ -10,8 +10,10 @@ RUN apt-get update \
 
 RUN apt-get clean --dry-run
 
+ENV DISPLAY=:0
+
 WORKDIR /opt/app
 COPY . /opt/app/
 RUN python /opt/app/setup.py install
 
-ENTRYPOINT xvfb-run -s "-screen 0 1400x900x24" python3 /opt/app/main.py
+ENTRYPOINT python3 /opt/app/main.py

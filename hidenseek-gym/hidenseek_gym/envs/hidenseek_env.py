@@ -62,10 +62,7 @@ class HideNSeekEnv(gym.Env):
             return True, "HIDING"
 
         if Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height)):
-            logger_engine.info(
-                "Rectangle collision, checking Polygon Collision by using SAM Method.")
             if Collision.sat(self.player_seek.get_abs_vertices(), self.player_hide.get_abs_vertices()):
-                logger_engine.info("Polygon Collision! Ending the game!")
                 return True, "SEEKER"
         return False, None
 

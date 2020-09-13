@@ -86,14 +86,6 @@ class Player(pygame.sprite.Sprite):
         """
 
         super().__init__()
-        print(f"Self: {self}")
-        print(f"Display: {display}")
-        print(f"Config: {cfg}")
-        print(f"Pos Ratio: {pos_ratio}")
-        print(f"Color: {color}")
-        print(f"S_W: {SCREEN_WIDTH}")
-        print(f"S_H: {SCREEN_HEIGHT}")
-        print(f"Color ANim: {color_anim}")
         self.width = cfg.getint('WIDTH', fallback=50)
         self.height = cfg.getint('HEIGHT', fallback=50)
 

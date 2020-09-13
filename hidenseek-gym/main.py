@@ -20,9 +20,11 @@ if __name__ == '__main__':
         while True:
             print("\tNext Move")
             env.render()
+
             # action_n = agent.act(ob, reward, done) # should be some function to choose action
             action_n = [1, 1]  # temp
             obs_n, reward_n, done_n, _ = env.step(action_n)
+
             if all(done_n):
                 break
 
