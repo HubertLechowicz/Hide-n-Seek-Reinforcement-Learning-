@@ -499,7 +499,12 @@ class Hiding(Player):
         logger_hiding.info("Checking if it's possible to create new wall")
         if self.walls_counter < self. walls_max:
             logger_hiding.info(f"\tAdding Wall #{self.walls_counter + 1}")
-            wall_pos = copy.deepcopy(self.vision_top)
+
+            wall_pos = copy.deepcopy(self.pos)
+            vision_arc_range = np.sqrt((self.vision_top.x - self.pos.x) * (self.vision_top.x - self.pos.x) + (
+                        self.vision_top.y - self.pos.y) * (self.vision_top.y - self.pos.y))
+            wall_pos.x = wall_pos.x + vision_arc_range - (1.5 * self.wall_cfg.getint("WIDTH",fallback = 5)) # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
+            wall_pos = Point.triangle_unit_circle_relative(self.direction, self.pos,wall_pos)
 
             wall = Wall(self, self.wall_cfg, wall_pos.x, wall_pos.y)
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
