@@ -1,6 +1,7 @@
 import gym
 import hidenseek_gym
 from gym import wrappers
+from hidenseek_gym import wrappers as multi_wrappers
 
 if __name__ == '__main__':
     env = gym.make('hidenseek-v0')
@@ -9,6 +10,8 @@ if __name__ == '__main__':
     env.seed(0)
 
     # agent_n = [hidenseek_gym.controllable.Hiding(...), hidenseek_gym.controllable.Seeker(...)]
+
+    env = multi_wrappers.MultiMonitor(env, 'monitor', force=True)
 
     episode_count = 100
     reward = 0
