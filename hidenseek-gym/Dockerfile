@@ -16,4 +16,6 @@ WORKDIR /opt/app
 COPY . /opt/app/
 RUN python /opt/app/setup.py install
 
+VOLUME /opt/app/monitor
+
 ENTRYPOINT python3 /opt/app/main.py
