@@ -107,7 +107,7 @@ class Player(pygame.sprite.Sprite):
         self.vision_top = None
         self.ray_objects = None
         self.vision_rad = math.pi
-
+        self.ray_points = []
         self.image_index = 0
         self.direction = 0  # radians from which vision_rad is added/substracted
         self.color = color  # temp, until sprites
@@ -353,13 +353,9 @@ class Player(pygame.sprite.Sprite):
             except ZeroDivisionError:
                 temp_ray_points = temp_ray_points[:-1]
 
-        for i in range(len(temp_ray_points)):
-            start = (temp_ray_points[i].x, temp_ray_points[i].y)
-            end = (temp_ray_points[(i + 1) % len(temp_ray_points)].x,
-                   temp_ray_points[(i + 1) % len(temp_ray_points)].y)
-            pygame.draw.line(display, (255, 0, 0), start, end)
 
-        self.ray_objects = temp_ray_points
+
+        self.ray_points = copy.deepcopy(temp_ray_points)
 
         self.ray_objects = Collision.triangulate_polygon(temp_ray_points)
         for obj in self.ray_objects:
@@ -368,6 +364,7 @@ class Player(pygame.sprite.Sprite):
                 start = (obj[i].x, obj[i].y)
                 end = (obj[(i + 1) % obj_len].x, obj[(i + 1) % obj_len].y)
                 pygame.draw.line(display, (255, 85, 55), start, end)
+
 
         self.ray_objects.append([
             Point((self.rect.topleft)),
@@ -505,26 +502,34 @@ class Hiding(Player):
             wall_pos = copy.deepcopy(self.pos)
             vision_arc_range = np.sqrt((self.vision_top.x - self.pos.x) * (self.vision_top.x - self.pos.x) + (
                         self.vision_top.y - self.pos.y) * (self.vision_top.y - self.pos.y))
-            wall_pos.x = wall_pos.x + vision_arc_range - (1.5 * self.wall_cfg.getint("WIDTH",fallback = 5)) # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
-            wall_pos = Point.triangle_unit_circle_relative(self.direction, self.pos,wall_pos)
+            wall_pos.x = wall_pos.x + vision_arc_range - (1.5 * self.wall_cfg.getint("WIDTH", fallback=5)) # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
+            wall_pos = Point.triangle_unit_circle_relative(self.direction, self.pos, wall_pos)
 
             wall = Wall(self, self.wall_cfg, wall_pos.x, wall_pos.y)
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
             wall.rotate(self.direction, wall_pos)
-
             can_create = True
-            for _wall in walls_group:
-                if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
-                    if Collision.sat(wall.get_abs_vertices(), _wall.get_abs_vertices()):
+
+            # srodek gracza, srodek tworzonej sciany, promien POV ,
+            l = round(len(self.ray_points)/2)
+
+            if self.pos.distance(self.vision_top) > self.pos.distance(self.ray_points[l-1]) or self.pos.distance(self.vision_top) > self.pos.distance(self.ray_points[l]):
+                can_create = False
+            if can_create:
+
+                for _wall in walls_group:
+                    if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
+                        if Collision.sat(wall.get_abs_vertices(), _wall.get_abs_vertices()):
+                            logger_hiding.info(
+                                f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with other Wall.")
+                            can_create = False
+                            break
+                if enemy and Collision.aabb(enemy.pos, (enemy.width, enemy.height), wall.pos, (wall.width, wall.height)):
+                    if Collision.sat(self.get_abs_vertices(), enemy.get_abs_vertices()):
                         logger_hiding.info(
-                            f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with other Wall.")
+                            f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
                         can_create = False
-                        break
-            if enemy and Collision.aabb(enemy.pos, (enemy.width, enemy.height), wall.pos, (wall.width, wall.height)):
-                if Collision.sat(self.get_abs_vertices(), enemy.get_abs_vertices()):
-                    logger_hiding.info(
-                        f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
-                    can_create = False
+
 
             if can_create:
                 self.walls_counter += 1
