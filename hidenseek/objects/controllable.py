@@ -253,7 +253,9 @@ class Player(pygame.sprite.Sprite):
             self.image_index = (self.image_index + 1) % len(self.images)
             if not self.image_index:
                 self.image_index += 1
+            # region  https://trello.com/c/VzyZ3CM2
 
+            # TODO delete when map is implemented, and walls are on the sides.
             if self.pos.y - self.height / 2 <= 0:
                 self.pos.y = self.height / 2
 
@@ -265,7 +267,7 @@ class Player(pygame.sprite.Sprite):
 
             elif self.pos.x + self.width / 2 >= self.SCREEN_WIDTH:
                 self.pos.x = self.SCREEN_WIDTH - self.width / 2
-
+            # endregion
             self.rect.center = (self.pos.x, self.pos.y)
         else:  # if not moving
             self.image_index = 0

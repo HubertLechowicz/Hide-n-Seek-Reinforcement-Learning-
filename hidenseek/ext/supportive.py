@@ -151,6 +151,13 @@ class Point():
 
         return (self.y, -self.x)
 
+
+    def det(self,obj):
+        return self.x * obj.y - self.y * obj.x
+
+    def distance(self, obj):
+        return math.sqrt((self.x - obj.x)**2 + (self.y - obj.y)**2)
+
     def dot(self, obj):
         return self.x * obj.x + self.y * obj.y
 
@@ -386,6 +393,23 @@ class Collision:
                 range(len(vertices))] if len(vertices) > 2 else [vertices[1] - vertices[0]]
 
     @staticmethod
+    def get_lines_from_points(vertices):
+        """
+        Makes edges from polygon verticies
+
+        Parameters
+        ----------
+            vertices_: list
+                list of vertices objects (hidenseek.ext.supportive.Point)
+        Returns
+        -------
+            lines : list
+                returns list of lines ([hidenseek.ext.supportive.Point,hidenseek.ext.supportive.Point])
+        """
+
+        return [[vertices[(i) % len(vertices)],vertices[(i + 1) % len(vertices)]] for i in range(len(vertices))]
+
+    @staticmethod
     def sat(vertices_obj1, vertices_obj2):
         """ 
         Checks if 2 objects collide by using Separating Axis Theorem
@@ -423,7 +447,7 @@ class Collision:
         return True
 
     @staticmethod
-    def line_with_polygon(line, vertices, min_t_x_):
+    def line_with_polygon(line, vertices, min_t_x_= None):
         """
         Checks for collision between line and polygon, returns closest intersection Point.
 
@@ -443,7 +467,6 @@ class Collision:
         if len(line) != 2:
             raise ValueError(
                 f'Line argument should consist of exactly 2 points, found {len(line)}')
-
         v = Collision.get_polygon_edges(line)[0]
         r = line[0]  # srodek??
         r_direction = math.sqrt(v.x * v.x + v.y * v.y)
