@@ -353,8 +353,6 @@ class Player(pygame.sprite.Sprite):
             except ZeroDivisionError:
                 temp_ray_points = temp_ray_points[:-1]
 
-
-
         self.ray_points = copy.deepcopy(temp_ray_points)
 
         self.ray_objects = Collision.triangulate_polygon(temp_ray_points)
@@ -365,7 +363,6 @@ class Player(pygame.sprite.Sprite):
                 end = (obj[(i + 1) % obj_len].x, obj[(i + 1) % obj_len].y)
                 pygame.draw.line(display, (255, 85, 55), start, end)
 
-
         self.ray_objects.append([
             Point((self.rect.topleft)),
             Point((self.rect.topright)),
@@ -373,7 +370,7 @@ class Player(pygame.sprite.Sprite):
             Point((self.rect.bottomleft)),
         ])
 
-    def update(self, local_env, walls_group):
+    def update(self, local_env):
         """
         Not implemented in Parent Class
         """
@@ -478,15 +475,14 @@ class Hiding(Player):
             }
         ]
 
-    def add_wall(self, walls_group, enemy):
+    def add_wall(self, walls, enemy):
         """
         Creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
 
         Parameters
         ----------
-            walls_group : list of hidenseek.objects.fixes.Wall
-                contains all walls in the area
-                TODO: Once Agent POV done - REPLACE WITH local_env['walls']
+            walls : list of hidenseek.objects.fixes.Wall
+                contains all walls in the Agent POV
             enemy : hidenseek.objects.controllable.Seeker, None
                 if enemy in radius then it contains its object, else None
 
@@ -501,23 +497,25 @@ class Hiding(Player):
 
             wall_pos = copy.deepcopy(self.pos)
             vision_arc_range = np.sqrt((self.vision_top.x - self.pos.x) * (self.vision_top.x - self.pos.x) + (
-                        self.vision_top.y - self.pos.y) * (self.vision_top.y - self.pos.y))
-            wall_pos.x = wall_pos.x + vision_arc_range - (1.5 * self.wall_cfg.getint("WIDTH", fallback=5)) # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
-            wall_pos = Point.triangle_unit_circle_relative(self.direction, self.pos, wall_pos)
+                self.vision_top.y - self.pos.y) * (self.vision_top.y - self.pos.y))
+            # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
+            wall_pos.x = wall_pos.x + vision_arc_range - \
+                (1.5 * self.wall_cfg.getint("WIDTH", fallback=5))
+            wall_pos = Point.triangle_unit_circle_relative(
+                self.direction, self.pos, wall_pos)
 
             wall = Wall(self, self.wall_cfg, wall_pos.x, wall_pos.y)
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
             wall.rotate(self.direction, wall_pos)
             can_create = True
 
-            # srodek gracza, srodek tworzonej sciany, promien POV ,
+            # check if 2 POV lines (between which is new Wall center) are shorter than eyesight, if yes - then it's not possible to build Wall here
             l = round(len(self.ray_points)/2)
-
             if self.pos.distance(self.vision_top) > self.pos.distance(self.ray_points[l-1]) or self.pos.distance(self.vision_top) > self.pos.distance(self.ray_points[l]):
                 can_create = False
-            if can_create:
 
-                for _wall in walls_group:
+            if can_create:
+                for _wall in walls:
                     if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
                         if Collision.sat(wall.get_abs_vertices(), _wall.get_abs_vertices()):
                             logger_hiding.info(
@@ -530,17 +528,18 @@ class Hiding(Player):
                             f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
                         can_create = False
 
-
             if can_create:
                 self.walls_counter += 1
-                walls_group.add(wall)
                 logger_hiding.info(f"\tAdded wall #{self.walls_counter}")
+                return wall
             else:
                 del wall
+                return None
         else:
             logger_hiding.info(f"\tLimit reached")
+            return None
 
-    def update(self, local_env, walls_group):
+    def update(self, local_env):
         """
         Takes and performs the action
 
@@ -590,11 +589,15 @@ class Hiding(Player):
             self.rotate(new_action['content'], local_env)
         elif new_action['type'] == 'add_wall':
             if not self.wall_timer:  # if no cooldown
-                self.add_wall(walls_group, local_env['enemy'])
+                new_wall = self.add_wall(
+                    local_env['walls'], local_env['enemy'])
+                if new_wall:
+                    return new_wall
                 self.wall_timer = self.wall_timer_init
             else:
                 logger_hiding.info(
                     f"\tCouldn't add wall. Cooldown: {round(self.wall_timer)}")
+        return None
 
     def __str__(self):
         return "[Hiding Agent]"
@@ -641,9 +644,9 @@ class Seeker(Player):
             returns absolute vertices coordinates (in game screen coordinates system)
         move_action(new_pos):
             algorithm which moves the Player object to given poisition
-        remove_wall(wall, walls_group):
-            creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
-        update(local_env, walls_group):
+        remove_wall(wall):
+            removes given Wall
+        update(local_env):
             takes and performs the action
     """
 
@@ -686,29 +689,7 @@ class Seeker(Player):
             },
         ]
 
-    def remove_wall(self, wall, walls_group):
-        """
-        Removes the Wall if in radius and lowers the Wall counter for the Wall owner
-
-        Parameters
-        ----------
-            wall : hidenseek.objects.fixed.Wall
-                hidenseek.objects.fixed.Wall object to delete
-            walls_group : list of hidenseek.objects.fixes.Wall
-                contains all walls in the area
-                TODO: Once Agent POV done - REPLACE WITH local_env['walls']
-
-        Returns
-        -------
-            None
-        """
-
-        logger_seeker.info(f"Removed wall {wall.pos}")
-        walls_group.remove(wall)
-        wall.owner.walls_counter -= 1
-        del wall
-
-    def update(self, local_env, walls_group):
+    def update(self, local_env):
         """
         Takes and performs the action
 
@@ -716,9 +697,6 @@ class Seeker(Player):
         ----------
             local_env : dict
                 contains Player Local Environment
-            walls_group : list of hidenseek.objects.fixes.Wall
-                contains all walls in the area
-                TODO: Once Agent POV done - REPLACE WITH local_env['walls']
 
         Returns
         -------
@@ -760,14 +738,18 @@ class Seeker(Player):
         elif new_action['type'] == 'remove_wall':
             if local_env['walls']:
                 if not self.wall_timer:  # if no cooldown
-                    new_action['content'] = random.choice(local_env['walls'])
-                    self.remove_wall(new_action['content'], walls_group)
+                    # remove first wall in local env
+                    delete_wall = local_env['walls'][0]
                     self.wall_timer = self.wall_timer_init
+                    if delete_wall.owner:
+                        delete_wall.owner.walls_counter -= 1
+                        return delete_wall
                 else:
                     logger_hiding.info(
                         f"\tCouldn't remove any wall. Cooldown: {round(self.wall_timer)}")
             else:
                 logger_seeker.info(f"No Wall to remove, doing... nothing.")
+        return None
 
     def __str__(self):
         return "[Seeker]"

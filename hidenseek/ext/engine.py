@@ -223,8 +223,14 @@ class HideNSeek(object):
         }
 
         logger_engine.debug("\tTaking actions")
-        self.player_seek.update(player_seek_env, self.walls_group)
-        self.player_hide.update(player_hide_env, self.walls_group)
+        delete_wall = self.player_seek.update(player_seek_env)
+        if delete_wall:
+            self.walls_group.remove(delete_wall)
+            del delete_wall
+
+        new_wall = self.player_hide.update(player_hide_env)
+        if new_wall:
+            self.walls_group.add(new_wall)
 
         player_seek_env = {
             'walls': self.walls_in_local_env(self.player_seek.vision, self.player_seek.ray_objects, multi=True),
