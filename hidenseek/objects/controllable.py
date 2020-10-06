@@ -34,10 +34,18 @@ class Player(pygame.sprite.Sprite):
             init cooldown (in frames) for any wall-specific action
         wall_timer : int
             cooldown (in frames)for any wall-specific action
-        vision : pygame.Rect
-            Player POV
-        ray_objects : list of Objects (3-el or 4-el list of Point or)
-            Player Ray POV
+        vision_radius : float
+            Player POV radius
+        vision_rad : float
+            Player POV angle
+        vision_top : Point
+            Player Top POV Point
+        ray_points : list of Point
+            Player Ray POV in Points representation
+        ray_objects : list of Objects (3-el list of Point)
+            Player Ray POV in Triangles representation
+        direction : float
+            POV angle in radians (Z = 2 * PI)
         image_index : int
             determines which image should be drawn
         images : list of pygame.Surface
@@ -47,19 +55,21 @@ class Player(pygame.sprite.Sprite):
         rect : pygame.Rect
             object Rectangle, to be drawn
         polygon_points : list of tuples
-            vertices, used for collision check in SAT
+            Agent vertices, used for collision check in SAT
         actions : list of dict
             contains all possible Player actions
 
     Methods
     -------
+        _rotate(turn, local_env):
+            rotates the object, accordingly to the value, along its axis
         get_abs_vertices():
             returns absolute vertices coordinates (in game screen coordinates system)
-        move_action(new_pos):
+        _move_action(new_pos):
             algorithm which moves the Player object to given poisition
-        take_action(local_env, walls_group):
-            Not implemented in Parent Class
-        update(local_env, walls_group):
+        update_vision(local_env):
+            updates Agent POV
+        update(local_env):
             Not implemented in Parent Class
     """
 
@@ -90,8 +100,6 @@ class Player(pygame.sprite.Sprite):
         self.width = cfg.getint('WIDTH', fallback=50)
         self.height = cfg.getint('HEIGHT', fallback=50)
 
-        self.pos_init = Point(
-            (pos_ratio[0] * SCREEN_WIDTH, pos_ratio[1] * SCREEN_HEIGHT))
         self.pos = Point(
             (pos_ratio[0] * SCREEN_WIDTH, pos_ratio[1] * SCREEN_HEIGHT))
 
@@ -103,7 +111,7 @@ class Player(pygame.sprite.Sprite):
         self.wall_timer_init = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
         self.wall_timer = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
 
-        self.vision = None
+        self.vision_radius = self.width * 2
         self.vision_top = None
         self.ray_objects = None
         self.vision_rad = math.pi
@@ -138,7 +146,7 @@ class Player(pygame.sprite.Sprite):
             [image_movement for _ in range(10)]  # animations
         self.image = image_inplace
         self.rect = self.image.get_rect()
-        self.rect.center = (self.pos_init.x, self.pos_init.y)
+        self.rect.center = (self.pos.x, self.pos.y)
 
         # base class Player actions
         self.actions = [
@@ -158,9 +166,9 @@ class Player(pygame.sprite.Sprite):
             },
         ]
 
-    def rotate(self, turn, local_env):
+    def _rotate(self, turn, local_env):
         """
-        Rotates the object, accrodingly to the value, along it's axis.
+        Rotates the object, accordingly to the value, along its axis.
 
         Parameters
         ----------
@@ -232,7 +240,7 @@ class Player(pygame.sprite.Sprite):
 
         return [Point((polygon_point.x + self.rect.left, polygon_point.y + self.rect.top)) for polygon_point in self.polygon_points]
 
-    def move_action(self, new_pos):
+    def _move_action(self, new_pos):
         """
         Algorithm which moves the Player object to given direction, if not outside map (game screen)
 
@@ -274,16 +282,12 @@ class Player(pygame.sprite.Sprite):
 
         self.image = self.images[self.image_index]
 
-    def update_vision(self, display, local_env):
+    def update_vision(self, local_env):
         """
         Updates Agent Vision
 
         Parameters
         ----------
-
-            display : pygame.display
-                Game Display (Window)
-
             local_env : dict
                 contains Player Local Environment
 
@@ -291,23 +295,35 @@ class Player(pygame.sprite.Sprite):
         -------
             None
         """
-
-        self.vision = pygame.draw.arc(display, (0, 255, 255), self.rect.inflate(
-            self.height * 3, self.width * 3), -self.direction - self.vision_rad / 2, -self.direction + self.vision_rad / 2, 1)
         new_point = Point.triangle_unit_circle(
-            self.direction, side_size=self.width * 2)
+            self.direction, side_size=self.vision_radius)
         self.vision_top = self.pos + new_point
-
-        pygame.draw.line(display, (0, 255, 0), (self.pos.x,
-                                                self.pos.y), (self.vision_top.x, self.vision_top.y), 1)
 
         self.ray_points = []
         angles = np.linspace(0, self.vision_rad, num=int(
-            int(self.vision_rad * 180 / math.pi) * 0.1), endpoint=True)  # clockwise
-        for angle in angles[::-1]:  # counter-clockwise
-            self.ray_point = Point.triangle_unit_circle_relative(
-                angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.width * 2))
-            self.ray_points.append(self.ray_point)
+            int(self.vision_rad * 180 / math.pi) * .5), endpoint=True)  # counter-clockwise
+        for angle in angles:  # clockwise
+            ray_point = Point.triangle_unit_circle_relative(
+                angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.vision_radius))
+            self.ray_points.append(ray_point)
+
+        walls_lines = [[[wall.get_abs_vertices()[i % 4], wall.get_abs_vertices()[(
+            i + 1) % 4]] for i in range(4)] for wall in local_env['walls']]
+
+        # get only closer parallel wall edge, reduces computation by half
+        proper_walls_lines = []
+        for wall_lines in walls_lines:
+            proper_wall_lines = []
+            if self.pos.distance(wall_lines[0][0] + (wall_lines[0][1] - wall_lines[0][0]) / 2) < self.pos.distance(wall_lines[2][0] + (wall_lines[2][1] - wall_lines[2][0]) / 2):
+                proper_wall_lines.append(wall_lines[0])
+            else:
+                proper_wall_lines.append(wall_lines[2])
+
+            if self.pos.distance(wall_lines[1][0] + (wall_lines[1][1] - wall_lines[1][0]) / 2) < self.pos.distance(wall_lines[3][0] + (wall_lines[3][1] - wall_lines[3][0]) / 2):
+                proper_wall_lines.append(wall_lines[1])
+            else:
+                proper_wall_lines.append(wall_lines[3])
+            proper_walls_lines.append(proper_wall_lines)
 
         temp_ray_points = [Point(self.rect.center)]
         for vertex in self.ray_points:
@@ -315,53 +331,49 @@ class Player(pygame.sprite.Sprite):
             line_segment = [self.pos, vertex]  # first must me the center point
             vertex_new_point = False
             min_t_x = None
-            try:
-                for wall in local_env['walls']:
-                    point, t_x = Collision.line_with_polygon(
-                        line_segment, wall.get_abs_vertices(), min_t_x)
-                    if point is None:
-                        continue
-                    if min_t_x is None:
+            for wall_lines in proper_walls_lines:
+                point2 = None
+                for line in wall_lines:
+                    p2 = Collision.find_intersection(line_segment, line)
+                    if p2 and (not point2 or self.pos.distance(p2) < self.pos.distance(point2)) and self.pos.distance(p2) <= self.vision_radius:
+                        point2 = p2
+                if point2 is None:
+                    continue
+                t_x = self.pos.distance(point2)
+                if min_t_x is None:
+                    min_t_x = t_x
+                if not vertex_new_point:
+                    vertex_new_point = True
+                    temp_ray_points[-1] = point2
+                else:
+                    if min_t_x > t_x:
                         min_t_x = t_x
-                    if not vertex_new_point:
-                        vertex_new_point = True
-                        temp_ray_points[-1] = point
-                    else:
-                        temp_ray_points = temp_ray_points[:-1]
-                        if min_t_x > t_x:
-                            min_t_x = t_x
-                            temp_ray_points[-1] = point
-            except ZeroDivisionError:
-                temp_ray_points = temp_ray_points[:-1]
+                        temp_ray_points[-1] = point2
 
-            try:
-                if local_env['enemy'] is not None:
-                    point, t_x = Collision.line_with_polygon(
-                        line_segment, local_env['enemy'].get_abs_vertices(), min_t_x)
-                    if point is None:
-                        continue
-                    if min_t_x is None:
-                        min_t_x = t_x
-                    if not vertex_new_point:
-                        vertex_new_point = True
-                        temp_ray_points[-1] = point
-                    else:
-                        temp_ray_points = temp_ray_points[:-1]
-                        if min_t_x > t_x:
-                            min_t_x = t_x
-                            temp_ray_points[-1] = point
-            except ZeroDivisionError:
-                temp_ray_points = temp_ray_points[:-1]
+        self.ray_points = copy.deepcopy(temp_ray_points[1:])  # without center
 
-        self.ray_points = copy.deepcopy(temp_ray_points)
+        self.ray_objects = [[self.pos, self.ray_points[i], self.ray_points[i + 1]]
+                            for i in range(len(self.ray_points) - 1)]
 
-        self.ray_objects = Collision.triangulate_polygon(temp_ray_points)
-        for obj in self.ray_objects:
-            obj_len = len(obj)
-            for i in range(obj_len):
-                start = (obj[i].x, obj[i].y)
-                end = (obj[(i + 1) % obj_len].x, obj[(i + 1) % obj_len].y)
-                pygame.draw.line(display, (255, 85, 55), start, end)
+        # if no interruption, then triangle is made from 10% of angles; if interruption - triangle every angle change
+        new_ray_objects = []
+        vision_top_distance = round(self.pos.distance(self.vision_top), 2)
+        angles_perc_10 = len(angles) / 10
+        j = 0
+        for i in range(len(self.ray_objects)):
+            if j == angles_perc_10:
+                new_ray_objects.append(
+                    [self.pos, self.ray_objects[i - j][1], self.ray_objects[i - 1][2]])
+                j = 0
+
+            if round(self.ray_objects[i][0].distance(self.ray_objects[i][1]), 2) == vision_top_distance and round(self.ray_objects[i][0].distance(self.ray_objects[i][2]), 2) == vision_top_distance:
+                j += 1
+                continue
+            j = 0
+            new_ray_objects.append(self.ray_objects[i])
+        new_ray_objects.append(
+            [self.pos, self.ray_objects[i - j - 1][1], self.ray_objects[i][2]])
+        self.ray_objects = new_ray_objects
 
         self.ray_objects.append([
             Point((self.rect.topleft)),
@@ -394,14 +406,26 @@ class Hiding(Player):
             height of the game window
         pos : hidenseek.ext.supportive.Point
             object position on the game display
-        speed : float
-            speed ratio for Player movement
+        speed : int
+            speed ratio for Player movement (in ticks)
         speed_rotate : float
             speed ratio for Player rotate
-        vision : pygame.Rect
-            Player POV
-        wall_cfg : configparser Object
-            Wall Config Object
+        wall_timer_init : int
+            init cooldown (in frames) for any wall-specific action
+        wall_timer : int
+            cooldown (in frames)for any wall-specific action
+        vision_radius : float
+            Player POV radius
+        vision_rad : float
+            Player POV angle
+        vision_top : Point
+            Player Top POV Point
+        ray_points : list of Point
+            Player Ray POV in Points representation
+        ray_objects : list of Objects (3-el list of Point)
+            Player Ray POV in Triangles representation
+        direction : float
+            POV angle in radians (Z = 2 * PI)
         image_index : int
             determines which image should be drawn
         images : list of pygame.Surface
@@ -411,7 +435,7 @@ class Hiding(Player):
         rect : pygame.Rect
             object Rectangle, to be drawn
         polygon_points : list of tuples
-            vertices, used for collision check in SAT
+            Agent vertices, used for collision check in SAT
         actions : list of dict
             contains all possible Player actions
         walls_counter : int
@@ -421,13 +445,17 @@ class Hiding(Player):
 
     Methods
     -------
+        _rotate(turn, local_env):
+            rotates the object, accordingly to the value, along its axis
         get_abs_vertices():
             returns absolute vertices coordinates (in game screen coordinates system)
-        move_action(new_pos):
+        _move_action(new_pos):
             algorithm which moves the Player object to given poisition
-        add_wall(direction, walls_group, enemy):
+        update_vision(local_env):
+            updates Agent POV
+        _add_wall(walls, enemy):
             creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
-        update(local_env, walls_group):
+        update(local_env):
             takes and performs the action
     """
 
@@ -458,7 +486,6 @@ class Hiding(Player):
             f"{LOGGING_DASHES} Creating New Hiding Agent (probably new game) {LOGGING_DASHES} ")
         logger_hiding.info("Initializing object")
         logger_hiding.info(f"\tSize: {self.width}x{self.height}")
-        logger_hiding.info(f"\tPosition: {self.pos_init}")
         logger_hiding.info(f"\tSpeed: {self.speed}")
         logger_hiding.info(f"\tSprite: ---PLACEHOLDER---")
         logger_hiding.info(f"\tSprite for Animation: ---PLACEHOLDER---")
@@ -475,7 +502,7 @@ class Hiding(Player):
             }
         ]
 
-    def add_wall(self, walls, enemy):
+    def _add_wall(self, walls, enemy):
         """
         Creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
 
@@ -506,7 +533,7 @@ class Hiding(Player):
 
             wall = Wall(self, self.wall_cfg, wall_pos.x, wall_pos.y)
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
-            wall.rotate(self.direction, wall_pos)
+            wall._rotate(self.direction, wall_pos)
             can_create = True
 
             # check if 2 POV lines (between which is new Wall center) are shorter than eyesight, if yes - then it's not possible to build Wall here
@@ -547,19 +574,17 @@ class Hiding(Player):
         ----------
             local_env : dict
                 contains Player Local Environment
-            walls_group : list of hidenseek.objects.fixes.Wall
-                contains all walls in the area
-                TODO: Once Agent POV done - REPLACE WITH local_env['walls']
 
         Returns
         -------
-            None
+            new_wall : Wall or None
+                returns new Wall object if action was 'add_wall' and it was possible to create new Wall, otherwise None
         """
         new_action = copy.deepcopy(random.choice(self.actions))
 
         if self.wall_timer > 0:
             self.wall_timer -= 1
-        # for negative it's 0, for positive - higher than 0
+        # for negative it's 0, for positive - higher than 0, needed if time-based cooldown (i.e. 5s) instead of frame-based (i.e. 500 frames)
         self.wall_timer = max(self.wall_timer, 0)
 
         if new_action['type'] == 'NOOP':
@@ -577,19 +602,19 @@ class Hiding(Player):
 
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    self.move_action(new_pos)
+                    self._move_action(new_pos)
                     if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
                         logger_hiding.info(
                             "\tCollision with some Wall! Not moving anywhere")
-                        self.move_action(old_pos)
+                        self._move_action(old_pos)
                         return
 
-            self.move_action(new_pos)
+            self._move_action(new_pos)
         elif new_action['type'] == 'rotation':
-            self.rotate(new_action['content'], local_env)
+            self._rotate(new_action['content'], local_env)
         elif new_action['type'] == 'add_wall':
             if not self.wall_timer:  # if no cooldown
-                new_wall = self.add_wall(
+                new_wall = self._add_wall(
                     local_env['walls'], local_env['enemy'])
                 if new_wall:
                     return new_wall
@@ -609,7 +634,7 @@ class Seeker(Player):
 
     Attributes
     ----------
-        width : int
+         width : int
             width of the Player Rectangle
         height : int
             height of the Player Rectangle
@@ -619,12 +644,26 @@ class Seeker(Player):
             height of the game window
         pos : hidenseek.ext.supportive.Point
             object position on the game display
-        speed : float
-            speed ratio for Player movement
+        speed : int
+            speed ratio for Player movement (in ticks)
         speed_rotate : float
             speed ratio for Player rotate
-        vision : pygame.Rect
-            Player POV
+        wall_timer_init : int
+            init cooldown (in frames) for any wall-specific action
+        wall_timer : int
+            cooldown (in frames)for any wall-specific action
+        vision_radius : float
+            Player POV radius
+        vision_rad : float
+            Player POV angle
+        vision_top : Point
+            Player Top POV Point
+        ray_points : list of Point
+            Player Ray POV in Points representation
+        ray_objects : list of Objects (3-el list of Point)
+            Player Ray POV in Triangles representation
+        direction : float
+            POV angle in radians (Z = 2 * PI)
         image_index : int
             determines which image should be drawn
         images : list of pygame.Surface
@@ -634,18 +673,20 @@ class Seeker(Player):
         rect : pygame.Rect
             object Rectangle, to be drawn
         polygon_points : list of tuples
-            vertices, used for collision check in SAT
+            Agent vertices, used for collision check in SAT
         actions : list of dict
             contains all possible Player actions
 
     Methods
     -------
+       _rotate(turn, local_env):
+            rotates the object, accordingly to the value, along its axis
         get_abs_vertices():
             returns absolute vertices coordinates (in game screen coordinates system)
-        move_action(new_pos):
+        _move_action(new_pos):
             algorithm which moves the Player object to given poisition
-        remove_wall(wall):
-            removes given Wall
+        update_vision(local_env):
+            updates Agent POV
         update(local_env):
             takes and performs the action
     """
@@ -678,7 +719,6 @@ class Seeker(Player):
             f"{LOGGING_DASHES} Creating New Seeker Agent (probably new game) {LOGGING_DASHES} ")
         logger_seeker.info("Initializing object")
         logger_seeker.info(f"\tSize: {self.width}x{self.height}")
-        logger_seeker.info(f"\tPosition: {self.pos_init}")
         logger_seeker.info(f"\tSpeed: {self.speed}")
         logger_seeker.info(f"\tSprite: ---PLACEHOLDER---")
         logger_seeker.info(f"\tSprite for Animation: ---PLACEHOLDER---")
@@ -700,7 +740,8 @@ class Seeker(Player):
 
         Returns
         -------
-            None
+            delete_wall : Wall or None
+                returns Wall object to delete if action was 'remove_wall' otherwise None
         """
 
         new_action = copy.deepcopy(random.choice(self.actions))
@@ -725,16 +766,16 @@ class Seeker(Player):
 
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    self.move_action(new_pos)
+                    self._move_action(new_pos)
                     if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
                         logger_seeker.info(
                             "\tCollision with some Wall! Not moving anywhere")
-                        self.move_action(old_pos)
+                        self._move_action(old_pos)
                         return
 
-            self.move_action(new_pos)
+            self._move_action(new_pos)
         elif new_action['type'] == 'rotation':
-            self.rotate(new_action['content'], local_env)
+            self._rotate(new_action['content'], local_env)
         elif new_action['type'] == 'remove_wall':
             if local_env['walls']:
                 if not self.wall_timer:  # if no cooldown
