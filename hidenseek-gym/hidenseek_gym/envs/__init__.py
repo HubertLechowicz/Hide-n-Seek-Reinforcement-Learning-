@@ -1,0 +1,1 @@
+from hidenseek_gym.envs.hidenseek_env import HideNSeekEnv

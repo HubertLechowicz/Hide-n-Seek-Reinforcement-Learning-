@@ -28,13 +28,13 @@ class Wall(pygame.sprite.Sprite):
 
     Methods
     -------
-        is_outside_map():
-            checks whenever Wall is outside map (game screen)
         get_abs_vertices():
             returns absolute vertices coordinates (in game screen coordinates system)
+        _rotate(angle, position):
+            rotates the Wall by Angle and moves its center to Position
     """
 
-    def __init__(self, owner, width, height, x, y):
+    def __init__(self, owner, cfg, x, y):
         """
         Constructs all neccesary attributes for the Wall Object
 
@@ -42,10 +42,8 @@ class Wall(pygame.sprite.Sprite):
         ----------
             owner : None, hidenseek.objects.controllable.Hiding, hidenseek.objects.controllable.Seeker
                 Wall owner, None for game environment
-            width : int
-                width of the Wall
-            height : int
-                height of the Wall
+            cfg : configparser Object
+                Wall Config
             x : float
                 center of the rectangle in 'x' axis for absolute coordinate system (game screen)
             y : float
@@ -56,47 +54,34 @@ class Wall(pygame.sprite.Sprite):
 
         self.owner = owner
 
-        self.width = width
-        self.height = height
+        self.width = cfg.getint('WIDTH', fallback=15)
+        self.height = cfg.getint('HEIGHT', fallback=15)
 
         self.pos = Point((x, y))
 
-        image = pygame.Surface((width, height))
+        image = pygame.Surface((self.width, self.height))
         image.fill((0, 0, 0, 0))
         image.set_colorkey((0, 0, 0))
 
         pygame.draw.rect(
             image,
-            (0, 255, 0), # green
-            (0, 0, width, height),
+            (0, 255, 0),  # green
+            (0, 0, self.width, self.height),
             0
         )
 
         self.image = image
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
-        self.polygon_points = [Point((self.rect.left, self.rect.top)), Point((self.rect.right, self.rect.top)), Point((self.rect.right, self.rect.bottom)), Point((self.rect.left, self.rect.bottom))]
+        self.polygon_points = [Point((self.rect.left, self.rect.top)), Point((self.rect.right, self.rect.top)), Point(
+            (self.rect.right, self.rect.bottom)), Point((self.rect.left, self.rect.bottom))]
 
-    def is_outside_map(self, SCREEN_WIDTH, SCREEN_HEIGHT):
-        """
-        Checks whenever Wall is outside map (game screen)
+    def __str__(self):
+        return str(self.pos)
 
-        Parameters
-        ----------
-            SCREEN_WIDTH : int
-                width of the game window
-            SCREEN_HEIGHT : int
-                height of the game window
-        
-        Returns
-        -------
-            is_outside_map : bool
-        """
+    def __repr__(self):
+        return self.__str__()
 
-        if self.pos.y - self.height / 2 <= 0 or self.pos.y + self.height / 2 >= SCREEN_HEIGHT or self.pos.x - self.width / 2 <= 0 or self.pos.x + self.width / 2 >= SCREEN_WIDTH:
-            return True
-        return False
-        
     def get_abs_vertices(self):
         """
         Returns absolute coordinates of Vertices in Polygon
@@ -104,7 +89,7 @@ class Wall(pygame.sprite.Sprite):
         Parameters
         ----------
             None
-        
+
         Returns
         -------
             points : list of hidenseek.ext.supportive.Point
@@ -113,7 +98,7 @@ class Wall(pygame.sprite.Sprite):
 
         return self.polygon_points
 
-    def rotate(self, angle, position):
+    def _rotate(self, angle, position):
         """
         Rotates the sprite by creating new Rectangle and updates its polygon points
 
@@ -130,14 +115,16 @@ class Wall(pygame.sprite.Sprite):
         """
         # Copy and then rotate the original image.
         copied_image = self.image.copy()
-        self.image = pygame.transform.rotozoom(copied_image, -angle*180/math.pi, 1)
+        self.image = pygame.transform.rotozoom(
+            copied_image, -angle*180/math.pi, 1)
         self.image.set_colorkey((0, 0, 0))
-        
+
         # Create a new rect with the center of the sprite.
         self.rect = self.image.get_rect()
-        self.rect.center = (position.x,position.y)
+        self.rect.center = (position.x, position.y)
         self.width = self.rect.width
         self.height = self.rect.height
 
         # Update the polygon points for collisions
-        self.polygon_points = [Point.triangle_unit_circle_relative(angle, self.pos, polygon_point) for polygon_point in self.polygon_points]
+        self.polygon_points = [Point.triangle_unit_circle_relative(
+            angle, self.pos, polygon_point) for polygon_point in self.polygon_points]

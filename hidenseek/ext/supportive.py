@@ -2,6 +2,7 @@ import pygame
 import math
 from PIL import Image
 
+
 class Point():
     """
     Point class, which corrensponds to a point on the coordinate system
@@ -17,6 +18,22 @@ class Point():
             rounds Objects x & y to the 'n' decimal place, default: 0 (integer)
         orthogonally():
             returns tuple which contains orthogonal representation of Point
+        det(obj):
+            return determinant of caller and argument Point considered as matrixes
+        dot(obj):
+            returns dot product between caller and argument Point
+        distance(obj):
+            returns cartesian distance between caller and argument Point
+        square():
+            returns Point square representation (x^2 + y^2)
+
+        @staticmethod
+        triangle_unit_circle(radians, side_size):
+            returns point moved by Radians distant by Side_size in terms of (0, 0) game screen
+
+        @staticmethod
+        triangle_unit_circle_relative(radians, center, target):
+            returns Target point moved by Radians in terms of center Point
     """
 
     def __init__(self, position):
@@ -43,7 +60,8 @@ class Point():
         elif isinstance(obj, int) or isinstance(obj, float):
             return Point((self.x + obj, self.y + obj))
         else:
-            raise TypeError("You can only add Point to the 'Point', 'Integer' and 'Float' value types")
+            raise TypeError(
+                "You can only add Point to the 'Point', 'Integer' and 'Float' value types")
 
     def __sub__(self, obj):
         """
@@ -66,7 +84,8 @@ class Point():
         elif isinstance(obj, int) or isinstance(obj, float):
             return Point((self.x - obj, self.y - obj))
         else:
-            raise TypeError("You can only sub Point with 'Point', 'Integer' and 'Float' value types")
+            raise TypeError(
+                "You can only sub Point with 'Point', 'Integer' and 'Float' value types")
 
     def __eq__(self, obj):
         if isinstance(obj, Point):
@@ -89,7 +108,8 @@ class Point():
         """
 
         if not (isinstance(obj, int) or isinstance(obj, float)):
-            raise TypeError("You can only multiply Point by using 'Integer' or 'Float'")
+            raise TypeError(
+                "You can only multiply Point by using 'Integer' or 'Float'")
         return Point((self.x * obj, self.y * obj))
 
     def __rmul__(self, obj):
@@ -110,6 +130,28 @@ class Point():
 
     def __str__(self):
         return "Point( " + str(self.x) + ' , ' + str(self.y) + ' )'
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __truediv__(self, obj):
+        """
+        Divides Point by 'int' or 'float'
+
+        Parameters
+        ----------
+            obj : int, float
+
+        Returns
+        -------
+            Point : hidenseek.ext.supportive.Point
+                new Point object
+        """
+
+        if not (isinstance(obj, int) or isinstance(obj, float)):
+            raise TypeError(
+                "You can only divide Point by using 'Integer' or 'Float'")
+        return Point((self.x / obj, self.y / obj))
 
     def round(self, n=0):
         """
@@ -144,8 +186,73 @@ class Point():
 
         return (self.y, -self.x)
 
+    def det(self, obj):
+        """
+        return determinant of caller and argument Point considered as matrixes
+
+        Parameters
+        ----------
+            obj : Point
+                second Point needed to do the operation
+
+        Returns
+        -------
+            det : float
+                calculated determinant value
+        """
+
+        return self.x * obj.y - self.y * obj.x
+
+    def distance(self, obj):
+        """
+        return Cartesian Distance between caller and argument Point considered as matrixes
+
+        Parameters
+        ----------
+            obj : Point
+                second Point needed to do the operation
+
+        Returns
+        -------
+            cart_dist : float
+                Cartesian Distance between 2 Points
+        """
+        return math.sqrt((self.x - obj.x)**2 + (self.y - obj.y)**2)
+
+    def dot(self, obj):
+        """
+        return dot product between caller and argument Point considered as matrixes
+
+        Parameters
+        ----------
+            obj : Point
+                second Point needed to do the operation
+
+        Returns
+        -------
+            dot : float
+                calculated dot product
+        """
+        return self.x * obj.x + self.y * obj.y
+
+    def square(self):
+        """
+        returns Point square representation (x^2 + y^2)
+
+        Parameters
+        ----------
+            obj : Point
+                second Point needed to do the operation
+
+        Returns
+        -------
+            square : float
+                calculated Point square value
+        """
+        return self.x * self.x + self.y * self.y
+
     @staticmethod
-    def triangle_unit_circle(radians, **kwargs):
+    def triangle_unit_circle(radians, side_size):
         """
         Calculates relocation/movement in absolute coordinate system (display) based on radians
 
@@ -154,11 +261,7 @@ class Point():
             radians : float
                 Movement angle in radians
             side_size : float
-                Width or Height value, depending on the axes (x = width, y = height), optional
-            velocity : float
-                Based on FPS value, increases/lowers movement, optional
-            speed : float
-                Based on Agent Speed Ratio, increases/lowers movement, optional
+                Width or Height value, depending on the axes (x = width, y = height)
 
         Returns
         -------
@@ -166,18 +269,8 @@ class Point():
                 Relocation/movement in absolute coordinate system
         """
 
-        x = math.cos(radians)
-        y = math.sin(radians)
-
-        if 'side_size' in kwargs:
-            x *= kwargs['side_size']
-            y *= kwargs['side_size']
-        if 'velocity' in kwargs:
-            x *= kwargs['velocity']
-            y *= kwargs['velocity']
-        if 'speed' in kwargs:
-            x *= kwargs['speed']
-            y *= kwargs['speed']
+        x = math.cos(radians) * side_size
+        y = math.sin(radians) * side_size
 
         return Point((x, y))
 
@@ -203,8 +296,10 @@ class Point():
 
         dist_axes = target - center
 
-        x = center.x + math.cos(radians) * dist_axes.x - math.sin(radians) * dist_axes.y
-        y = center.y + math.sin(radians) * dist_axes.x + math.cos(radians) * dist_axes.y
+        x = center.x + math.cos(radians) * dist_axes.x - \
+            math.sin(radians) * dist_axes.y
+        y = center.y + math.sin(radians) * dist_axes.x + \
+            math.cos(radians) * dist_axes.y
 
         return Point((x, y))
 
@@ -219,16 +314,21 @@ class Collision:
 
     Methods
     -------
+        @staticmethod
         aabb(r1, r1_size, r2_, r2_size):
             returns collision by using Axis-Aligned Bounding Boxes method
+        @staticmethod
         circle_with_rect(circle, rect):
             returns collision by using simple Circle with Rect Collision Check
-        normalize_point_tuple(point):
-            normalizes point that is a tuple (not Point class)
-        sat_project_to_axis(vertices, axis):
-            projects Vertices to Axis
+        @staticmethod
         sat(vertices_obj1, vertices_obj2):
             returns collision by using Separating Axis Theorem
+        @staticmethod
+        find_intersection(segment1, segment2)
+            if intersection between segment1 & segment2 exists, returns closes Point; if not - returns None
+        @staticmethod
+        get_objects_in_local_env(objs, center, radius, angle, vertices)
+            returns list of objects (from argument objs) which are in given local environment
     """
 
     @staticmethod
@@ -236,12 +336,14 @@ class Collision:
         """ 
         Uses Axis-Aligned Bounding Boxes method to determine if objects CAN collide. 
         It is 'certain' for rectangles, for Polygons it is a pre-selection to reduce computation time.
-        
+
         Parameters
         ----------
             r1 : hidenseek.ext.supportive.Point
+                center of rectangle
             r1_size : tuple
             r2 : hidenseek.ext.supportive.Point
+                center of rectangle
             r2_size : tuple
 
         Returns
@@ -262,7 +364,7 @@ class Collision:
     def circle_with_rect(circle, rect):
         """ 
         Uses simple Circle with Rectangle collision detection method to determine if objects collide. 
-        
+
         Parameters
         ----------
             circle : pygame.Rect
@@ -275,10 +377,12 @@ class Collision:
         """
 
         if not isinstance(circle, pygame.Rect):
-            raise TypeError(f"Circle is not a pygame.Rect object. It is {type(circle)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
+            raise TypeError(
+                f"Circle is not a pygame.Rect object. It is {type(circle)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
         if not isinstance(rect, pygame.Rect):
-            raise TypeError(f"Rectangle is not a pygame.Rect object. It is {type(rect)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
-        
+            raise TypeError(
+                f"Rectangle is not a pygame.Rect object. It is {type(rect)}. Make sure to use pygame.Rect class for Circle - Rect Collision Detector")
+
         x = circle.center[0]
         y = circle.center[1]
         if x < rect.center[0]:
@@ -302,7 +406,7 @@ class Collision:
                 y = rect.center[1]
             else:
                 y = rect.bottom
-            
+
         dist_x = circle.center[0] - x
         dist_y = circle.center[1] - y
         dist = dist_x**2 + dist_y**2
@@ -313,10 +417,10 @@ class Collision:
         return False
 
     @staticmethod
-    def normalize_point_tuple(point):
+    def _normalize_point_tuple(point):
         """ 
         Normalizes input point
-        
+
         Parameters
         ----------
             point : tuple
@@ -331,10 +435,10 @@ class Collision:
         return (point[0] / norm, point[1] / norm)
 
     @staticmethod
-    def sat_project_to_axis(vertices, axis):
+    def _sat_project_to_axis(vertices, axis):
         """ 
         Projects vertices to axis
-        
+
         Parameters
         ----------
             vertices : list
@@ -350,10 +454,27 @@ class Collision:
         return [min(dots), max(dots)]
 
     @staticmethod
+    def _get_polygon_edges(vertices):
+        """
+        Makes edges from polygon verticies
+
+        Parameters
+        ----------
+            vertices_: list
+                list of vertices objects (hidenseek.ext.supportive.Point)
+        Returns
+        -------
+            edges : list
+                returns list of edges (hidenseek.ext.supportive.Point)
+        """
+        return [vertices[(i + 1) % len(vertices)] - vertices[i] for i in
+                range(len(vertices))] if len(vertices) > 2 else [vertices[1] - vertices[0]]
+
+    @staticmethod
     def sat(vertices_obj1, vertices_obj2):
         """ 
         Checks if 2 objects collide by using Separating Axis Theorem
-        
+
         Parameters
         ----------
             vertices_obj1 : list
@@ -367,74 +488,177 @@ class Collision:
                 returns if objects collide
         """
         # edges function
-        edges_1 = [vertices_obj1[(i + 1) % len(vertices_obj1)] - vertices_obj1[i] for i in range(len(vertices_obj1))]
-        edges_2 = [vertices_obj2[(i + 1) % len(vertices_obj2)] - vertices_obj2[i] for i in range(len(vertices_obj2))]
+        edges_1 = Collision._get_polygon_edges(vertices_obj1)
+        edges_2 = Collision._get_polygon_edges(vertices_obj2)
 
         # all edges
         edges = edges_1 + edges_2
 
         # axes
-        axes = [Collision.normalize_point_tuple(edge.orthogonally()) for edge in edges]
+        axes = [Collision._normalize_point_tuple(
+            edge.orthogonally()) for edge in edges]
         for axis in axes:
-            projection_1 = Collision.sat_project_to_axis(vertices_obj1, axis)
-            projection_2 = Collision.sat_project_to_axis(vertices_obj2, axis)
+
+            projection_1 = Collision._sat_project_to_axis(vertices_obj1, axis)
+            projection_2 = Collision._sat_project_to_axis(vertices_obj2, axis)
 
             if not projection_2[0] <= projection_1[0] <= projection_2[1] and not projection_2[0] <= projection_1[1] <= projection_2[1] and not projection_1[0] <= projection_2[0] <= projection_1[1] and not projection_1[0] <= projection_2[1] <= projection_1[1]:
                 return False
 
         return True
 
-class MapGenerator:
 
-    @staticmethod 
-    def open_bmp(filename):
-        map_in_bmp = Image.open(filename)
-        return map_in_bmp
-    
-    @staticmethod 
-    def get_predefined_palette():
-        return 
-        {
-            # colours in HEX
-            # white : background
-            "#000000": "wall", # black
-            "#0000ff" : "hider", # dark blue 
-            "#ff0000" : "seeker", # red 
-            #
-            #
-            # #00ff00 : bushes - green 
-            # #00ffff : glass - light blue
-            # ...
-        }
-        
+    @staticmethod
+    def _find_slope(segment):
+        """
+        Return the slope of the line segment, if it is defined. If it is
+        undefined, return None.
+        """
+        p1, p2 = segment[0], segment[1]
+        if p2.x - p1.x == 0.0:
+            return None
+        else:
+            return (p2.y - p1.y) / (p2.x-p1.x)
 
-    @staticmethod 
-    def get_objects_coordinates(map, palette):
-            def get_objects_coordinates(map, palette):
-            for i in range(map.size[0]):
-                for j in range(map.size[1]):
-                    print(map.getpixel((i, j)))
-            
+    @staticmethod
+    def _find_y_intercept(slope, point):
+        """
+        Return the y-intercept of an infinite line with slope equal to slope that
+        passes through point. If slope does not exist, return None.
+        """
+        if slope is None:
+            return None
+        else:
+            return point.y - slope * point.x
 
+    @staticmethod
+    def _order_segment(segment):
+        """
+        Order endpoints in segment primarily by x position, and secondarily by y
+        position.
+        """
+        ep1, ep2 = segment[0], segment[1]
+        if (ep1.x > ep2.x or ep1.x == ep2.x and ep1.y > ep2.y):
+            segment[0], segment[1] = segment[1], segment[0]
 
-        # How should it look like
-        # objects = [
-        #     {
-        #         "type": "wall",
-        #         "vertices": [
-        #         {
-        #             "x": 0,
-        #             "y": 0
-        #         },
-        #         {
-        #             "x": 1,
-        #             "y": 1
-        #         },
-        #         ]
-        #     }
-        # ]
-        #return objects
+    @staticmethod
+    def _order_segments(segments):
+        """
+        Order segments by each segment's first endpoint. Similar to order_segment,
+        order primarily by first endpoint's x position, and secondarily by first
+        endpoint's y position.
+        """
+        seg1, seg2 = segments
+        if (seg1[0].x > seg2[0].x or seg1[0].x == seg2[0].x
+                and seg1[0].y > seg2[0].y):
+            segments[0], segments[1] = segments[1], segments[0]
 
+    @staticmethod
+    def _on(point, segment):
+        """
+        Return True if point lies on segment. Otherwise, return False.
+        """
+        return (Collision._within(segment[0].x, point.x, segment[1].x) and
+                Collision._within(segment[0].y, point.y, segment[1].y))
 
-    
-    
+    @staticmethod
+    def _within(p, q, r):
+        """
+        Return True if q is between p and r. Otherwise, return False.
+        """
+        return p <= q <= r or r <= q <= p
+
+    @staticmethod
+    def find_intersection(segment1, segment2):
+        """
+        Return an intersection point of segment1 and segment2, if one exists. If
+        multiple points of intersection exist, randomly return one of those
+        intersection points. If no intersection exists, return None.
+
+        Parameters
+        ----------
+            segment1 : [hidenseek.ext.supportive.Point, hidenseek.ext.supportive.Point]
+                first segment to check intersection with
+            segment2: [hidenseek.ext.supportive.Point, hidenseek.ext.supportive.Point]
+                second segment to check intersection with
+        Returns
+        -------
+            intersect_point : Point or None
+                if intersection exists, returns the Point object; else None
+        """
+        [s1, s2] = [Collision._find_slope(l) for l in [segment1, segment2]]
+        [k1, k2] = [Collision._find_y_intercept(s, l[0])
+                    for s, l in [(s1, segment1), (s2, segment2)]]
+
+        if s1 == s2:
+            if k1 != k2:
+                return None
+            #  at this point, the two line segments are known to lie on the same
+            #  infinite line (i.e. all of the endpoints are collinear)
+            segments = [segment1, segment2]
+            for segment in segments:
+                Collision._order_segment(segment)
+            Collision._order_segments(segments)
+            intersection = segments[1][0]
+        else:
+            #  assume segment 1 has slope and segment 2 doesn't
+            s, x, k = s1, segment2[0].x, k1
+            #  assumption wrong, segment 1 doesn't have a slope, but segment 2 does
+            if s1 is None:
+                s, x, k = s2, segment1[0].x, k2
+            #  assumption wrong, segments 1 and 2 both have slopes
+            elif s2 is not None:
+                x = (k2-k1) / (s1-s2)
+            y = s*x + k
+            intersection = Point((x, y))
+
+        if Collision._on(intersection, segment1) and Collision._on(intersection, segment2):
+            return intersection
+
+        return None
+
+    @staticmethod
+    def get_objects_in_local_env(objs, center, radius, angle, vertices):
+        """
+        Checks if objects are in Local Environment
+
+        Parameters
+        ----------
+            objs : list of pygame.Rect
+                objects to check if in local
+            center : pygame.Rect
+                local environment source (i.e. Agent) center
+            radius : int
+                local environment source (i.e. Agent) vision radius
+            angle : int
+                local environment source (i.e. Agent) direction [radians]
+            vertices : list of tuples
+                list of Agent POV vertices
+
+        Returns
+        -------
+            in_radius : list
+                list of pygame.Rect objects being in Local Environment
+        """
+
+        in_radius = []
+        # width, height for arc w/ 0 radians, don't need an actual arc
+        arc_surface = pygame.Surface((radius, 2 * radius))
+        arc_surface = pygame.transform.rotozoom(
+            arc_surface, -angle*180/math.pi, 1)
+
+        # Create a new rect with the center of the sprite.
+        arc_rect = arc_surface.get_rect()
+        arc_center = Point.triangle_unit_circle_relative(
+            angle, center, Point((center.x + radius / 2, center.y)))
+        arc_rect.center = (arc_center.x, arc_center.y)
+
+        for obj in objs:
+            if Collision.aabb(arc_center, arc_rect.size, obj.pos, (obj.width, obj.height)):
+                for vertices_obj in vertices:
+                    if Collision.sat(obj.get_abs_vertices(), vertices_obj):
+                        in_radius.append(obj)
+                        break
+
+        return in_radius
+
