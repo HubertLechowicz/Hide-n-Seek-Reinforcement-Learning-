@@ -3,7 +3,7 @@ import math
 import copy
 from objects.controllable import Hiding, Seeker
 from objects.fixed import Wall
-from ext.supportive import Point, Collision
+from ext.supportive import Point, Collision, MapGenerator
 
 from ext.loggers import LOGGING_DASHES, logger_engine
 
@@ -102,6 +102,35 @@ class HideNSeek(object):
         -------
             None
         """
+        all_objects = MapGenerator.get_objects_coordinates(MapGenerator.open_bmp("map.bmp"), MapGenerator.get_predefined_palette())
+
+        self.width, self.height = MapGenerator.open_bmp("map.bmp").size
+
+        logger_engine.info("\tWalls Sprite Group")
+        self.walls_group = pygame.sprite.Group()
+
+        for obj in all_objects:
+            center_x = (obj["vertices"][0]["x"] + obj["vertices"][1]["x"]) / 2
+            center_y = (obj["vertices"][0]["y"] + obj["vertices"][1]["y"]) / 2
+
+            obj_width = obj["vertices"][1]["x"] - obj["vertices"][0]["x"]
+            obj_height = obj["vertices"][1]["y"] - obj["vertices"][0]["y"]
+            obj_size = (obj_width, obj_height)
+
+            if(obj["type"] == "wall"):
+                logger_engine.info("\tWall")
+                self.walls_group.add(Wall(None, self.wall_cfg, center_x, center_y, obj_size))
+
+            elif (obj["type"] == "seeker"):
+                logger_engine.info("\tSeeker Agent")
+                self.player_seek = Seeker(obj_size, self.p_seek_cfg, (center_x, center_y), (255, 255, 255), self.width, self.height, (255, 255, 0))
+
+            elif (obj["type"] == "hider"):
+                logger_engine.info("\tHiding Agent")
+                self.player_hide = Hiding(obj_size, self.p_hide_cfg, (center_x, center_y), (255, 0, 0), self.width, self.height, self.wall_cfg)
+
+
+
         init_local_env = {
             'walls': [],
             'enemy': None,
@@ -110,15 +139,11 @@ class HideNSeek(object):
         self.clock = pygame.time.Clock()
 
         logger_engine.info("Initializing Environment Objects")
-        logger_engine.info("\tSeeker Agent")
-        self.player_seek = Seeker(
-            self.p_seek_cfg, (.1, .1), (255, 255, 255), self.width, self.height, (255, 255, 0))
+
         logger_engine.info("\tSeeker Vision")
         self.player_seek.update_vision(init_local_env)
 
-        logger_engine.info("\tHiding Agent")
-        self.player_hide = Hiding(
-            self.p_hide_cfg, (.7, .7), (255, 0, 0), self.width, self.height, self.wall_cfg)
+
         logger_engine.info("\tHiding Vision")
         self.player_hide.update_vision(init_local_env)
 
@@ -130,8 +155,7 @@ class HideNSeek(object):
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
 
-        logger_engine.info("\tWalls Sprite Group")
-        self.walls_group = pygame.sprite.Group()
+
 
     def reset(self):
         """

@@ -34,7 +34,7 @@ class Wall(pygame.sprite.Sprite):
             rotates the Wall by Angle and moves its center to Position
     """
 
-    def __init__(self, owner, cfg, x, y):
+    def __init__(self, owner, cfg, x, y, size):
         """
         Constructs all neccesary attributes for the Wall Object
 
@@ -54,8 +54,10 @@ class Wall(pygame.sprite.Sprite):
 
         self.owner = owner
 
-        self.width = cfg.getint('WIDTH', fallback=15)
-        self.height = cfg.getint('HEIGHT', fallback=15)
+        # self.width = cfg.getint('WIDTH', fallback=15)
+        # self.height = cfg.getint('HEIGHT', fallback=15)
+        self.width = size[0]
+        self.height = size[1]
 
         self.pos = Point((x, y))
 

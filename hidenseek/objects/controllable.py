@@ -73,7 +73,7 @@ class Player(pygame.sprite.Sprite):
     """
 
     # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
-    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
+    def __init__(self, size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
         """
         Constructs all neccesary attributes for the Player Object
 
@@ -96,11 +96,21 @@ class Player(pygame.sprite.Sprite):
         """
 
         super().__init__()
-        self.width = cfg.getint('WIDTH', fallback=50)
-        self.height = cfg.getint('HEIGHT', fallback=50)
+        # self.width = cfg.getint('WIDTH', fallback=50)
+        # self.height = cfg.getint('HEIGHT', fallback=50)
+        self.width = size[0]
+        self.height = size[1]
 
-        self.pos = Point(
-            (pos_ratio[0] * SCREEN_WIDTH, pos_ratio[1] * SCREEN_HEIGHT))
+        tmp_pos = list(pos_ratio)
+        if pos_ratio[0] < 1:
+            tmp_pos[0] *= SCREEN_WIDTH
+
+        if pos_ratio[1] < 1:
+            tmp_pos[1] *= SCREEN_HEIGHT
+
+        self.pos = Point(tmp_pos)
+
+
 
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
@@ -459,7 +469,7 @@ class Hiding(Player):
             takes and performs the action
     """
 
-    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, wall_cfg):
+    def __init__(self, size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, wall_cfg):
         """
         Constructs all neccesary attributes for the Hiding Object
 
@@ -480,7 +490,7 @@ class Hiding(Player):
                 Wall Config
         """
 
-        super().__init__(cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
+        super().__init__(size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         logger_hiding.info(
             f"{LOGGING_DASHES} Creating New Hiding Agent (probably new game) {LOGGING_DASHES} ")
@@ -691,7 +701,7 @@ class Seeker(Player):
             takes and performs the action
     """
 
-    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
+    def __init__(self, size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
         """
         Constructs all neccesary attributes for the Seeker Object
 
@@ -713,7 +723,7 @@ class Seeker(Player):
                 TODO: ONCE USING IMAGE - DELETE THIS
         """
 
-        super().__init__(cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
+        super().__init__(size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
 
         logger_seeker.info(
             f"{LOGGING_DASHES} Creating New Seeker Agent (probably new game) {LOGGING_DASHES} ")

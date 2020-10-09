@@ -11,6 +11,7 @@ hidenseek = {editable = true,path = "."}
 numpy = "*"
 tripy = "*"
 scikit-learn = "*"
+pillow = "*"
 
 [requires]
 python_version = "3.8"

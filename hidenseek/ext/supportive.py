@@ -662,3 +662,138 @@ class Collision:
 
         return in_radius
 
+class MapGenerator:
+    """
+    Map Generator class, creating map form a picture
+
+    Attributes
+    ----------
+        None
+
+    Methods
+    -------
+        @staticmethod
+        open_bmp(filename):
+            returns map from bmp
+        @staticmethod
+        isnt_in_object(list_objects, x, y):
+            returns information if point isn't in object
+        @staticmethod
+        get_objects_coordinates(map, palette):
+            returns objects with their types and positions
+        @staticmethod
+        get_predefined_palette()
+            returns dictionary of types of objects and their colors
+        @staticmethod
+        searcher(x1, y1, objects, map)
+            returns the last point from figure
+    """
+    @staticmethod
+    def open_bmp(filename):
+        """
+        Opens and returns map
+
+        Parameters
+        ----------
+            filename :
+        Returns
+        -------
+            intersect_point : Point or None
+                if intersection exists, returns the Point object; else None
+        """
+        map_in_bmp = Image.open(filename)
+        return map_in_bmp
+
+    @staticmethod
+    def isnt_in_object(list_objects, x, y):
+        if (len(list_objects) == 0):
+            return True
+
+        for objects in list_objects:
+                if (x >= objects["vertices"][0]["x"]):
+                    if (x <= objects["vertices"][1]["x"]):
+                        if (y >= objects["vertices"][0]["y"]):
+                            if (y <= objects["vertices"][1]["y"]):
+                                return False
+        return True
+
+    @staticmethod
+    def get_objects_coordinates(map, palette):
+        objects = []
+
+        for i in range(0, map.size[0] - 1, 1):
+            for j in range(0, map.size[1] - 1, 1):
+                if (MapGenerator.isnt_in_object(objects, i, j)):
+                    this_pixel = map.getpixel((i, j))[0:3]
+                    if (this_pixel != (255, 255, 255)):
+                        tmp_coordinates = MapGenerator.searcher(i,j,objects,map)
+                        tmp_object = {
+                                "type": palette['#%02x%02x%02x' % this_pixel],
+                                "vertices": [
+                                    {
+                                        "x": i,
+                                        "y": j
+                                    },
+                                    {
+                                        "x": tmp_coordinates[0],
+                                        "y": tmp_coordinates[1]
+                                    }
+                                ]
+                            }
+                        objects.append(tmp_object)
+        return objects
+
+    @staticmethod
+    def get_predefined_palette():
+        return {
+            # colors
+            # white - background
+            "#ffffff": "background",
+
+            # black - wall
+            "#000000": "wall",
+
+            "#0000ff": "hider",  # dark blue
+            "#ff0000": "seeker",  # red
+
+            "#00ff00" : "bushes", # green
+            "#00ffff" : "glass" # light blue
+
+        }
+
+    @staticmethod
+    def searcher(x1, y1, objects, map):
+        x2 = x1
+        y2 = y1
+        color = map.getpixel((x1, y1))[0:3]
+
+
+        #===================
+        # check x
+        for i in range(x1 + 1, map.size[0]+1, 1):
+            if MapGenerator.isnt_in_object(objects, i, y1):
+                if map.getpixel((i, y1))[0:3] == color:
+                    x2 = x2 + 1
+                else:
+                    break
+            else:
+                break
+
+        #===================
+        # check y
+        ended = False
+        for i in range(y1 + 1, map.size[1]+1, 1):
+            if ended:
+                break
+            for j in range(x1 + 1, x2+1, 1):
+                if (MapGenerator.isnt_in_object(objects, j, i)):
+                    if (map.getpixel((j, i))[0:3] != color):
+                        ended = True
+                        break
+                else:
+                    ended = True
+                    break
+            if (ended == False):
+                y2 = y2 + 1
+        return x2, y2
+
