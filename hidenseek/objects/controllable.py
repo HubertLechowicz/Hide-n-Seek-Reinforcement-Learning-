@@ -8,6 +8,7 @@ import math
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
 import numpy as np
 
+
 class Player(pygame.sprite.Sprite):
     """
     Parent Player Class for Hide'n'Seek Game, inherits from pygame.sprite.Sprite.
@@ -73,7 +74,7 @@ class Player(pygame.sprite.Sprite):
     """
 
     # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
-    def __init__(self, size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
+    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
         """
         Constructs all neccesary attributes for the Player Object
 
@@ -81,8 +82,11 @@ class Player(pygame.sprite.Sprite):
         ----------
             cfg : configparser Object
                 Agent Config Object
+            size : tuple
+                Agent size
             pos_ratio : tuple
-                used to calculate initial position of the Player in absolute coordinate system (game screen)
+                used to calculate initial position of the Player in absolute coordinate system (game screen);
+                if value < 1 then it's ratio in percentage, otherwise it's coord
             color : tuple
                 if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
                 TODO: ONCE USING IMAGE - DELETE THIS
@@ -96,25 +100,20 @@ class Player(pygame.sprite.Sprite):
         """
 
         super().__init__()
-        # self.width = cfg.getint('WIDTH', fallback=50)
-        # self.height = cfg.getint('HEIGHT', fallback=50)
         self.width = size[0]
         self.height = size[1]
 
         tmp_pos = list(pos_ratio)
-        if pos_ratio[0] < 1:
+        if tmp_pos[0] < 1:
             tmp_pos[0] *= SCREEN_WIDTH
 
-        if pos_ratio[1] < 1:
+        if tmp_pos[1] < 1:
             tmp_pos[1] *= SCREEN_HEIGHT
 
         self.pos = Point(tmp_pos)
 
-
-
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
-
 
         self.speed = cfg.getint('SPEED_RATIO', fallback=30)
         self.speed_rotate = cfg.getfloat('SPEED_ROTATE_RATIO', fallback=0.1)
@@ -469,7 +468,7 @@ class Hiding(Player):
             takes and performs the action
     """
 
-    def __init__(self, size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, wall_cfg):
+    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT):
         """
         Constructs all neccesary attributes for the Hiding Object
 
@@ -477,8 +476,11 @@ class Hiding(Player):
         ----------
             cfg : configparser Object
                 Hiding Agent Config
+            size : tuple
+                Agent size
             pos_ratio : tuple
-                used to calculate initial position of the Player in absolute coordinate system (game screen)
+                used to calculate initial position of the Player in absolute coordinate system (game screen);
+                if value < 1 then it's ratio in percentage, otherwise it's coord
             color : tuple
                 if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
                 TODO: ONCE USING IMAGE - DELETE THIS
@@ -486,11 +488,9 @@ class Hiding(Player):
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
-            wall_cfg : configparser Object
-                Wall Config
         """
 
-        super().__init__(size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
+        super().__init__(cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         logger_hiding.info(
             f"{LOGGING_DASHES} Creating New Hiding Agent (probably new game) {LOGGING_DASHES} ")
@@ -502,7 +502,6 @@ class Hiding(Player):
 
         self.walls_counter = 0
         self.walls_max = cfg.getint('WALLS_MAX', fallback=5)
-        self.wall_cfg = wall_cfg
         logger_hiding.info(
             f"\tWalls/Max: {self.walls_counter}/{self.walls_max}")
 
@@ -529,19 +528,21 @@ class Hiding(Player):
         """
 
         logger_hiding.info("Checking if it's possible to create new wall")
-        if self.walls_counter < self. walls_max:
+        if self.walls_counter < self.walls_max:
             logger_hiding.info(f"\tAdding Wall #{self.walls_counter + 1}")
 
             wall_pos = copy.deepcopy(self.pos)
+            wall_size = (max(int(self.width / 10), 2),
+                         max(int(self.height / 2), 2))  # minimum 2x2 Wall
             vision_arc_range = np.sqrt((self.vision_top.x - self.pos.x) * (self.vision_top.x - self.pos.x) + (
                 self.vision_top.y - self.pos.y) * (self.vision_top.y - self.pos.y))
             # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
             wall_pos.x = wall_pos.x + vision_arc_range - \
-                (1.5 * self.wall_cfg.getint("WIDTH", fallback=5))
+                (1.5 * wall_size[0])
             wall_pos = Point.triangle_unit_circle_relative(
                 self.direction, self.pos, wall_pos)
 
-            wall = Wall(self, self.wall_cfg, wall_pos.x, wall_pos.y)
+            wall = Wall(self, wall_pos.x, wall_pos.y, wall_size)
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
             wall._rotate(self.direction, wall_pos)
             can_create = True
@@ -689,7 +690,7 @@ class Seeker(Player):
 
     Methods
     -------
-       _rotate(turn, local_env):
+        _rotate(turn, local_env):
             rotates the object, accordingly to the value, along its axis
         get_abs_vertices():
             returns absolute vertices coordinates (in game screen coordinates system)
@@ -701,7 +702,7 @@ class Seeker(Player):
             takes and performs the action
     """
 
-    def __init__(self, size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
+    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
         """
         Constructs all neccesary attributes for the Seeker Object
 
@@ -709,8 +710,11 @@ class Seeker(Player):
         ----------
             cfg : configparser Object
                 Seeker Agent Config
+            size : tuple
+                Agent size
             pos_ratio : tuple
-                used to calculate initial position of the Player in absolute coordinate system (game screen)
+                used to calculate initial position of the Player in absolute coordinate system (game screen);
+                if value < 1 then it's ratio in percentage, otherwise it's coord
             color : tuple
                 if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
                 TODO: ONCE USING IMAGE - DELETE THIS
@@ -723,7 +727,8 @@ class Seeker(Player):
                 TODO: ONCE USING IMAGE - DELETE THIS
         """
 
-        super().__init__(size, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
+        super().__init__(cfg, size, pos_ratio, color,
+                         SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
 
         logger_seeker.info(
             f"{LOGGING_DASHES} Creating New Seeker Agent (probably new game) {LOGGING_DASHES} ")

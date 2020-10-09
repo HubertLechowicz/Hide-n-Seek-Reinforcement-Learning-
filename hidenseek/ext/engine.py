@@ -20,6 +20,8 @@ class HideNSeek(object):
             height of the game window
         fps : int
             amount of fps you want to lock on
+        map_path : string
+            path to the map, with *.bmp extension
         clock : pygame.time.Clock
             pygame Clock objects to lock FPS and use timer
         screen : pygame.display
@@ -30,8 +32,6 @@ class HideNSeek(object):
             gameplay maximum duration (in ticks), if no other game over event
         agent_env : dict
             stores agents local environments, which includes walls and enemies
-        wall_cfg : configparser Object
-            config for Wall Object
         p_hide_cfg : configparser Object
             config for Hiding Agent
         p_seek_cfg : configparser Object
@@ -71,23 +71,21 @@ class HideNSeek(object):
                 contains config file in configparser (dict-like) Object
         """
 
-        self.width = config['VIDEO'].getint('WIDTH', fallback=512)
-        self.height = config['VIDEO'].getint('HEIGHT', fallback=512)
         self.fps = config['GAME'].getint('FPS', fallback=30)
+        self.map_path = config['GAME'].get(
+            'MAP_PATH', fallback='fallback_map') + '.bmp'
         self.clock = None
         self.screen = None
         self.dt = None
         self.cfg = config['GAME']
         self.duration = None
 
-        self.wall_cfg = config['WALL']
         self.p_hide_cfg = config['AGENT_HIDING']
         self.p_seek_cfg = config['AGENT_SEEKER']
         self.agent_env = {}
 
         logger_engine.info("Initializing Game Engine")
         logger_engine.info(f"\tFPS: {self.fps}")
-        logger_engine.info(f"\tResolution: {self.width}x{self.height}")
 
     def init(self):
         """
@@ -102,13 +100,17 @@ class HideNSeek(object):
         -------
             None
         """
-        all_objects = MapGenerator.get_objects_coordinates(MapGenerator.open_bmp("map.bmp"), MapGenerator.get_predefined_palette())
+        map_bmp = MapGenerator.open_bmp(self.map_path)
+        all_objects = MapGenerator.get_objects_coordinates(
+            map_bmp, MapGenerator.get_predefined_palette())
 
-        self.width, self.height = MapGenerator.open_bmp("map.bmp").size
+        self.width, self.height = map_bmp.size
+        logger_engine.info(f"\tResolution: {self.width}x{self.height}")
 
         logger_engine.info("\tWalls Sprite Group")
         self.walls_group = pygame.sprite.Group()
 
+        logger_engine.info(f"\tGenerating map from BMP ({self.map_path})")
         for obj in all_objects:
             center_x = (obj["vertices"][0]["x"] + obj["vertices"][1]["x"]) / 2
             center_y = (obj["vertices"][0]["y"] + obj["vertices"][1]["y"]) / 2
@@ -118,44 +120,44 @@ class HideNSeek(object):
             obj_size = (obj_width, obj_height)
 
             if(obj["type"] == "wall"):
-                logger_engine.info("\tWall")
-                self.walls_group.add(Wall(None, self.wall_cfg, center_x, center_y, obj_size))
+                logger_engine.info("\t\tWall")
+                self.walls_group.add(
+                    Wall(None, center_x, center_y, obj_size))
 
             elif (obj["type"] == "seeker"):
-                logger_engine.info("\tSeeker Agent")
-                self.player_seek = Seeker(obj_size, self.p_seek_cfg, (center_x, center_y), (255, 255, 255), self.width, self.height, (255, 255, 0))
+                logger_engine.info("\t\tSeeker Agent")
+                self.player_seek = Seeker(self.p_seek_cfg, obj_size, (center_x, center_y), (
+                    255, 255, 255), self.width, self.height, (255, 255, 0))
 
             elif (obj["type"] == "hider"):
-                logger_engine.info("\tHiding Agent")
-                self.player_hide = Hiding(obj_size, self.p_hide_cfg, (center_x, center_y), (255, 0, 0), self.width, self.height, self.wall_cfg)
+                logger_engine.info("\t\tHiding Agent")
+                self.player_hide = Hiding(self.p_hide_cfg, obj_size, (center_x, center_y), (
+                    255, 0, 0), self.width, self.height)
 
-
-
-        init_local_env = {
-            'walls': [],
-            'enemy': None,
-        }
         self.duration = self.cfg.getint('DURATION', fallback=60)
         self.clock = pygame.time.Clock()
 
         logger_engine.info("Initializing Environment Objects")
 
-        logger_engine.info("\tSeeker Vision")
-        self.player_seek.update_vision(init_local_env)
+        self.agent_env['p_seek'] = {
+            'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects),
+            'enemy': self.player_hide if Collision.get_objects_in_local_env([self.player_hide], self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects) else None,
+        }
+        self.agent_env['p_hide'] = {
+            'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects),
+            'enemy': self.player_seek if Collision.get_objects_in_local_env([self.player_seek], self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects) else None,
+        }
 
+        logger_engine.info("\tSeeker Vision")
+        self.player_seek.update_vision(self.agent_env['p_seek'])
 
         logger_engine.info("\tHiding Vision")
-        self.player_hide.update_vision(init_local_env)
-
-        self.agent_env['p_seek'] = copy.deepcopy(init_local_env)
-        self.agent_env['p_hide'] = copy.deepcopy(init_local_env)
+        self.player_hide.update_vision(self.agent_env['p_hide'])
 
         logger_engine.info("\tAgents Sprite Group")
         self.players_group = pygame.sprite.Group()
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
-
-
 
     def reset(self):
         """
@@ -197,7 +199,7 @@ class HideNSeek(object):
 
         if Collision.aabb(self.player_seek.pos, (self.player_seek.width, self.player_seek.height), self.player_hide.pos, (self.player_hide.width, self.player_hide.height)):
             logger_engine.info(
-                "Rectangle collision, checking Polygon Collision by using SAM Method.")
+                "Rectangle collision, checking Polygon Collision by using SAT Method.")
             if Collision.sat(self.player_seek.get_abs_vertices(), self.player_hide.get_abs_vertices()):
                 logger_engine.info("Polygon Collision! Ending the game!")
                 return True, "SEEKER"

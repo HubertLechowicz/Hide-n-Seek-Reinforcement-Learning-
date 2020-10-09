@@ -507,7 +507,6 @@ class Collision:
 
         return True
 
-
     @staticmethod
     def _find_slope(segment):
         """
@@ -662,6 +661,7 @@ class Collision:
 
         return in_radius
 
+
 class MapGenerator:
     """
     Map Generator class, creating map form a picture
@@ -710,11 +710,11 @@ class MapGenerator:
             return True
 
         for objects in list_objects:
-                if (x >= objects["vertices"][0]["x"]):
-                    if (x <= objects["vertices"][1]["x"]):
-                        if (y >= objects["vertices"][0]["y"]):
-                            if (y <= objects["vertices"][1]["y"]):
-                                return False
+            if (x >= objects["vertices"][0]["x"]):
+                if (x <= objects["vertices"][1]["x"]):
+                    if (y >= objects["vertices"][0]["y"]):
+                        if (y <= objects["vertices"][1]["y"]):
+                            return False
         return True
 
     @staticmethod
@@ -726,20 +726,21 @@ class MapGenerator:
                 if (MapGenerator.isnt_in_object(objects, i, j)):
                     this_pixel = map.getpixel((i, j))[0:3]
                     if (this_pixel != (255, 255, 255)):
-                        tmp_coordinates = MapGenerator.searcher(i,j,objects,map)
+                        tmp_coordinates = MapGenerator.searcher(
+                            i, j, objects, map)
                         tmp_object = {
-                                "type": palette['#%02x%02x%02x' % this_pixel],
-                                "vertices": [
-                                    {
-                                        "x": i,
-                                        "y": j
-                                    },
-                                    {
-                                        "x": tmp_coordinates[0],
-                                        "y": tmp_coordinates[1]
-                                    }
-                                ]
-                            }
+                            "type": palette['#%02x%02x%02x' % this_pixel],
+                            "vertices": [
+                                {
+                                    "x": i,
+                                    "y": j
+                                },
+                                {
+                                    "x": tmp_coordinates[0],
+                                    "y": tmp_coordinates[1]
+                                }
+                            ]
+                        }
                         objects.append(tmp_object)
         return objects
 
@@ -756,8 +757,8 @@ class MapGenerator:
             "#0000ff": "hider",  # dark blue
             "#ff0000": "seeker",  # red
 
-            "#00ff00" : "bushes", # green
-            "#00ffff" : "glass" # light blue
+            "#00ff00": "bushes",  # green
+            "#00ffff": "glass"  # light blue
 
         }
 
@@ -795,4 +796,3 @@ class MapGenerator:
             if (ended == False):
                 y2 = y2 + 1
         return x2, y2
-
