@@ -129,3 +129,5 @@ dmypy.json
 #### custom
 # Logging
 /logs
+#idea folder
+.idea/
