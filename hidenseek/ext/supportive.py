@@ -721,8 +721,8 @@ class MapGenerator:
     def get_objects_coordinates(map, palette):
         objects = []
 
-        for i in range(0, map.size[0] - 1, 1):
-            for j in range(0, map.size[1] - 1, 1):
+        for j in range(0, map.size[0] - 1, 1):
+            for i in range(0, map.size[1] - 1, 1):
                 if (MapGenerator.isnt_in_object(objects, i, j)):
                     this_pixel = map.getpixel((i, j))[0:3]
                     if (this_pixel != (255, 255, 255)):
@@ -767,10 +767,9 @@ class MapGenerator:
         y2 = y1
         color = map.getpixel((x1, y1))[0:3]
 
-
-        #===================
+        # ===================
         # check x
-        for i in range(x1 + 1, map.size[0]+1, 1):
+        for i in range(x1 + 1, map.size[0] + 1, 1):
             if MapGenerator.isnt_in_object(objects, i, y1):
                 if map.getpixel((i, y1))[0:3] == color:
                     x2 = x2 + 1
@@ -779,13 +778,13 @@ class MapGenerator:
             else:
                 break
 
-        #===================
+        # ===================
         # check y
         ended = False
-        for i in range(y1 + 1, map.size[1]+1, 1):
+        for i in range(y1 + 1, map.size[1] + 1, 1):
             if ended:
                 break
-            for j in range(x1 + 1, x2+1, 1):
+            for j in range(x1 + 1, x2 + 1, 1):
                 if (MapGenerator.isnt_in_object(objects, j, i)):
                     if (map.getpixel((j, i))[0:3] != color):
                         ended = True
