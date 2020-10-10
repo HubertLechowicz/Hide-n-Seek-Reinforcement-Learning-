@@ -139,6 +139,9 @@ class HideNSeek(object):
 
         logger_engine.info("Initializing Environment Objects")
 
+        self.player_seek.update_vision({'walls': [], 'enemy': None, })
+        self.player_hide.update_vision({'walls': [], 'enemy': None, })
+
         self.agent_env['p_seek'] = {
             'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects),
             'enemy': self.player_hide if Collision.get_objects_in_local_env([self.player_hide], self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects) else None,
@@ -272,11 +275,6 @@ class HideNSeek(object):
         -------
             None
         """
-        pygame.draw.arc(screen, (0, 255, 255), agent.rect.inflate(
-            agent.height * 3, agent.width * 3), -agent.direction - agent.vision_rad / 2, -agent.direction + agent.vision_rad / 2, 1)
-
-        pygame.draw.arc(screen, (0, 255, 255), agent.rect.inflate(
-            agent.height * 3, agent.width * 3), -agent.direction - agent.vision_rad / 2, -agent.direction + agent.vision_rad / 2, 1)
         pygame.draw.line(screen, (0, 255, 0), (agent.pos.x, agent.pos.y),
                          (agent.vision_top.x, agent.vision_top.y), 1)
         ray_obj = agent.ray_objects[:-1]  # without square object

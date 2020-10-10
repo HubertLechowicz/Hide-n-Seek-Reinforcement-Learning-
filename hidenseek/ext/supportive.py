@@ -217,7 +217,7 @@ class Point():
             cart_dist : float
                 Cartesian Distance between 2 Points
         """
-        return math.sqrt((self.x - obj.x)**2 + (self.y - obj.y)**2)
+        return round(math.sqrt((obj.x - self.x)**2 + (obj.y - self.y)**2), 4)
 
     def dot(self, obj):
         """
@@ -498,11 +498,15 @@ class Collision:
         axes = [Collision._normalize_point_tuple(
             edge.orthogonally()) for edge in edges]
         for axis in axes:
-
             projection_1 = Collision._sat_project_to_axis(vertices_obj1, axis)
             projection_2 = Collision._sat_project_to_axis(vertices_obj2, axis)
 
-            if not projection_2[0] <= projection_1[0] <= projection_2[1] and not projection_2[0] <= projection_1[1] <= projection_2[1] and not projection_1[0] <= projection_2[0] <= projection_1[1] and not projection_1[0] <= projection_2[1] <= projection_1[1]:
+            if (
+                not projection_2[0] <= projection_1[0] <= projection_2[1]
+                and not projection_2[0] <= projection_1[1] <= projection_2[1]
+                and not projection_1[0] <= projection_2[0] <= projection_1[1]
+                and not projection_1[0] <= projection_2[1] <= projection_1[1]
+            ):
                 return False
 
         return True
@@ -609,7 +613,7 @@ class Collision:
             elif s2 is not None:
                 x = (k2-k1) / (s1-s2)
             y = s*x + k
-            intersection = Point((x, y))
+            intersection = Point((x, y)).round(4)
 
         if Collision._on(intersection, segment1) and Collision._on(intersection, segment2):
             return intersection

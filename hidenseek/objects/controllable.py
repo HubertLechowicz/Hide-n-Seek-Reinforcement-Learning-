@@ -337,7 +337,8 @@ class Player(pygame.sprite.Sprite):
         temp_ray_points = [Point(self.rect.center)]
         for vertex in self.ray_points:
             temp_ray_points.append(vertex)
-            line_segment = [self.pos, vertex]  # first must me the center point
+            # first must be the center point
+            line_segment = [self.pos.round(4), vertex.round(4)]
             vertex_new_point = False
             min_t_x = None
             for wall_lines in proper_walls_lines:
@@ -364,7 +365,8 @@ class Player(pygame.sprite.Sprite):
         self.ray_objects = [[self.pos, self.ray_points[i], self.ray_points[i + 1]]
                             for i in range(len(self.ray_points) - 1)]
 
-        # if no interruption, then triangle is made from 10% of angles; if interruption - triangle every angle change
+        # if no interruption, then triangle is made from 10 % of angles
+        # if interruption - triangle every angle change
         new_ray_objects = []
         vision_top_distance = round(self.pos.distance(self.vision_top), 2)
         angles_perc_10 = len(angles) / 10
@@ -378,6 +380,10 @@ class Player(pygame.sprite.Sprite):
             if round(self.ray_objects[i][0].distance(self.ray_objects[i][1]), 2) == vision_top_distance and round(self.ray_objects[i][0].distance(self.ray_objects[i][2]), 2) == vision_top_distance:
                 j += 1
                 continue
+            if j > 0:
+                new_ray_objects.append(
+                    [self.pos, self.ray_objects[i - j][1], self.ray_objects[i - 1][2]])
+
             j = 0
             new_ray_objects.append(self.ray_objects[i])
         new_ray_objects.append(
