@@ -1,9 +1,11 @@
 import multiprocessing
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from celery import Celery, group
 from celery.result import AsyncResult
 import time
 import random
+import datetime
+from pytz import timezone
 
 import gym
 import game_env.hidenseek_gym
@@ -15,15 +17,35 @@ celery = Celery(broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 
 
 @celery.task(name='sleep.quartet', bind=True)
-def train(self):
+def train(self, core_id, config_data):
+    print(config_data)
+    # config is in variable above, should create configparser Object to not mess with Game structure
+    # {
+    #     'episodes': '100',
+    #     'map_path': 'b',
+    #     'fps': '60',
+    #     'duration': '1000',
+    #     'seeker-speed': '1.00',
+    #     'seeker-speed-rotate': '0.10',
+    #     'seeker-wall-timeout': '100',
+    #     'seeker-walls': '100',
+    #     'hiding-speed': '1.00',
+    #     'hiding-speed-rotate': '0.10',
+    #     'hiding-wall-timeout': '100'
+    # }
     start = time.time()
-    episodes = 2  # should be from FORM
-    render_mode = 'console'
 
+    episodes = 2  # should be from FORM
+    render_mode = 'rgb_array'
+    tz_local = timezone('Europe/Warsaw')
     env = gym.make('hidenseek-v0')
     env.seed(0)
-    # env = multi_wrappers.MultiMonitor(env, 'monitor', force=True) # -> xvfb crash
-    done_n = [False, False]
+    now = datetime.datetime.now(tz=tz_local)
+    monitor_folder = 'monitor/' + \
+        datetime.datetime.strftime(
+            now, "%Y-%m-%dT%H-%M-%SZ") + '/core-' + str(core_id)
+    env = multi_wrappers.MultiMonitor(env, monitor_folder, force=True)
+    done = False
 
     for i in range(episodes):
         episode_nr = f'Episode #{i + 1}'
@@ -43,9 +65,9 @@ def train(self):
 
             # action_n = agent.act(ob, reward, done) # should be some function to choose action
             action_n = [1, 1]  # temp
-            obs_n, reward_n, done_n, _ = env.step(action_n)
+            obs_n, reward_n, done, _ = env.step(action_n)
 
-            if all(done_n):
+            if done:
                 break
 
     env.close()
@@ -85,11 +107,12 @@ def get_task_status(task_id):
     return jsonify(response)
 
 
-@ app.route('/run', methods=['POST'])
-def run_async_task():
+@ app.route('/train', methods=['POST'])
+def start_training():
+    data = request.json
     tasks = list()
-    for _ in range(multiprocessing.cpu_count()):
-        task = train.apply_async()
+    for i in range(int(data['cpus'])):
+        task = train.apply_async((i, data['configs'][i]))
         tasks.append(task.id)
 
     return {'task_ids': tasks}, 202

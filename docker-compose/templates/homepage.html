@@ -18,19 +18,106 @@
     />
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <a class="navbar-brand" href="#">Template</a>
-    </nav>
-    <div class="content">
-      <button onclick="async_task()">Run async task</button>
-      <button onclick="increment()">Increment value</button>
-      <h1>Value:</h1>
-      <h3 id="val">0</h3>
-      <div class="card card-progress"></div>
+    <div class="container my-5">
+      <div class="display-1 mb-5">Hide'n'Seek Training Platform</div>
+      <div class="card" id="cpu-check">
+        <form id="form-cpu-lock">
+          <div class="row">
+            <div class="form-group col-12 col-sm-6 mt-2">
+              <label for="cpu">Choose your CPU Threads</label>
+              <input
+                class="form-control"
+                type="number"
+                name="cpus"
+                id="cpu"
+                value="2"
+                min="2"
+                max="128"
+              />
+            </div>
+            <div class="form-group col-12 col-sm-6 mt-2">
+              <label for="cpu-btn">
+                Click here to lock CPUs and set up environments
+              </label>
+              <input
+                type="submit"
+                class="form-control btn btn-custom"
+                value="Lock CPUs"
+                id="cpu-btn"
+              />
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" id="config">
+        <div id="no-cpus" class="display-2">
+          Lock CPUs to start configuring environment parameters
+        </div>
+        <div id="yes-cpus" style="display: none">
+          <div class="display-2 mb-3">
+            Fulfill environment config forms then submit them to start training
+          </div>
+          <div class="row" id="yes-cpus-config"></div>
+        </div>
+      </div>
+
+      <div class="card" id="progress">
+        <div id="no-config" class="display-2">
+          Set up environment parameters to start training models
+        </div>
+        <div id="yes-config" style="display: none">
+          <div class="display-2">Watch how your PC BUUUUUURNS!</div>
+        </div>
+      </div>
+
+      <div class="card footer" id="progress">
+        <div class="display-2">Credits</div>
+        <div class="display-3">
+          <a class="link" href="https://ms.polsl.pl">Link here to document</a>
+        </div>
+        <div class="display-4">
+          Hubert Lechowicz<br />
+          Dawid Mrosek<br />
+          Łukasz Płaneta<br />
+        </div>
+        <div class="display-4 text-center">
+          Copyright &copy; Created for Engineer's Thesis
+        </div>
+      </div>
     </div>
   </body>
   <script>
-    let x = 0;
+    let cpus = 2;
+
+    $("#form-cpu-lock").submit(function (e) {
+      e.preventDefault();
+      data = $(this).closest("form").serializeArray();
+      let data_obj = {};
+
+      $.map(data, function (n, i) {
+        data_obj[n["name"]] = n["value"];
+      });
+
+      cpus = data_obj.cpus;
+      $("#cpu-check").html("");
+      $("#cpu-check").css("display", "none");
+
+      let form_config_div =
+        '<div class="col-12 col-sm-6"><div class="inner-top-border"><form id="form-config-{form_id}">' +
+        '<div class="display-2 mb-3">Environment #{form_id}</div> <div class="row"> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="episodes-{form_id}">Episodes</label> <input type="number" name="episodes" id="episodes-{form_id}" class="form-control" value="100" min="5" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="map-{form_id}">Map File</label> <input type="text" name="map_path" id="map-{form_id}" class="form-control" placeholder="map.bmp" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="fps-{form_id}">Max FPS</label> <input type="number" name="fps" id="fps-{form_id}" class="form-control" value="60" min="1" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="duration-{form_id}"> Game Duration (frames) </label> <input type="number" name="duration" id="duration-{form_id}" class="form-control" value="1000" min="100" max="100000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-speed-{form_id}"> [Seeker] Speed Ratio </label> <input type="number" name="seeker-speed" id="seeker-speed-{form_id}" class="form-control" value="1.00" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-speed-rotate-{form_id}"> [Seeker] Speed Rotate Ratio </label> <input type="number" name="seeker-speed-rotate" id="seeker-speed-rotate-{form_id}" class="form-control" value="0.10" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-wall-timeout-{form_id}"> [Seeker] Wall Action Timeout </label> <input type="number" name="seeker-wall-timeout" id="seeker-wall-timeout-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-walls-{form_id}"> [Seeker] Max Walls </label> <input type="number" name="seeker-walls" id="seeker-walls-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-speed-{form_id}" >[Hiding] Speed Ratio</label > <input type="number" name="hiding-speed" id="hiding-speed-{form_id}" class="form-control" value="1.00" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-speed-rotate-{form_id}"> [Hiding] Speed Rotate Ratio </label> <input type="number" name="hiding-speed-rotate" id="hiding-speed-rotate-{form_id}" class="form-control" value="0.10" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-wall-timeout-{form_id}"> [Hiding] Wall Action Timeout </label> <input type="number" name="hiding-wall-timeout" id="hiding-wall-timeout-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div><div class="display-2 m-auto">REWARDS HERE IN THE FUTURE</div> </div> ' +
+        "</form></div></div>";
+      for (var i = 0; i < cpus; i++) {
+        $("#yes-cpus-config").append(
+          form_config_div.replaceAll("{form_id}", i)
+        );
+      }
+      $("#yes-cpus-config").append(
+        '<div class="col-12"><button class="btn btn-custom float-right" onClick="startTraining()">Start training</button></div>'
+      );
+      $("#yes-cpus").css("display", "unset");
+      $("#no-cpus").css("display", "none");
+    });
 
     function get_task_status(task_id, el) {
       $.getJSON("status/" + task_id, function (data) {
@@ -51,23 +138,53 @@
       });
     }
 
-    function async_task() {
+    function startTraining() {
+      let dataToSend = {
+        cpus: cpus,
+        configs: [],
+      };
+      let dataValid = true;
+      for (var i = 0; i < cpus; i++) {
+        data = $("#form-config-" + i).serializeArray();
+        data_obj = {};
+
+        $.map(data, function (n, j) {
+          if (
+            n["value"] === "" ||
+            n["value"] === null ||
+            n["value"] === undefined
+          ) {
+            dataValid = false;
+            alert(
+              "Field " +
+                n["name"] +
+                " in Environment #" +
+                i +
+                " is empty! Can't proceed!"
+            );
+          }
+          data_obj[n["name"]] = n["value"];
+        });
+        if (!dataValid) break;
+        dataToSend.configs.push(data_obj);
+      }
+      if (!dataValid) return;
       $.ajax({
-        url: "run",
+        url: "train",
         type: "POST",
+        data: JSON.stringify(dataToSend),
+        headers: {
+          "Content-Type": "application/json",
+        },
         success: function (response) {
           $.each(response.task_ids, function (id, val) {
-            let el = $("<p id=" + val + "></p>");
-            get_task_status(val, el[0]);
-            $(".card-progress").append(el);
+            // let el = $("<p id=" + val + "></p>");
+            // get_task_status(val, el[0]);
+            // $(".card-progress").append(el);
+            console.log(val);
           });
         },
       });
-    }
-
-    function increment() {
-      x += 1;
-      $("#val").text(x);
     }
   </script>
 </html>

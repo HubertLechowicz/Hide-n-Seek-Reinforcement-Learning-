@@ -6,6 +6,7 @@ import pygame
 import math
 import copy
 import sys
+import os
 import numpy as np
 
 from game_env.hidenseek_gym.config import config
@@ -83,7 +84,7 @@ class HideNSeekEnv(gym.Env):
     def step(self, action_n):
         obs_n = list()
         reward_n = list()
-        done_n = list()
+        done = False
         info_n = {'n': []}
 
         self.dt = self.clock.tick_busy_loop(self.fps)
@@ -123,12 +124,11 @@ class HideNSeekEnv(gym.Env):
         # THER SHOULD BE CHECK SECOND FOR SEEKER PLAYER IF HE DID CREATE WALL (IF YES, THEN GIVE HIM POINTS), MOVE OR ROTATE
         # AS FOR NOW IT'S HARD-CODED
         reward_n = [1, 1]
-        done_n = [False, False]
 
         if self.game_over()[0]:
-            done_n = [True, True]
+            done = True
 
-        return obs_n, reward_n, done_n, info_n
+        return obs_n, reward_n, done, info_n
 
     def reset(self):
         self.__init__()
@@ -175,12 +175,15 @@ class HideNSeekEnv(gym.Env):
                 pygame.draw.line(screen, (255, 85, 55), start, end)
 
     def render(self, mode='human', close=False):
-        if mode == 'human':
+        if mode == 'rgb_array':
+            os.environ["SDL_VIDEODRIVER"] = "dummy"
+        if mode == 'human' or mode == 'rgb_array':
             if close:
                 pygame.quit()
                 return
             if not self.screen:
                 pygame.init()
+                pygame.display.init()
                 self.screen = pygame.display.set_mode(
                     (self.width, self.height), 0, 32)
 
@@ -192,8 +195,6 @@ class HideNSeekEnv(gym.Env):
             self.players_group.draw(self.screen)
 
             pygame.display.update()
-            img = self.get_state()
-        elif mode == 'rgb_array':
             img = self.get_state()
             return img
         elif mode == 'console':
