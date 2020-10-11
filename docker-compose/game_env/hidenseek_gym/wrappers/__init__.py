@@ -1,0 +1,1 @@
+from game_env.hidenseek_gym.wrappers.multi_monitor import MultiMonitor

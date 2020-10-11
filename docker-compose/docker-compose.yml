@@ -1,0 +1,43 @@
+version: "3.5"
+
+services:
+  redis:
+    image: redis:latest
+    hostname: redis
+    networks:
+      - devnetwork
+
+  xvfb:
+    image: metal3d/xvfb
+    networks:
+      - devnetwork
+
+  web:
+    build: .
+    hostname: web
+    command: bash -c "python app.py"
+    volumes:
+      - .:/opt/app
+    ports:
+      - "5000:5000"
+    networks:
+      - devnetwork
+    environment:
+      PYTHONUNBUFFERED: 1
+      DISPLAY: xvfb:99
+    links:
+      - "xvfb:xvfb"
+
+  worker:
+    build: .
+    command: bash -c "celery -A app.celery worker --loglevel=INFO --concurrency=${CORES} -Ofair"
+    volumes:
+      - .:/opt/app
+    links:
+      - "redis:redis"
+    networks:
+      - devnetwork
+
+networks:
+  devnetwork:
+    name: devnetwork
