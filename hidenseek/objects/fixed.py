@@ -28,10 +28,10 @@ class Wall(pygame.sprite.Sprite):
 
     Methods
     -------
-        is_outside_map():
-            checks whenever Wall is outside map (game screen)
         get_abs_vertices():
             returns absolute vertices coordinates (in game screen coordinates system)
+        _rotate(angle, position):
+            rotates the Wall by Angle and moves its center to Position
     """
 
     def __init__(self, owner, cfg, x, y):
@@ -76,25 +76,11 @@ class Wall(pygame.sprite.Sprite):
         self.polygon_points = [Point((self.rect.left, self.rect.top)), Point((self.rect.right, self.rect.top)), Point(
             (self.rect.right, self.rect.bottom)), Point((self.rect.left, self.rect.bottom))]
 
-    def is_outside_map(self, SCREEN_WIDTH, SCREEN_HEIGHT):
-        """
-        Checks whenever Wall is outside map (game screen)
+    def __str__(self):
+        return str(self.pos)
 
-        Parameters
-        ----------
-            SCREEN_WIDTH : int
-                width of the game window
-            SCREEN_HEIGHT : int
-                height of the game window
-
-        Returns
-        -------
-            is_outside_map : bool
-        """
-
-        if self.pos.y - self.height / 2 <= 0 or self.pos.y + self.height / 2 >= SCREEN_HEIGHT or self.pos.x - self.width / 2 <= 0 or self.pos.x + self.width / 2 >= SCREEN_WIDTH:
-            return True
-        return False
+    def __repr__(self):
+        return self.__str__()
 
     def get_abs_vertices(self):
         """
@@ -112,7 +98,7 @@ class Wall(pygame.sprite.Sprite):
 
         return self.polygon_points
 
-    def rotate(self, angle, position):
+    def _rotate(self, angle, position):
         """
         Rotates the sprite by creating new Rectangle and updates its polygon points
 

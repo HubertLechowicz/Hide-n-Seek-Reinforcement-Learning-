@@ -10,11 +10,12 @@ from ext.config import config
 if __name__ == "__main__":
     logger_engine.info(f"{LOGGING_DASHES} Initializing game {LOGGING_DASHES}")
     os.environ['SDL_VIDEO_CENTERED'] = config['VIDEO']['CENTERED']
+    render_mode = 'human'
 
     pygame.init()
     game = HideNSeek(config=config)
-    game.setup()
     game.init()
+    game.render(render_mode)
 
     while True:
         for event in pygame.event.get():
@@ -24,11 +25,12 @@ if __name__ == "__main__":
                 pygame.quit()
                 sys.exit()
         game.step()
-        pygame.display.update()
 
         gameover, winner = game.game_over()
         if gameover:
             logger_engine.info(
                 f"{LOGGING_DASHES} Game over with result: {winner} {LOGGING_DASHES}")
-            pygame.quit()
+            game.render(close=True)
             sys.exit()
+
+        game.render(render_mode)
