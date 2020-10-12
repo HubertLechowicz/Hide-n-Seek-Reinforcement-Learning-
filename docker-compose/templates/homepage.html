@@ -20,10 +20,11 @@
   <body>
     <div class="container my-5">
       <div class="display-1 mb-5">Hide'n'Seek Training Platform</div>
+
       <div class="card" id="cpu-check">
         <form id="form-cpu-lock">
           <div class="row">
-            <div class="form-group col-12 col-sm-6 mt-2">
+            <div class="form-group col-12 col-sm-4 mt-2">
               <label for="cpu">Choose your CPU Threads</label>
               <input
                 class="form-control"
@@ -35,10 +36,22 @@
                 max="128"
               />
             </div>
-            <div class="form-group col-12 col-sm-6 mt-2">
-              <label for="cpu-btn">
-                Click here to lock CPUs and set up environments
+            <div class="form-group col-12 col-sm-4 mt-2">
+              <label for="refresh_time">
+                How often to refresh status (seconds)
               </label>
+              <input
+                class="form-control"
+                type="number"
+                name="refresh_time"
+                id="refresh_time"
+                value="5"
+                min="1"
+                max="100000"
+              />
+            </div>
+            <div class="form-group col-12 col-sm-4 mt-2">
+              <label for="cpu-btn"> Lock CPUs and set up environments </label>
               <input
                 type="submit"
                 class="form-control btn btn-custom"
@@ -68,6 +81,7 @@
         </div>
         <div id="yes-config" style="display: none">
           <div class="display-2">Watch how your PC BUUUUUURNS!</div>
+          <div class="row" id="yes-config-training"></div>
         </div>
       </div>
 
@@ -89,6 +103,7 @@
   </body>
   <script>
     let cpus = 2;
+    let refresh_time = 5000; // 5 seconds
 
     $("#form-cpu-lock").submit(function (e) {
       e.preventDefault();
@@ -100,12 +115,13 @@
       });
 
       cpus = data_obj.cpus;
+      refresh_time = data_obj.refresh_time * 1000;
       $("#cpu-check").html("");
       $("#cpu-check").css("display", "none");
 
       let form_config_div =
         '<div class="col-12 col-sm-6"><div class="inner-top-border"><form id="form-config-{form_id}">' +
-        '<div class="display-2 mb-3">Environment #{form_id}</div> <div class="row"> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="episodes-{form_id}">Episodes</label> <input type="number" name="episodes" id="episodes-{form_id}" class="form-control" value="100" min="5" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="map-{form_id}">Map File</label> <input type="text" name="map_path" id="map-{form_id}" class="form-control" placeholder="map.bmp" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="fps-{form_id}">Max FPS</label> <input type="number" name="fps" id="fps-{form_id}" class="form-control" value="60" min="1" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="duration-{form_id}"> Game Duration (frames) </label> <input type="number" name="duration" id="duration-{form_id}" class="form-control" value="1000" min="100" max="100000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-speed-{form_id}"> [Seeker] Speed Ratio </label> <input type="number" name="seeker-speed" id="seeker-speed-{form_id}" class="form-control" value="1.00" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-speed-rotate-{form_id}"> [Seeker] Speed Rotate Ratio </label> <input type="number" name="seeker-speed-rotate" id="seeker-speed-rotate-{form_id}" class="form-control" value="0.10" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-wall-timeout-{form_id}"> [Seeker] Wall Action Timeout </label> <input type="number" name="seeker-wall-timeout" id="seeker-wall-timeout-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-walls-{form_id}"> [Seeker] Max Walls </label> <input type="number" name="seeker-walls" id="seeker-walls-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-speed-{form_id}" >[Hiding] Speed Ratio</label > <input type="number" name="hiding-speed" id="hiding-speed-{form_id}" class="form-control" value="1.00" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-speed-rotate-{form_id}"> [Hiding] Speed Rotate Ratio </label> <input type="number" name="hiding-speed-rotate" id="hiding-speed-rotate-{form_id}" class="form-control" value="0.10" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-wall-timeout-{form_id}"> [Hiding] Wall Action Timeout </label> <input type="number" name="hiding-wall-timeout" id="hiding-wall-timeout-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div><div class="display-2 m-auto">REWARDS HERE IN THE FUTURE</div> </div> ' +
+        '<div class="display-2 mb-3">Environment #{form_id}</div> <div class="row"> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="episodes-{form_id}">Episodes</label> <input type="number" name="episodes" id="episodes-{form_id}" class="form-control" value="100" min="5" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="map-{form_id}">Map File</label> <input type="text" name="map_path" id="map-{form_id}" class="form-control" placeholder="map.bmp" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="fps-{form_id}">Max FPS</label> <input type="number" name="fps" id="fps-{form_id}" class="form-control" value="60" min="1" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="duration-{form_id}"> Game Duration (frames) </label> <input type="number" name="duration" id="duration-{form_id}" class="form-control" value="1000" min="100" max="100000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-speed-{form_id}"> [Seeker] Speed Ratio </label> <input type="number" name="seeker-speed" id="seeker-speed-{form_id}" class="form-control" value="1.00" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-speed-rotate-{form_id}"> [Seeker] Speed Rotate Ratio </label> <input type="number" name="seeker-speed-rotate" id="seeker-speed-rotate-{form_id}" class="form-control" value="0.10" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-wall-timeout-{form_id}"> [Seeker] Wall Action Timeout </label> <input type="number" name="seeker-wall-timeout" id="seeker-wall-timeout-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-speed-{form_id}">[Hiding] Speed Ratio</label> <input type="number" name="hiding-speed" id="hiding-speed-{form_id}" class="form-control" value="1.00" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-speed-rotate-{form_id}"> [Hiding] Speed Rotate Ratio </label> <input type="number" name="hiding-speed-rotate" id="hiding-speed-rotate-{form_id}" class="form-control" value="0.10" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-wall-timeout-{form_id}"> [Hiding] Wall Action Timeout </label> <input type="number" name="hiding-wall-timeout" id="hiding-wall-timeout-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-walls-{form_id}"> [Hiding] Max Walls </label> <input type="number" name="hiding-walls" id="hiding-walls-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="display-2 m-auto">REWARDS HERE IN THE FUTURE</div> </div>' +
         "</form></div></div>";
       for (var i = 0; i < cpus; i++) {
         $("#yes-cpus-config").append(
@@ -119,21 +135,75 @@
       $("#no-cpus").css("display", "none");
     });
 
-    function get_task_status(task_id, el) {
+    function get_task_status(task_id, core_id) {
       $.getJSON("status/" + task_id, function (data) {
-        let message = "Status: " + data["status"] + "; ";
-        if (data["state"] != "PENDING" && data["state"] != "PROGRESS") {
-          if ("result" in data) {
-            message = "Result: " + JSON.stringify(data["result"]) + "; ";
-          } else {
-            message = "State" + data["state"] + ";";
+        if (data.state == "PROGRESS") {
+          let el = $("#core-" + core_id + "-status");
+          if (el.css("display") !== "unset") {
+            el.css("display", "unset");
           }
-          $(el).text(message);
-        } else {
-          $(el).text(message);
+
+          $(el)
+            .find("#core-" + core_id + "-img")
+            .attr("src", data.status.image_path)
+            .attr("alt", "Waiting for update...");
+          $(el)
+            .find("#core-" + core_id + "-status-episode")
+            .text(
+              data.current +
+                " / " +
+                data.total +
+                " (" +
+                Math.round((data.current / data.total) * 100) +
+                "%)"
+            );
+          $(el)
+            .find("#core-" + core_id + "-status-fps")
+            .text(Math.round(data.status.fps));
+          $(el)
+            .find("#core-" + core_id + "-status-frame")
+            .text(
+              data.status.iteration +
+                " / " +
+                data.episode_iter +
+                " (" +
+                data.status.iteration_percentage +
+                "%)"
+            );
+          $(el)
+            .find("#core-" + core_id + "-status-time")
+            .text(
+              new Date(data.status.time_elapsed * 1000)
+                .toISOString()
+                .substr(11, 8)
+            );
+          $(el)
+            .find("#core-" + core_id + "-status-eta")
+            .text(new Date(data.status.eta * 1000).toISOString().substr(11, 8));
+
           setTimeout(function () {
-            get_task_status(task_id, el);
-          }, 1000);
+            get_task_status(task_id, core_id);
+          }, refresh_time);
+        } else if (data.state == "PENDING") {
+          setTimeout(function () {
+            get_task_status(task_id, core_id);
+          }, 250);
+        } else if (data.state == "SUCCESS") {
+          $("#core-" + core_id + "-status").css("display", "none");
+          let el = $("#core-" + core_id + "-success");
+          if (el.css("display") !== "unset") {
+            el.css("display", "unset");
+          }
+          $(el)
+            .find("#core-" + core_id + "-success-time")
+            .text(
+              new Date(data.result.time_elapsed * 1000)
+                .toISOString()
+                .substr(11, 8)
+            );
+        } else {
+          console.log(data);
+          alert(data);
         }
       });
     }
@@ -169,6 +239,14 @@
         dataToSend.configs.push(data_obj);
       }
       if (!dataValid) return;
+      $("#config").css("display", "none");
+      $("config").html("");
+      $("#no-config").css("display", "none");
+      $("#yes-config").css("display", "unset");
+
+      let env_html =
+        '<div class="col-12 col-sm-6 mt-2"> <div class="inner-top-border" id="core-{core_id}"> <div class="display-2 mt-2">Environment #{core_id}</div> <div id="core-{core_id}-status" style="display: none"> <img src="" class="img-status" id="core-{core_id}-img" /> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Status</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episode</th> <td id="core-{core_id}-status-episode"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-status-fps"></td> </tr> <tr> <th>Frame</th> <td id="core-{core_id}-status-frame"></td> </tr> <tr> <th>Time elapsed</th> <td id="core-{core_id}-status-time"></td> </tr> <tr> <th>ETA</th> <td id="core-{core_id}-status-eta"></td> </tr> </tbody> </table> </div> <div id="core-{core_id}-success" style="display: none"> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Success</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Time elapsed</th> <td id="core-{core_id}-success-time"></td> </tr> </tbody> </table> </div> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Config</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episodes</th> <td id="core-{core_id}-config-episodes"></td> </tr> <tr> <th>Map</th> <td id="core-{core_id}-config-map"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-config-fps"></td> </tr> <tr> <th>Episode Duration</th> <td id="core-{core_id}-config-duration"></td> </tr> <tr> <th>Seeker Speed Ratio</th> <td id="core-{core_id}-config-seeker-speed"></td> </tr> <tr> <th>Seeker Rotate Ratio</th> <td id="core-{core_id}-config-seeker-rotate"></td> </tr> <tr> <th>Seeker Wall Action Timeout</th> <td id="core-{core_id}-config-seeker-wall-action"></td> </tr> <tr> <th>Hiding Speed Ratio</th> <td id="core-{core_id}-config-hiding-speed"></td> </tr> <tr> <th>Hiding Rotate Ratio</th> <td id="core-{core_id}-config-hiding-rotate"></td> </tr> <tr> <th>Hiding Wall Action Timeout</th> <td id="core-{core_id}-config-hiding-wall-action"></td> </tr> <tr> <th>Hiding Max Walls</th> <td id="core-{core_id}-config-hiding-walls-max"></td> </tr> </tbody> </table> </div> </div>';
+
       $.ajax({
         url: "train",
         type: "POST",
@@ -178,10 +256,43 @@
         },
         success: function (response) {
           $.each(response.task_ids, function (id, val) {
-            // let el = $("<p id=" + val + "></p>");
-            // get_task_status(val, el[0]);
-            // $(".card-progress").append(el);
-            console.log(val);
+            let el = $(env_html.replaceAll("{core_id}", id));
+            let cfg = dataToSend.configs[id];
+            $(el)
+              .find("#core-" + id + "-config-episodes")
+              .text(cfg.episodes);
+            $(el)
+              .find("#core-" + id + "-config-map")
+              .text(cfg.map_path);
+            $(el)
+              .find("#core-" + id + "-config-fps")
+              .text(cfg.fps);
+            $(el)
+              .find("#core-" + id + "-config-duration")
+              .text(cfg.duration);
+            $(el)
+              .find("#core-" + id + "-config-seeker-speed")
+              .text(cfg["seeker-speed"]);
+            $(el)
+              .find("#core-" + id + "-config-seeker-rotate")
+              .text(cfg["seeker-speed-rotate"]);
+            $(el)
+              .find("#core-" + id + "-config-seeker-wall-action")
+              .text(cfg["seeker-wall-timeout"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-speed")
+              .text(cfg["hiding-speed"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-rotate")
+              .text(cfg["hiding-speed-rotate"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-wall-action")
+              .text(cfg["hiding-wall-timeout"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-walls-max")
+              .text(cfg["hiding-walls"]);
+            $("#yes-config-training").append(el);
+            get_task_status(val, id);
           });
         },
       });

@@ -105,7 +105,7 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
-        self.speed = cfg.getint('SPEED_RATIO', fallback=30)
+        self.speed = cfg.getfloat('SPEED_RATIO', fallback=30)
         self.speed_rotate = cfg.getfloat('SPEED_ROTATE_RATIO', fallback=0.1)
         self.wall_timer_init = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
         self.wall_timer = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)

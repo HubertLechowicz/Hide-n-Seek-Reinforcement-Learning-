@@ -7,11 +7,6 @@ services:
     networks:
       - devnetwork
 
-  xvfb:
-    image: metal3d/xvfb:latest
-    networks:
-      - devnetwork
-
   web:
     build: .
     hostname: web
@@ -24,9 +19,6 @@ services:
       - devnetwork
     environment:
       PYTHONUNBUFFERED: 1
-      DISPLAY: xvfb:99
-    links:
-      - "xvfb:xvfb"
 
   worker:
     build: .

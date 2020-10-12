@@ -9,7 +9,6 @@ import sys
 import os
 import numpy as np
 
-from game_env.hidenseek_gym.config import config
 from game_env.hidenseek_gym.controllable import Hiding, Seeker
 from game_env.hidenseek_gym.supportive import Point, Collision
 
@@ -17,8 +16,8 @@ from game_env.hidenseek_gym.supportive import Point, Collision
 class HideNSeekEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array', 'console']}
 
-    def __init__(self):
-        pygame.init()
+    def __init__(self, config):
+        self.default_cfg = config
 
         self.width = config['VIDEO'].getint('WIDTH', fallback=512)
         self.height = config['VIDEO'].getint('HEIGHT', fallback=512)
@@ -131,7 +130,7 @@ class HideNSeekEnv(gym.Env):
         return obs_n, reward_n, done, info_n
 
     def reset(self):
-        self.__init__()
+        self.__init__(self.default_cfg)
 
     def get_agent_vision(self, agent, enemy):
         return {
@@ -182,7 +181,6 @@ class HideNSeekEnv(gym.Env):
                 pygame.quit()
                 return
             if not self.screen:
-                pygame.init()
                 pygame.display.init()
                 self.screen = pygame.display.set_mode(
                     (self.width, self.height), 0, 32)

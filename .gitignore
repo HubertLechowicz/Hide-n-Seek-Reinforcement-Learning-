@@ -132,3 +132,6 @@ dmypy.json
 
 # Monitor
 monitor
+
+# Platform Images
+images

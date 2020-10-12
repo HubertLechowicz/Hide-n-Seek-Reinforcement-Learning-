@@ -1,77 +1,106 @@
-import multiprocessing
 from flask import Flask, render_template, jsonify, request
-from celery import Celery, group
+from celery import Celery
 from celery.result import AsyncResult
+
 import time
 import random
 import datetime
 from pytz import timezone
+import copy
+from PIL import Image as img
+from pathlib import Path
+import shutil
 
 import gym
 import game_env.hidenseek_gym
 from gym import wrappers
 from game_env.hidenseek_gym import wrappers as multi_wrappers
+from game_env.hidenseek_gym.config import config as default_config
 
 app = Flask(__name__)
 celery = Celery(broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 
 
 @celery.task(name='sleep.quartet', bind=True)
-def train(self, core_id, config_data):
-    print(config_data)
-    # config is in variable above, should create configparser Object to not mess with Game structure
-    # {
-    #     'episodes': '100',
-    #     'map_path': 'b',
-    #     'fps': '60',
-    #     'duration': '1000',
-    #     'seeker-speed': '1.00',
-    #     'seeker-speed-rotate': '0.10',
-    #     'seeker-wall-timeout': '100',
-    #     'seeker-walls': '100',
-    #     'hiding-speed': '1.00',
-    #     'hiding-speed-rotate': '0.10',
-    #     'hiding-wall-timeout': '100'
-    # }
+def train(self, core_id, config_data, start_date):
+    cfg = copy.deepcopy(default_config)
+    if '.bmp' not in config_data['map_path']:
+        config_data['map_path'] += '.bmp'
+
+    cfg['GAME']['MAP'] = '/opt/app/' + config_data['map_path']
+    cfg['GAME']['FPS'] = config_data['fps']
+    cfg['GAME']['DURATION'] = config_data['duration']
+    episodes = int(config_data['episodes'])
+
+    cfg['AGENT_HIDING'] = {
+        'SPEED_RATIO': config_data['hiding-speed'],
+        'SPEED_ROTATE_RATIO': config_data['hiding-speed-rotate'],
+        'WALL_ACTION_TIMEOUT': config_data['hiding-wall-timeout'],
+        'WALLS_MAX': config_data['hiding-walls'],
+    }
+
+    cfg['AGENT_SEEKER'] = {
+        'SPEED_RATIO': config_data['seeker-speed'],
+        'SPEED_ROTATE_RATIO': config_data['seeker-speed-rotate'],
+        'WALL_ACTION_TIMEOUT': config_data['seeker-wall-timeout'],
+    }
+
     start = time.time()
 
-    episodes = 2  # should be from FORM
     render_mode = 'rgb_array'
-    tz_local = timezone('Europe/Warsaw')
-    env = gym.make('hidenseek-v0')
+    env = gym.make('hidenseek-v0', config=cfg)
     env.seed(0)
-    now = datetime.datetime.now(tz=tz_local)
-    monitor_folder = 'monitor/' + \
-        datetime.datetime.strftime(
-            now, "%Y-%m-%dT%H-%M-%SZ") + '/core-' + str(core_id)
+    monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
     env = multi_wrappers.MultiMonitor(env, monitor_folder, force=True)
     done = False
 
-    for i in range(episodes):
-        episode_nr = f'Episode #{i + 1}'
+    for i in range(1, episodes + 1):
         metadata = {
+            'core_id': core_id,
             'current': i,
             'total': episodes,
-            'status': episode_nr
+            'episode_iter': config_data['duration'],
+            'status': {'fps': None, 'iteration': 0, 'iteration_percentage': 0, 'time_elapsed': round(time.time() - start), 'image_path': None, 'eta': None},
         }
         self.update_state(state='PROGRESS', meta=metadata)
 
-        ob = env.reset()
-        print(episode_nr)
+        env.reset()
+        env.render(render_mode)
         while True:
-            metadata['status'] = episode_nr + f'; FPS: {env.clock.get_fps()}'
-            self.update_state(state='PROGRESS', meta=metadata)
-            env.render(render_mode)
+            metadata['status'] = {
+                'fps': env.clock.get_fps(),
+                'iteration': int(config_data['duration']) - env.duration,
+                'iteration_percentage': round(((int(config_data['duration']) - env.duration) / int(config_data['duration'])) * 100, 2),
+                'time_elapsed': round(time.time() - start),
+                'eta': round((env.duration / env.clock.get_fps()) + int(config_data['duration']) / env.clock.get_fps() * (episodes - i)) if env.clock.get_fps() else None,
+            }
 
             # action_n = agent.act(ob, reward, done) # should be some function to choose action
             action_n = [1, 1]  # temp
             obs_n, reward_n, done, _ = env.step(action_n)
 
+            step_img_path = '/opt/app/static/images/' + \
+                start_date + '/core-' + str(core_id) + \
+                '/frame-' + str(env.duration + 1) + '.jpg'
+            step_img = env.render(render_mode)
+            step_img = img.fromarray(step_img, mode='RGB')
+            step_img.save(step_img_path)
+            metadata['status']['image_path'] = step_img_path[8:]
+
+            self.update_state(state='PROGRESS', meta=metadata)
+
             if done:
                 break
 
     env.close()
-    return {'time': round(time.time() - start, 2)}
+    rm_path = Path('/opt/app/static/images/' +
+                   start_date + '/core-' + str(core_id))
+    shutil.rmtree(rm_path)
+
+    return {
+        'core_id': core_id,
+        'time_elapsed': round(time.time() - start),
+    }
 
 
 @app.route('/status/<task_id>')
@@ -89,12 +118,14 @@ def get_task_status(task_id):
             'state': task.state,
             'result': task.result,
         }
-    elif task.state != 'FAILURE':
+    elif task.state == 'PROGRESS':
         response = {
             'state': task.state,
             'current': task.info.get('current', 0),
             'total': task.info.get('total', 1),
-            'status': task.info.get('status', 'Whaaat?'),
+            'status': task.info.get('status', {}),
+            'episode_iter': task.info.get('episode_iter', 0),
+            'config': task.info.get('config', {}),
         }
     else:
         response = {
@@ -110,16 +141,23 @@ def get_task_status(task_id):
 @ app.route('/train', methods=['POST'])
 def start_training():
     data = request.json
+
+    tz_local = timezone('Europe/Warsaw')
+    now = datetime.datetime.now(tz=tz_local)
+    start_date = datetime.datetime.strftime(now, "%Y-%m-%dT%H-%M-%SZ")
+
     tasks = list()
     for i in range(int(data['cpus'])):
-        task = train.apply_async((i, data['configs'][i]))
+        Path('/opt/app/static/images/' + start_date + '/core-' +
+             str(i)).mkdir(parents=True, exist_ok=True)
+        task = train.apply_async((i, data['configs'][i], start_date))
         tasks.append(task.id)
 
-    return {'task_ids': tasks}, 202
+    return {'task_ids': tasks, 'start_date': start_date}, 202
 
 
 @ app.route('/')
-def hello_world():
+def homepage():
     return render_template('homepage.html')
 
 

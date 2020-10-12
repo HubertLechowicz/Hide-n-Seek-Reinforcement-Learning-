@@ -2,10 +2,7 @@ FROM python:3.8
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update \
-  && apt-get install -y alsa-utils alsa-oss xvfb ffmpeg python-opengl git locales \
-  && cd /usr/local/bin \
-  && pip install --upgrade pip --no-cache-dir
+RUN apt-get update && apt-get install -y ffmpeg
 
 RUN apt-get clean --dry-run
 

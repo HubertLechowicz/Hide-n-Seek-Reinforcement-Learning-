@@ -23,13 +23,13 @@ body {
 }
 
 .btn-custom {
-  background-color: #e83511;
+  background-color: #00afe6;
   color: #ededed;
 }
 
 .btn-custom:hover,
 .btn-custom:focus {
-  background-color: #bf3317;
+  background-color: #00799f;
   color: #ededed;
 }
 
@@ -62,14 +62,21 @@ body {
   margin-bottom: 10px;
   border: 1px solid rgb(222, 226, 230);
   border-radius: 3px;
-  border-top: 2px solid #e83511;
+  border-top: 2px solid #00afe6;
   background-color: rgb(255, 255, 255);
   width: 100%;
 }
 
 .inner-top-border {
-  border-top: 2px solid #e83511;
+  border-top: 2px solid #00afe6;
   margin-top: 10px;
+}
+
+.inner-top-border-min {
+  border-top: 2px solid #00afe6;
+  margin: auto;
+  margin-top: 30px;
+  width: 75%;
 }
 
 .row {
@@ -93,6 +100,12 @@ body {
 .link:hover,
 .link:visited,
 .link:active {
-  color: #c00012;
+  color: #00afe6;
   text-decoration: none;
+}
+
+.img-status {
+  width: 100%;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  padding: 2px;
 }
