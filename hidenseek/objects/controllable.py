@@ -310,7 +310,7 @@ class Player(pygame.sprite.Sprite):
 
         self.ray_points = []
         angles = np.linspace(0, self.vision_rad, num=int(
-            int(self.vision_rad * 180 / math.pi) * .5), endpoint=True)  # counter-clockwise
+            int(self.vision_rad * 180 / math.pi) * (self.vision_radius /2) / 100), endpoint=True)  # counter-clockwise
         for angle in angles:  # clockwise
             ray_point = Point.triangle_unit_circle_relative(
                 angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.vision_radius))
@@ -763,6 +763,7 @@ class Seeker(Player):
         -------
             delete_wall : Wall or None
                 returns Wall object to delete if action was 'remove_wall' otherwise None
+                TODO: new_action['type'] == 'remove wall' needs to be changed from random choice, to experience-based choice.
         """
 
         new_action = copy.deepcopy(random.choice(self.actions))
@@ -800,8 +801,8 @@ class Seeker(Player):
         elif new_action['type'] == 'remove_wall':
             if local_env['walls']:
                 if not self.wall_timer:  # if no cooldown
-                    # remove first wall in local env
-                    delete_wall = local_env['walls'][0]
+                    # remove randomly selected wall in local env
+                    delete_wall = random.choice(local_env['walls'])
                     self.wall_timer = self.wall_timer_init
                     if delete_wall.owner:
                         delete_wall.owner.walls_counter -= 1
