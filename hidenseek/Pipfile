@@ -12,6 +12,7 @@ numpy = "*"
 tripy = "*"
 scikit-learn = "*"
 pillow = "*"
+pipfile = "*"
 
 [requires]
 python_version = "3.8"

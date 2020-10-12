@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3ebba84543c696dd07a580d26f1763c158e65d19de47fdc30b7e9bf3b17ccdae"
+            "sha256": "8e269afb95058b9ac51be22cb588e5a2c2ef6e305df369ae7596ab4245709201"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -25,7 +25,6 @@
                 "sha256:698c311779f347cf6b7e6b8a39bb682277b8ee4aba8cf9507bc0cf4cd4737b72",
                 "sha256:9e284edd6be6b71883a63c9b7f124738a3c16195513ad940eae7e3438de885d5"
             ],
-            "markers": "python_version >= '3.6'",
             "version": "==0.17.0"
         },
         "numpy": {
@@ -93,6 +92,13 @@
             ],
             "index": "pypi",
             "version": "==7.2.0"
+        },
+        "pipfile": {
+            "hashes": [
+                "sha256:f7d9f15de8b660986557eb3cc5391aa1a16207ac41bc378d03f414762d36c984"
+            ],
+            "index": "pypi",
+            "version": "==0.0.2"
         },
         "pygame": {
             "hashes": [
@@ -167,7 +173,6 @@
                 "sha256:eecf40fa87eeda53e8e11d265ff2254729d04000cd40bae648e76ff268885d66",
                 "sha256:fc98f3eac993b9bfdd392e675dfe19850cc8c7246a8fd2b42443e506344be7d9"
             ],
-            "markers": "python_version >= '3.6'",
             "version": "==1.5.2"
         },
         "threadpoolctl": {
@@ -175,8 +180,14 @@
                 "sha256:38b74ca20ff3bb42caca8b00055111d74159ee95c4370882bbff2b93d24da725",
                 "sha256:ddc57c96a38beb63db45d6c159b5ab07b6bced12c45a1f07b2b92f272aebfa6b"
             ],
-            "markers": "python_version >= '3.5'",
             "version": "==2.1.0"
+        },
+        "toml": {
+            "hashes": [
+                "sha256:926b612be1e5ce0634a2ca03470f95169cf16f939018233a670519cb4ac58b0f",
+                "sha256:bda89d5935c2eac546d648028b9901107a595863cb36bae0c73ac804a9b4ce88"
+            ],
+            "version": "==0.10.1"
         },
         "tripy": {
             "hashes": [
