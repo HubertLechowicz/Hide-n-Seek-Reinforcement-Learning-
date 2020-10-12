@@ -310,7 +310,7 @@ class Player(pygame.sprite.Sprite):
 
         self.ray_points = []
         angles = np.linspace(0, self.vision_rad, num=int(
-            int(self.vision_rad * 180 / math.pi) * (self.vision_radius /2) / 100), endpoint=True)  # counter-clockwise
+            int(self.vision_rad * 180 / math.pi) * (self.vision_radius / 2) / 100), endpoint=True)  # counter-clockwise
         for angle in angles:  # clockwise
             ray_point = Point.triangle_unit_circle_relative(
                 angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.vision_radius))
@@ -369,7 +369,7 @@ class Player(pygame.sprite.Sprite):
         # if interruption - triangle every angle change
         new_ray_objects = []
         vision_top_distance = round(self.pos.distance(self.vision_top), 2)
-        angles_perc_10 = len(angles) / 10
+        angles_perc_10 = round(len(angles) / 10)
         j = 0
         for i in range(len(self.ray_objects)):
             if j == angles_perc_10:
