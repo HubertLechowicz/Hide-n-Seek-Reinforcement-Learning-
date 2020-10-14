@@ -74,7 +74,7 @@ class Player(pygame.sprite.Sprite):
     """
 
     # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
-    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
+    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
         """
         Constructs all neccesary attributes for the Player Object
 
@@ -82,8 +82,11 @@ class Player(pygame.sprite.Sprite):
         ----------
             cfg : configparser Object
                 Agent Config Object
+            size : tuple
+                Agent size
             pos_ratio : tuple
-                used to calculate initial position of the Player in absolute coordinate system (game screen)
+                used to calculate initial position of the Player in absolute coordinate system (game screen);
+                if value < 1 then it's ratio in percentage, otherwise it's coord
             color : tuple
                 if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
                 TODO: ONCE USING IMAGE - DELETE THIS
@@ -97,11 +100,17 @@ class Player(pygame.sprite.Sprite):
         """
 
         super().__init__()
-        self.width = cfg.getint('WIDTH', fallback=50)
-        self.height = cfg.getint('HEIGHT', fallback=50)
+        self.width = size[0]
+        self.height = size[1]
 
-        self.pos = Point(
-            (pos_ratio[0] * SCREEN_WIDTH, pos_ratio[1] * SCREEN_HEIGHT))
+        tmp_pos = list(pos_ratio)
+        if tmp_pos[0] < 1:
+            tmp_pos[0] *= SCREEN_WIDTH
+
+        if tmp_pos[1] < 1:
+            tmp_pos[1] *= SCREEN_HEIGHT
+
+        self.pos = Point(tmp_pos)
 
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
@@ -301,7 +310,7 @@ class Player(pygame.sprite.Sprite):
 
         self.ray_points = []
         angles = np.linspace(0, self.vision_rad, num=int(
-            int(self.vision_rad * 180 / math.pi) * (self.vision_radius /2) / 100), endpoint=True)  # counter-clockwise
+            int(self.vision_rad * 180 / math.pi) * (self.vision_radius / 2) / 100), endpoint=True)  # counter-clockwise
         for angle in angles:  # clockwise
             ray_point = Point.triangle_unit_circle_relative(
                 angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.vision_radius))
@@ -328,7 +337,8 @@ class Player(pygame.sprite.Sprite):
         temp_ray_points = [Point(self.rect.center)]
         for vertex in self.ray_points:
             temp_ray_points.append(vertex)
-            line_segment = [self.pos, vertex]  # first must me the center point
+            # first must be the center point
+            line_segment = [self.pos.round(4), vertex.round(4)]
             vertex_new_point = False
             min_t_x = None
             for wall_lines in proper_walls_lines:
@@ -355,10 +365,11 @@ class Player(pygame.sprite.Sprite):
         self.ray_objects = [[self.pos, self.ray_points[i], self.ray_points[i + 1]]
                             for i in range(len(self.ray_points) - 1)]
 
-        # if no interruption, then triangle is made from 10% of angles; if interruption - triangle every angle change
+        # if no interruption, then triangle is made from 10 % of angles
+        # if interruption - triangle every angle change
         new_ray_objects = []
         vision_top_distance = round(self.pos.distance(self.vision_top), 2)
-        angles_perc_10 = len(angles) / 10
+        angles_perc_10 = round(len(angles) / 10)
         j = 0
         for i in range(len(self.ray_objects)):
             if j == angles_perc_10:
@@ -369,6 +380,10 @@ class Player(pygame.sprite.Sprite):
             if round(self.ray_objects[i][0].distance(self.ray_objects[i][1]), 2) == vision_top_distance and round(self.ray_objects[i][0].distance(self.ray_objects[i][2]), 2) == vision_top_distance:
                 j += 1
                 continue
+            if j > 0:
+                new_ray_objects.append(
+                    [self.pos, self.ray_objects[i - j][1], self.ray_objects[i - 1][2]])
+
             j = 0
             new_ray_objects.append(self.ray_objects[i])
         new_ray_objects.append(
@@ -382,7 +397,7 @@ class Player(pygame.sprite.Sprite):
             Point((self.rect.bottomleft)),
         ])
 
-    def update(self, local_env):
+    def update(self, new_action, local_env):
         """
         Not implemented in Parent Class
         """
@@ -459,7 +474,7 @@ class Hiding(Player):
             takes and performs the action
     """
 
-    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, wall_cfg):
+    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT):
         """
         Constructs all neccesary attributes for the Hiding Object
 
@@ -467,8 +482,11 @@ class Hiding(Player):
         ----------
             cfg : configparser Object
                 Hiding Agent Config
+            size : tuple
+                Agent size
             pos_ratio : tuple
-                used to calculate initial position of the Player in absolute coordinate system (game screen)
+                used to calculate initial position of the Player in absolute coordinate system (game screen);
+                if value < 1 then it's ratio in percentage, otherwise it's coord
             color : tuple
                 if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
                 TODO: ONCE USING IMAGE - DELETE THIS
@@ -476,11 +494,9 @@ class Hiding(Player):
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
-            wall_cfg : configparser Object
-                Wall Config
         """
 
-        super().__init__(cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
+        super().__init__(cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         logger_hiding.info(
             f"{LOGGING_DASHES} Creating New Hiding Agent (probably new game) {LOGGING_DASHES} ")
@@ -492,7 +508,6 @@ class Hiding(Player):
 
         self.walls_counter = 0
         self.walls_max = cfg.getint('WALLS_MAX', fallback=5)
-        self.wall_cfg = wall_cfg
         logger_hiding.info(
             f"\tWalls/Max: {self.walls_counter}/{self.walls_max}")
 
@@ -502,71 +517,7 @@ class Hiding(Player):
             }
         ]
 
-    def _add_wall(self, walls, enemy):
-        """
-        Creates new hidenseek.objects.fixes.Wall object and adds it to the game if no collision
-
-        Parameters
-        ----------
-            walls : list of hidenseek.objects.fixes.Wall
-                contains all walls in the Agent POV
-            enemy : hidenseek.objects.controllable.Seeker, None
-                if enemy in radius then it contains its object, else None
-
-        Returns
-        -------
-            None
-        """
-
-        logger_hiding.info("Checking if it's possible to create new wall")
-        if self.walls_counter < self. walls_max:
-            logger_hiding.info(f"\tAdding Wall #{self.walls_counter + 1}")
-
-            wall_pos = copy.deepcopy(self.pos)
-            vision_arc_range = np.sqrt((self.vision_top.x - self.pos.x) * (self.vision_top.x - self.pos.x) + (
-                self.vision_top.y - self.pos.y) * (self.vision_top.y - self.pos.y))
-            # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
-            wall_pos.x = wall_pos.x + vision_arc_range - \
-                (1.5 * self.wall_cfg.getint("WIDTH", fallback=5))
-            wall_pos = Point.triangle_unit_circle_relative(
-                self.direction, self.pos, wall_pos)
-
-            wall = Wall(self, self.wall_cfg, wall_pos.x, wall_pos.y)
-            logger_hiding.info(f"\t\tPosition: {wall_pos}")
-            wall._rotate(self.direction, wall_pos)
-            can_create = True
-
-            # check if 2 POV lines (between which is new Wall center) are shorter than eyesight, if yes - then it's not possible to build Wall here
-            l = round(len(self.ray_points)/2)
-            if self.pos.distance(self.vision_top) > self.pos.distance(self.ray_points[l-1]) or self.pos.distance(self.vision_top) > self.pos.distance(self.ray_points[l]):
-                can_create = False
-
-            if can_create:
-                for _wall in walls:
-                    if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
-                        if Collision.sat(wall.get_abs_vertices(), _wall.get_abs_vertices()):
-                            logger_hiding.info(
-                                f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with other Wall.")
-                            can_create = False
-                            break
-                if enemy and Collision.aabb(enemy.pos, (enemy.width, enemy.height), wall.pos, (wall.width, wall.height)):
-                    if Collision.sat(self.get_abs_vertices(), enemy.get_abs_vertices()):
-                        logger_hiding.info(
-                            f"\tCouldn't add Wall #{self.walls_counter + 1}, because it would overlap with Enemy Agent")
-                        can_create = False
-
-            if can_create:
-                self.walls_counter += 1
-                logger_hiding.info(f"\tAdded wall #{self.walls_counter}")
-                return wall
-            else:
-                del wall
-                return None
-        else:
-            logger_hiding.info(f"\tLimit reached")
-            return None
-
-    def update(self, local_env):
+    def update(self, new_action, local_env):
         """
         Takes and performs the action
 
@@ -580,12 +531,6 @@ class Hiding(Player):
             new_wall : Wall or None
                 returns new Wall object if action was 'add_wall' and it was possible to create new Wall, otherwise None
         """
-        new_action = copy.deepcopy(random.choice(self.actions))
-
-        if self.wall_timer > 0:
-            self.wall_timer -= 1
-        # for negative it's 0, for positive - higher than 0, needed if time-based cooldown (i.e. 5s) instead of frame-based (i.e. 500 frames)
-        self.wall_timer = max(self.wall_timer, 0)
 
         if new_action['type'] == 'NOOP':
             self.image_index = 0
@@ -612,17 +557,6 @@ class Hiding(Player):
             self._move_action(new_pos)
         elif new_action['type'] == 'rotation':
             self._rotate(new_action['content'], local_env)
-        elif new_action['type'] == 'add_wall':
-            if not self.wall_timer:  # if no cooldown
-                new_wall = self._add_wall(
-                    local_env['walls'], local_env['enemy'])
-                if new_wall:
-                    return new_wall
-                self.wall_timer = self.wall_timer_init
-            else:
-                logger_hiding.info(
-                    f"\tCouldn't add wall. Cooldown: {round(self.wall_timer)}")
-        return None
 
     def __str__(self):
         return "[Hiding Agent]"
@@ -679,7 +613,7 @@ class Seeker(Player):
 
     Methods
     -------
-       _rotate(turn, local_env):
+        _rotate(turn, local_env):
             rotates the object, accordingly to the value, along its axis
         get_abs_vertices():
             returns absolute vertices coordinates (in game screen coordinates system)
@@ -691,7 +625,7 @@ class Seeker(Player):
             takes and performs the action
     """
 
-    def __init__(self, cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
+    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
         """
         Constructs all neccesary attributes for the Seeker Object
 
@@ -699,8 +633,11 @@ class Seeker(Player):
         ----------
             cfg : configparser Object
                 Seeker Agent Config
+            size : tuple
+                Agent size
             pos_ratio : tuple
-                used to calculate initial position of the Player in absolute coordinate system (game screen)
+                used to calculate initial position of the Player in absolute coordinate system (game screen);
+                if value < 1 then it's ratio in percentage, otherwise it's coord
             color : tuple
                 if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
                 TODO: ONCE USING IMAGE - DELETE THIS
@@ -713,7 +650,8 @@ class Seeker(Player):
                 TODO: ONCE USING IMAGE - DELETE THIS
         """
 
-        super().__init__(cfg, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
+        super().__init__(cfg, size, pos_ratio, color,
+                         SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
 
         logger_seeker.info(
             f"{LOGGING_DASHES} Creating New Seeker Agent (probably new game) {LOGGING_DASHES} ")
@@ -729,7 +667,7 @@ class Seeker(Player):
             },
         ]
 
-    def update(self, local_env):
+    def update(self, new_action, local_env):
         """
         Takes and performs the action
 
@@ -744,13 +682,6 @@ class Seeker(Player):
                 returns Wall object to delete if action was 'remove_wall' otherwise None
                 TODO: new_action['type'] == 'remove wall' needs to be changed from random choice, to experience-based choice.
         """
-
-        new_action = copy.deepcopy(random.choice(self.actions))
-
-        if self.wall_timer > 0:
-            self.wall_timer -= 1
-        # for negative it's 0, for positive - higher than 0
-        self.wall_timer = max(self.wall_timer, 0)
 
         if new_action['type'] == 'NOOP':
             self.image_index = 0
@@ -777,21 +708,6 @@ class Seeker(Player):
             self._move_action(new_pos)
         elif new_action['type'] == 'rotation':
             self._rotate(new_action['content'], local_env)
-        elif new_action['type'] == 'remove_wall':
-            if local_env['walls']:
-                if not self.wall_timer:  # if no cooldown
-                    # remove randomly selected wall in local env
-                    delete_wall = random.choice(local_env['walls'])
-                    self.wall_timer = self.wall_timer_init
-                    if delete_wall.owner:
-                        delete_wall.owner.walls_counter -= 1
-                        return delete_wall
-                else:
-                    logger_hiding.info(
-                        f"\tCouldn't remove any wall. Cooldown: {round(self.wall_timer)}")
-            else:
-                logger_seeker.info(f"No Wall to remove, doing... nothing.")
-        return None
 
     def __str__(self):
         return "[Seeker]"

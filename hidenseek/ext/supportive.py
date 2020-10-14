@@ -1,5 +1,6 @@
 import pygame
 import math
+from PIL import Image
 
 
 class Point():
@@ -216,7 +217,7 @@ class Point():
             cart_dist : float
                 Cartesian Distance between 2 Points
         """
-        return math.sqrt((self.x - obj.x)**2 + (self.y - obj.y)**2)
+        return round(math.sqrt((obj.x - self.x)**2 + (obj.y - self.y)**2), 4)
 
     def dot(self, obj):
         """
@@ -497,11 +498,15 @@ class Collision:
         axes = [Collision._normalize_point_tuple(
             edge.orthogonally()) for edge in edges]
         for axis in axes:
-
             projection_1 = Collision._sat_project_to_axis(vertices_obj1, axis)
             projection_2 = Collision._sat_project_to_axis(vertices_obj2, axis)
 
-            if not projection_2[0] <= projection_1[0] <= projection_2[1] and not projection_2[0] <= projection_1[1] <= projection_2[1] and not projection_1[0] <= projection_2[0] <= projection_1[1] and not projection_1[0] <= projection_2[1] <= projection_1[1]:
+            if (
+                not projection_2[0] <= projection_1[0] <= projection_2[1]
+                and not projection_2[0] <= projection_1[1] <= projection_2[1]
+                and not projection_1[0] <= projection_2[0] <= projection_1[1]
+                and not projection_1[0] <= projection_2[1] <= projection_1[1]
+            ):
                 return False
 
         return True
@@ -608,7 +613,7 @@ class Collision:
             elif s2 is not None:
                 x = (k2-k1) / (s1-s2)
             y = s*x + k
-            intersection = Point((x, y))
+            intersection = Point((x, y)).round(4)
 
         if Collision._on(intersection, segment1) and Collision._on(intersection, segment2):
             return intersection
@@ -659,3 +664,201 @@ class Collision:
                         break
 
         return in_radius
+
+
+class MapGenerator:
+    """
+    Map Generator class, creating map form a picture
+
+    Attributes
+    ----------
+        None
+
+    Methods
+    -------
+        @staticmethod
+        open_bmp(filename):
+            returns map from bmp
+        @staticmethod
+        isnt_in_object(list_objects, x, y):
+            returns information if point isn't in object
+        @staticmethod
+        get_objects_coordinates(map, palette):
+            returns objects with their types and positions
+        @staticmethod
+        get_predefined_palette()
+            returns dictionary of types of objects and their colors
+        @staticmethod
+        searcher(x1, y1, objects, map)
+            returns the last point from figure
+    """
+    @staticmethod
+    def open_bmp(filename):
+        """
+        Opens and returns map
+
+        Parameters
+        ----------
+            filename : name of the file
+        Returns
+        -------
+            intersect_point : Point or None
+                if intersection exists, returns the Point object; else None
+        """
+        map_in_bmp = Image.open(filename)
+        return map_in_bmp
+
+    @staticmethod
+    def isnt_in_object(list_objects, x, y):
+        """"
+         Checks if position is NOT in object
+
+         Parameters
+        ----------
+        list_objects : contains list of objects as dictionary
+
+        x, y : position of point
+
+        Returns
+        -------
+            True or False : if list is empty                - return True
+                            if point is in object           - return False
+                            if point is NOT in any object   - return True
+         """
+        if (len(list_objects) == 0):
+            return True
+
+        for objects in list_objects:
+            if (x >= objects["vertices"][0]["x"]):
+                if (x <= objects["vertices"][1]["x"]):
+                    if (y >= objects["vertices"][0]["y"]):
+                        if (y <= objects["vertices"][1]["y"]):
+                            return False
+        return True
+
+    @staticmethod
+    def get_objects_coordinates(map, palette):
+
+        """"
+        Checks coordinates of all objects
+
+
+        Parameters
+        ----------
+        map : map of the world
+
+        palette : colors and types of objects
+
+        Returns
+        ----------
+        objects :   dictionary of all objects
+                    cointains type and vertices
+
+
+        """
+
+        objects = []
+
+        for x in range(0, map.size[0], 1):
+            for y in range(0, map.size[1], 1):
+                if (MapGenerator.isnt_in_object(objects, x, y)):
+                    this_pixel = map.getpixel((x, y))[0:3]
+                    if (this_pixel != (255, 255, 255)):
+                        tmp_coordinates = MapGenerator.searcher(
+                            x, y, objects, map)
+                        tmp_object = {
+                            "type": palette['#%02x%02x%02x' % this_pixel],
+                            "vertices": [
+                                {
+                                    "x": x,
+                                    "y": y
+                                },
+                                {
+                                    "x": tmp_coordinates[0],
+                                    "y": tmp_coordinates[1]
+                                }
+                            ]
+                        }
+                        objects.append(tmp_object)
+        return objects
+
+    @staticmethod
+    def get_predefined_palette():
+
+        """"
+        Sets colors and types of objects
+
+        Returns
+        ----------
+        Palette of colors and types
+        """
+
+        return {
+            # colors
+            # white - background
+            "#ffffff": "background",
+
+            # black - wall
+            "#000000": "wall",
+
+            "#0000ff": "hider",  # dark blue
+            "#ff0000": "seeker",  # red
+
+            "#00ff00": "bushes",  # green
+            "#00ffff": "glass"  # light blue
+
+        }
+
+    @staticmethod
+    def searcher(x1, y1, objects, map):
+
+        """"
+        Searcher looks for the ends of new object in map.
+        It is used only when we start looking for a new object.
+
+        Parameters
+        ----------
+        x1, y1 :    primary coordinates
+
+        objects :   list of objects
+
+        map :       picture, where algorithm looks for objects
+
+        Returns
+        ----------
+        x2, y2 :    coordinates of the end of figure
+                     
+        """
+
+        x2 = x1
+        y2 = y1
+        color = map.getpixel((x1, y1))[0:3]
+
+        # ===================
+        # check x
+        for x in range(x1 + 1, map.size[0], 1):
+            if MapGenerator.isnt_in_object(objects, x, y1):
+                if map.getpixel((x, y1))[0:3] == color:
+                    x2 = x2 + 1
+                else:
+                    break
+            else:
+                break
+
+        # ===================
+        # check y
+        ended = False
+        for y in range(y1 + 1, map.size[1], 1):
+            if ended:
+                break
+            for x in range(x1 + 1, x2, 1):
+                if (MapGenerator.isnt_in_object(objects, x, y)):
+                    if (map.getpixel((x, y))[0:3] != color):
+                        ended = True
+                        break
+                else:
+                    ended = True
+                    break
+            if (ended == False):
+                y2 = y2 + 1
+        return x2, y2
