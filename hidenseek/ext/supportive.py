@@ -725,19 +725,19 @@ class MapGenerator:
     def get_objects_coordinates(map, palette):
         objects = []
 
-        for j in range(0, map.size[0], 1):
-            for i in range(0, map.size[1], 1):
-                if (MapGenerator.isnt_in_object(objects, i, j)):
-                    this_pixel = map.getpixel((j, i))[0:3]
+        for x in range(0, map.size[0], 1):
+            for y in range(0, map.size[1], 1):
+                if (MapGenerator.isnt_in_object(objects, x, y)):
+                    this_pixel = map.getpixel((x, y))[0:3]
                     if (this_pixel != (255, 255, 255)):
                         tmp_coordinates = MapGenerator.searcher(
-                            i, j, objects, map)
+                            x, y, objects, map)
                         tmp_object = {
                             "type": palette['#%02x%02x%02x' % this_pixel],
                             "vertices": [
                                 {
-                                    "x": i,
-                                    "y": j
+                                    "x": x,
+                                    "y": y
                                 },
                                 {
                                     "x": tmp_coordinates[0],
@@ -774,9 +774,9 @@ class MapGenerator:
 
         # ===================
         # check x
-        for i in range(x1 + 1, map.size[0], 1):
-            if MapGenerator.isnt_in_object(objects, i, y1):
-                if map.getpixel((i, y1))[0:3] == color:
+        for x in range(x1 + 1, map.size[0], 1):
+            if MapGenerator.isnt_in_object(objects, x, y1):
+                if map.getpixel((x, y1))[0:3] == color:
                     x2 = x2 + 1
                 else:
                     break
@@ -786,12 +786,12 @@ class MapGenerator:
         # ===================
         # check y
         ended = False
-        for i in range(y1 + 1, map.size[1], 1):
+        for y in range(y1 + 1, map.size[1], 1):
             if ended:
                 break
-            for j in range(x1 + 1, x2, 1):
-                if (MapGenerator.isnt_in_object(objects, j, i)):
-                    if (map.getpixel((j, i))[0:3] != color):
+            for x in range(x1 + 1, x2, 1):
+                if (MapGenerator.isnt_in_object(objects, x, y)):
+                    if (map.getpixel((x, y))[0:3] != color):
                         ended = True
                         break
                 else:
