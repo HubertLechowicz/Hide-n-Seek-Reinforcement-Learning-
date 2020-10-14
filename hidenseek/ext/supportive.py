@@ -699,7 +699,7 @@ class MapGenerator:
 
         Parameters
         ----------
-            filename :
+            filename : name of the file
         Returns
         -------
             intersect_point : Point or None
@@ -710,6 +710,21 @@ class MapGenerator:
 
     @staticmethod
     def isnt_in_object(list_objects, x, y):
+        """"
+         Checks if position is NOT in object
+
+         Parameters
+        ----------
+        list_objects : contains list of objects as dictionary
+
+        x, y : position of point
+
+        Returns
+        -------
+            True or False : if list is empty                - return True
+                            if point is in object           - return False
+                            if point is NOT in any object   - return True
+         """
         if (len(list_objects) == 0):
             return True
 
@@ -723,6 +738,25 @@ class MapGenerator:
 
     @staticmethod
     def get_objects_coordinates(map, palette):
+
+        """"
+        Checks coordinates of all objects
+
+
+        Parameters
+        ----------
+        map : map of the world
+
+        palette : colors and types of objects
+
+        Returns
+        ----------
+        objects :   dictionary of all objects
+                    cointains type and vertices
+
+
+        """
+
         objects = []
 
         for x in range(0, map.size[0], 1):
@@ -750,6 +784,15 @@ class MapGenerator:
 
     @staticmethod
     def get_predefined_palette():
+
+        """"
+        Sets colors and types of objects
+
+        Returns
+        ----------
+        Palette of colors and types
+        """
+
         return {
             # colors
             # white - background
@@ -768,6 +811,25 @@ class MapGenerator:
 
     @staticmethod
     def searcher(x1, y1, objects, map):
+
+        """"
+        Searcher looks for the ends of new object in map.
+        It is used only when we start looking for a new object.
+
+        Parameters
+        ----------
+        x1, y1 :    primary coordinates
+
+        objects :   list of objects
+
+        map :       picture, where algorithm looks for objects
+
+        Returns
+        ----------
+        x2, y2 :    coordinates of the end of figure
+                     
+        """
+
         x2 = x1
         y2 = y1
         color = map.getpixel((x1, y1))[0:3]
