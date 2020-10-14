@@ -131,25 +131,24 @@ class Player(pygame.sprite.Sprite):
         self.color_anim = color_anim  # temp, until sprites
 
         self.polygon_points = [
-            (self.width - 10, self.height / 2),
-            (.4 * self.width, self.height - 5),
-            (.4 * self.width, 5),
+            Point((self.width - 10, self.height / 2)),
+            Point((.4 * self.width, self.height - 5)),
+            Point((.4 * self.width, 5)),
         ]
+        polygon_tuples = [(p.x, p.y) for p in self.polygon_points]
 
         image_inplace = pygame.Surface((self.width, self.height))
         image_inplace.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_inplace, self.color, self.polygon_points)
+        pygame.draw.polygon(image_inplace, self.color, polygon_tuples)
         pygame.draw.rect(image_inplace, (255, 255, 255),
                          pygame.Rect(0, 0, self.width, self.height), 1)
 
         image_movement = pygame.Surface((self.width, self.height))
         image_movement.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_movement, self.color_anim,
-                            self.polygon_points)
+                            polygon_tuples)
         pygame.draw.rect(image_movement, (255, 255, 255),
                          pygame.Rect(0, 0, self.width, self.height), 1)
-        self.polygon_points = [Point(polygon_point)
-                               for polygon_point in self.polygon_points]
 
         self.images = [image_inplace] + \
             [image_movement for _ in range(10)]  # animations
@@ -163,7 +162,12 @@ class Player(pygame.sprite.Sprite):
                 'type': 'NOOP',  # do nothing
             },
             {
-                'type': 'movement'
+                'type': 'movement',
+                'content': -1,
+            },
+            {
+                'type': 'movement',
+                'content': 1,
             },
             {
                 'type': 'rotation',
@@ -291,85 +295,111 @@ class Player(pygame.sprite.Sprite):
 
         self.image = self.images[self.image_index]
 
-    def update_vision(self, local_env):
+    def _determine_new_ray_points(self):
         """
-        Updates Agent Vision
+        Algorithm which calculates new possible ray points based on the current Agent Position and Agent Direction
 
         Parameters
         ----------
-            local_env : dict
-                contains Player Local Environment
+            None
 
         Returns
         -------
-            None
+            ray_points : list of Point
+                list of new, standard Ray Points
+            angles_count : length of Ray Points
+                ray points counter
         """
-        new_point = Point.triangle_unit_circle(
-            self.direction, side_size=self.vision_radius)
-        self.vision_top = self.pos + new_point
 
-        self.ray_points = []
+        ray_points = []
         angles = np.linspace(0, self.vision_rad, num=int(
-            int(self.vision_rad * 180 / math.pi) * (self.vision_radius / 2) / 100), endpoint=True)  # counter-clockwise
-        for angle in angles:  # clockwise
+            int(self.vision_rad * 180 / math.pi) * (self.vision_radius / 2) / 100), endpoint=True)  # clockwise
+        for angle in angles:
             ray_point = Point.triangle_unit_circle_relative(
                 angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.vision_radius))
-            self.ray_points.append(ray_point)
+            ray_points.append(ray_point)
 
-        walls_lines = [[[wall.get_abs_vertices()[i % 4], wall.get_abs_vertices()[(
-            i + 1) % 4]] for i in range(4)] for wall in local_env['walls']]
+        return ray_points, len(angles)
+
+    def _reduce_wall_edges(self, walls):
+        """
+        Algorithm which reduces wall edges from 4 per Wall to only 2 (closest ones)
+
+        Parameters
+        ----------
+            walls : list of Wall
+                list of Walls in Agent Local Environment
+
+        Returns
+        -------
+            proper_walls_lines : list of [Point, Point]
+                list of closest wall edges
+        """
+
+        walls_lines = [[[wall.get_abs_vertices()[i % 4], wall.get_abs_vertices()[
+            (i + 1) % 4]] for i in range(4)] for wall in walls]
 
         # get only closer parallel wall edge, reduces computation by half
         proper_walls_lines = []
         for wall_lines in walls_lines:
-            proper_wall_lines = []
             if self.pos.distance(wall_lines[0][0] + (wall_lines[0][1] - wall_lines[0][0]) / 2) < self.pos.distance(wall_lines[2][0] + (wall_lines[2][1] - wall_lines[2][0]) / 2):
-                proper_wall_lines.append(wall_lines[0])
+                proper_walls_lines.append(wall_lines[0])
             else:
-                proper_wall_lines.append(wall_lines[2])
+                proper_walls_lines.append(wall_lines[2])
 
             if self.pos.distance(wall_lines[1][0] + (wall_lines[1][1] - wall_lines[1][0]) / 2) < self.pos.distance(wall_lines[3][0] + (wall_lines[3][1] - wall_lines[3][0]) / 2):
-                proper_wall_lines.append(wall_lines[1])
+                proper_walls_lines.append(wall_lines[1])
             else:
-                proper_wall_lines.append(wall_lines[3])
-            proper_walls_lines.append(proper_wall_lines)
+                proper_walls_lines.append(wall_lines[3])
+        return proper_walls_lines
+
+    def _look_for_intersections(self, wall_edges):
+        """
+        Algorithm which looks for new Ray Points, which are closer to the Agent Center than radius-distance Ray Points
+
+        Parameters
+        ----------
+            wall_edges : list of [Point, Point]
+                list of Wall Edges in Agent Local Environment
+
+        Returns
+        -------
+            temp_ray_points : list of Point
+                list of new Ray Points
+        """
 
         temp_ray_points = [Point(self.rect.center)]
         for vertex in self.ray_points:
-            temp_ray_points.append(vertex)
             # first must be the center point
             line_segment = [self.pos.round(4), vertex.round(4)]
-            vertex_new_point = False
-            min_t_x = None
-            for wall_lines in proper_walls_lines:
-                point2 = None
-                for line in wall_lines:
-                    p2 = Collision.find_intersection(line_segment, line)
-                    if p2 and (not point2 or self.pos.distance(p2) < self.pos.distance(point2)) and self.pos.distance(p2) <= self.vision_radius:
-                        point2 = p2
-                if point2 is None:
-                    continue
-                t_x = self.pos.distance(point2)
-                if min_t_x is None:
-                    min_t_x = t_x
-                if not vertex_new_point:
-                    vertex_new_point = True
-                    temp_ray_points[-1] = point2
-                else:
-                    if min_t_x > t_x:
-                        min_t_x = t_x
-                        temp_ray_points[-1] = point2
+            new_point = copy.deepcopy(vertex.round(4))
+            new_point_dist = self.pos.distance(new_point)
+            for edge in wall_edges:
+                p = Collision.find_intersection(line_segment, edge)
+                if p and self.pos.distance(p) <= new_point_dist:
+                    new_point = p
+                    new_point_dist = self.pos.distance(p)
+            temp_ray_points.append(new_point)
+        return temp_ray_points
 
-        self.ray_points = copy.deepcopy(temp_ray_points[1:])  # without center
+    def _reduce_triangles(self, angles_count):
+        """
+        Algorithm which reduces the Ray Objects drastically by checking their distance with theirs neighbours
 
-        self.ray_objects = [[self.pos, self.ray_points[i], self.ray_points[i + 1]]
-                            for i in range(len(self.ray_points) - 1)]
+        Parameters
+        ----------
+            angles_count : int
+                amount of Ray Points
 
-        # if no interruption, then triangle is made from 10 % of angles
-        # if interruption - triangle every angle change
+        Returns
+        -------
+            new_ray_objects : list of [Point, Point, Point]
+                list of Ray Object Triangles
+        """
+
         new_ray_objects = []
         vision_top_distance = round(self.pos.distance(self.vision_top), 2)
-        angles_perc_10 = round(len(angles) / 10)
+        angles_perc_10 = round(angles_count / 10)
         j = 0
         for i in range(len(self.ray_objects)):
             if j == angles_perc_10:
@@ -388,7 +418,39 @@ class Player(pygame.sprite.Sprite):
             new_ray_objects.append(self.ray_objects[i])
         new_ray_objects.append(
             [self.pos, self.ray_objects[i - j - 1][1], self.ray_objects[i][2]])
-        self.ray_objects = new_ray_objects
+
+        return new_ray_objects
+
+    def update_vision(self, local_env):
+        """
+        Updates Agent Vision
+
+        Parameters
+        ----------
+            local_env : dict
+                contains Player Local Environment
+
+        Returns
+        -------
+            None
+        """
+
+        new_point = Point.triangle_unit_circle(
+            self.direction, side_size=self.vision_radius)
+        self.vision_top = self.pos + new_point
+
+        self.ray_points, angles_count = self._determine_new_ray_points()
+
+        wall_edges = self._reduce_wall_edges(local_env['walls'])
+
+        self.ray_points = copy.deepcopy(
+            self._look_for_intersections(wall_edges)[1:])  # without center
+
+        self.ray_objects = [[self.pos, self.ray_points[i], self.ray_points[i + 1]]
+                            for i in range(len(self.ray_points) - 1)]
+
+        # triangle is made from up to 10% of all triangles
+        self.ray_objects = self._reduce_triangles(angles_count)
 
         self.ray_objects.append([
             Point((self.rect.topleft)),
@@ -397,12 +459,48 @@ class Player(pygame.sprite.Sprite):
             Point((self.rect.bottomleft)),
         ])
 
-    def update(self, new_action, local_env):
+    def update(self, new_action, local_env, logger):
         """
-        Not implemented in Parent Class
+        Takes and performs the action
+
+        Parameters
+        ----------
+            new_action : dict
+                action taken by Agent
+            local_env : dict
+                contains Player Local Environment
+            logger : logging
+                logging instance, i.e. logger_hiding, logger_seeker
+
+        Returns
+        -------
+            None
         """
-        raise NotImplementedError(
-            "This is an abstract function of base class Player, please define it within class you created and make sure you don't use Player class.")
+        if new_action['type'] == 'NOOP':
+            self.image_index = 0
+            self.image = self.images[self.image_index]
+            logger.info("NOOP! NOOP!")
+        elif new_action['type'] == 'movement':
+            x = math.cos(self.direction) * self.speed * new_action['content']
+            y = math.sin(self.direction) * self.speed * new_action['content']
+            old_pos = copy.deepcopy(self.pos)
+            new_pos = self.pos + Point((x, y))
+            logger.info(f"Moving to {new_pos}")
+
+            logger.info(f"\tChecking collisions with other Objects")
+
+            for wall in local_env['walls']:
+                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
+                    self._move_action(new_pos)
+                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
+                        logger.info(
+                            "\tCollision with some Wall! Not moving anywhere")
+                        self._move_action(old_pos)
+                        return
+
+            self._move_action(new_pos)
+        elif new_action['type'] == 'rotation':
+            self._rotate(new_action['content'], local_env)
 
 
 class Hiding(Player):
@@ -517,47 +615,6 @@ class Hiding(Player):
             }
         ]
 
-    def update(self, new_action, local_env):
-        """
-        Takes and performs the action
-
-        Parameters
-        ----------
-            local_env : dict
-                contains Player Local Environment
-
-        Returns
-        -------
-            new_wall : Wall or None
-                returns new Wall object if action was 'add_wall' and it was possible to create new Wall, otherwise None
-        """
-
-        if new_action['type'] == 'NOOP':
-            self.image_index = 0
-            self.image = self.images[self.image_index]
-            logger_hiding.info("NOOP! NOOP!")
-        elif new_action['type'] == 'movement':
-            x = math.cos(self.direction) * self.speed
-            y = math.sin(self.direction) * self.speed
-            old_pos = copy.deepcopy(self.pos)
-            new_pos = self.pos + Point((x, y))
-            logger_hiding.info(f"Moving to {new_pos}")
-
-            logger_hiding.info(f"\tChecking collisions with other Objects")
-
-            for wall in local_env['walls']:
-                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    self._move_action(new_pos)
-                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                        logger_hiding.info(
-                            "\tCollision with some Wall! Not moving anywhere")
-                        self._move_action(old_pos)
-                        return
-
-            self._move_action(new_pos)
-        elif new_action['type'] == 'rotation':
-            self._rotate(new_action['content'], local_env)
-
     def __str__(self):
         return "[Hiding Agent]"
 
@@ -666,48 +723,6 @@ class Seeker(Player):
                 'type': 'remove_wall',
             },
         ]
-
-    def update(self, new_action, local_env):
-        """
-        Takes and performs the action
-
-        Parameters
-        ----------
-            local_env : dict
-                contains Player Local Environment
-
-        Returns
-        -------
-            delete_wall : Wall or None
-                returns Wall object to delete if action was 'remove_wall' otherwise None
-                TODO: new_action['type'] == 'remove wall' needs to be changed from random choice, to experience-based choice.
-        """
-
-        if new_action['type'] == 'NOOP':
-            self.image_index = 0
-            self.image = self.images[self.image_index]
-            logger_seeker.info("NOOP! NOOP!")
-        elif new_action['type'] == 'movement':
-            x = math.cos(self.direction) * self.speed
-            y = math.sin(self.direction) * self.speed
-            old_pos = copy.deepcopy(self.pos)
-            new_pos = self.pos + Point((x, y))
-            logger_seeker.info(f"Moving to {new_pos}")
-
-            logger_seeker.info(f"\tChecking collisions with other Objects")
-
-            for wall in local_env['walls']:
-                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    self._move_action(new_pos)
-                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                        logger_seeker.info(
-                            "\tCollision with some Wall! Not moving anywhere")
-                        self._move_action(old_pos)
-                        return
-
-            self._move_action(new_pos)
-        elif new_action['type'] == 'rotation':
-            self._rotate(new_action['content'], local_env)
 
     def __str__(self):
         return "[Seeker]"

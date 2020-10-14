@@ -680,8 +680,8 @@ class MapGenerator:
         open_bmp(filename):
             returns map from bmp
         @staticmethod
-        isnt_in_object(list_objects, x, y):
-            returns information if point isn't in object
+        in_object(list_objects, x, y):
+            returns information if point is in object
         @staticmethod
         get_objects_coordinates(map, palette):
             returns objects with their types and positions
@@ -692,6 +692,7 @@ class MapGenerator:
         searcher(x1, y1, objects, map)
             returns the last point from figure
     """
+
     @staticmethod
     def open_bmp(filename):
         """
@@ -705,15 +706,15 @@ class MapGenerator:
             intersect_point : Point or None
                 if intersection exists, returns the Point object; else None
         """
-        map_in_bmp = Image.open(filename)
-        return map_in_bmp
+
+        return Image.open(filename)
 
     @staticmethod
-    def isnt_in_object(list_objects, x, y):
+    def in_object(list_objects, x, y):
         """"
-         Checks if position is NOT in object
+        Checks if position is NOT in object
 
-         Parameters
+        Parameters
         ----------
         list_objects : contains list of objects as dictionary
 
@@ -721,27 +722,28 @@ class MapGenerator:
 
         Returns
         -------
-            True or False : if list is empty                - return True
-                            if point is in object           - return False
-                            if point is NOT in any object   - return True
-         """
-        if (len(list_objects) == 0):
-            return True
+            True or False : if list is empty                - return False
+                            if point is in object           - return True
+                            if point is NOT in any object   - return False
+        """
+
+        if not len(list_objects):
+            return False
 
         for objects in list_objects:
-            if (x >= objects["vertices"][0]["x"]):
-                if (x <= objects["vertices"][1]["x"]):
-                    if (y >= objects["vertices"][0]["y"]):
-                        if (y <= objects["vertices"][1]["y"]):
-                            return False
-        return True
+            if (
+                x >= objects["vertices"][0]["x"]
+                and x <= objects["vertices"][1]["x"]
+                and y >= objects["vertices"][0]["y"]
+                and y <= objects["vertices"][1]["y"]
+            ):
+                return True
+        return False
 
     @staticmethod
     def get_objects_coordinates(map, palette):
-
         """"
         Checks coordinates of all objects
-
 
         Parameters
         ----------
@@ -753,17 +755,15 @@ class MapGenerator:
         ----------
         objects :   dictionary of all objects
                     cointains type and vertices
-
-
         """
 
         objects = []
 
         for x in range(0, map.size[0], 1):
             for y in range(0, map.size[1], 1):
-                if (MapGenerator.isnt_in_object(objects, x, y)):
+                if not MapGenerator.in_object(objects, x, y):
                     this_pixel = map.getpixel((x, y))[0:3]
-                    if (this_pixel != (255, 255, 255)):
+                    if this_pixel != (255, 255, 255):
                         tmp_coordinates = MapGenerator.searcher(
                             x, y, objects, map)
                         tmp_object = {
@@ -784,7 +784,6 @@ class MapGenerator:
 
     @staticmethod
     def get_predefined_palette():
-
         """"
         Sets colors and types of objects
 
@@ -806,12 +805,10 @@ class MapGenerator:
 
             "#00ff00": "bushes",  # green
             "#00ffff": "glass"  # light blue
-
         }
 
     @staticmethod
     def searcher(x1, y1, objects, map):
-
         """"
         Searcher looks for the ends of new object in map.
         It is used only when we start looking for a new object.
@@ -827,7 +824,6 @@ class MapGenerator:
         Returns
         ----------
         x2, y2 :    coordinates of the end of figure
-                     
         """
 
         x2 = x1
@@ -837,7 +833,7 @@ class MapGenerator:
         # ===================
         # check x
         for x in range(x1 + 1, map.size[0], 1):
-            if MapGenerator.isnt_in_object(objects, x, y1):
+            if not MapGenerator.in_object(objects, x, y1):
                 if map.getpixel((x, y1))[0:3] == color:
                     x2 = x2 + 1
                 else:
@@ -852,7 +848,7 @@ class MapGenerator:
             if ended:
                 break
             for x in range(x1 + 1, x2, 1):
-                if (MapGenerator.isnt_in_object(objects, x, y)):
+                if not MapGenerator.in_object(objects, x, y):
                     if (map.getpixel((x, y))[0:3] != color):
                         ended = True
                         break

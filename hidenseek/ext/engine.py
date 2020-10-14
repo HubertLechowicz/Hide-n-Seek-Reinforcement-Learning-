@@ -5,7 +5,7 @@ from objects.controllable import Hiding, Seeker
 from objects.fixed import Wall
 from ext.supportive import Point, Collision, MapGenerator
 import random
-from ext.loggers import LOGGING_DASHES, logger_engine, logger_hiding
+from ext.loggers import LOGGING_DASHES, logger_engine, logger_hiding, logger_seeker
 import numpy as np
 
 
@@ -271,7 +271,8 @@ class HideNSeek(object):
                     self.walls_group.remove(delete_wall)
                     del delete_wall
         else:
-            self.player_seek.update(new_action, self.agent_env['p_seek'])
+            self.player_seek.update(
+                new_action, self.agent_env['p_seek'], logger_seeker)
 
         new_action = copy.deepcopy(random.choice(self.player_hide.actions))
         if self.player_hide.wall_timer > 0:
@@ -309,7 +310,8 @@ class HideNSeek(object):
                 else:
                     del wall
         else:
-            self.player_hide.update(new_action, self.agent_env['p_hide'])
+            self.player_hide.update(
+                new_action, self.agent_env['p_hide'], logger_hiding)
 
         self.agent_env['p_seek'] = {
             'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects),
