@@ -88,30 +88,20 @@ class HideNSeek(object):
         logger_engine.info("Initializing Game Engine")
         logger_engine.info(f"\tFPS: {self.fps}")
 
-    def init(self):
+    def _generate_map(self, all_objects):
         """
-        Initializes game environment, which means creating Agents & their POV, 
-        adding them to Sprite Group and creating Sprite Group for Walls
+        Generates map by using BMP File
 
         Parameters
         ----------
-            None
+            all_objects : dict
+                dictionary of objects to add into the game
 
         Returns
         -------
             None
         """
-        map_bmp = MapGenerator.open_bmp(self.map_path)
-        all_objects = MapGenerator.get_objects_coordinates(
-            map_bmp, MapGenerator.get_predefined_palette())
 
-        self.width, self.height = map_bmp.size
-        logger_engine.info(f"\tResolution: {self.width}x{self.height}")
-
-        logger_engine.info("\tWalls Sprite Group")
-        self.walls_group = pygame.sprite.Group()
-
-        logger_engine.info(f"\tGenerating map from BMP ({self.map_path})")
         for obj in all_objects:
             center_x = (obj["vertices"][0]["x"] + obj["vertices"][1]["x"]) / 2
             center_y = (obj["vertices"][0]["y"] + obj["vertices"][1]["y"]) / 2
@@ -135,22 +125,40 @@ class HideNSeek(object):
                 self.player_hide = Hiding(self.p_hide_cfg, obj_size, (center_x, center_y), (
                     255, 0, 0), self.width, self.height)
 
+    def init(self):
+        """
+        Initializes game environment, which means creating Agents & their POV, 
+        adding them to Sprite Group and creating Sprite Group for Walls
+
+        Parameters
+        ----------
+            None
+
+        Returns
+        -------
+            None
+        """
+
+        map_bmp = MapGenerator.open_bmp(self.map_path)
+        all_objects = MapGenerator.get_objects_coordinates(
+            map_bmp, MapGenerator.get_predefined_palette())
         self.duration = self.cfg.getint('DURATION', fallback=60)
         self.clock = pygame.time.Clock()
 
-        logger_engine.info("Initializing Environment Objects")
+        self.width, self.height = map_bmp.size
+        logger_engine.info(f"\tResolution: {self.width}x{self.height}")
 
+        logger_engine.info("\tWalls Sprite Group")
+        self.walls_group = pygame.sprite.Group()
+
+        logger_engine.info(f"\tGenerating map from BMP ({self.map_path})")
+        self._generate_map(all_objects)
+
+        logger_engine.info("Initializing Environment Objects")
         self.player_seek.update_vision({'walls': [], 'enemy': None, })
         self.player_hide.update_vision({'walls': [], 'enemy': None, })
 
-        self.agent_env['p_seek'] = {
-            'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects),
-            'enemy': self.player_hide if Collision.get_objects_in_local_env([self.player_hide], self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects) else None,
-        }
-        self.agent_env['p_hide'] = {
-            'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects),
-            'enemy': self.player_seek if Collision.get_objects_in_local_env([self.player_seek], self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects) else None,
-        }
+        self._calc_local_env()
 
         logger_engine.info("\tSeeker Vision")
         self.player_seek.update_vision(self.agent_env['p_seek'])
@@ -210,23 +218,146 @@ class HideNSeek(object):
         return False, None
 
     def _can_create_wall(self, wall, enemy):
+        """
+        Checks whether can add Wall (if there is no collision between newly created wall, local walls and enemies)
+
+        Parameters
+        ----------
+            wall : hidenseek.objects.fixed.Wall
+                newly created Wall
+            enemy : hidenseek.objects.controllable.Player (Hiding or Seeker) or None
+                if enemy in local environment then Player instance, else None
+
+        Returns
+        -------
+            can : bool
+                if can create wall
+        """
+
         # check if 2 POV lines (between which is new Wall center) are shorter than eyesight, if yes - then it's not possible to build Wall here
         l = round(len(self.player_hide.ray_points) / 2)
         if self.player_hide.pos.distance(self.player_hide.vision_top) > self.player_hide.pos.distance(self.player_hide.ray_points[l - 1]) or self.player_hide.pos.distance(
                 self.player_hide.vision_top) > self.player_hide.pos.distance(self.player_hide.ray_points[l]):
             return False
+
         for _wall in self.agent_env['p_hide']['walls']:
             if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
                 if Collision.sat(wall.get_abs_vertices(), _wall.get_abs_vertices()):
                     logger_hiding.info(
                         f"\tCouldn't add Wall #{self.player_hide.walls_counter + 1}, because it would overlap with other Wall.")
                     return False
+
         if enemy and Collision.aabb(enemy.pos, (enemy.width, enemy.height), wall.pos, (wall.width, wall.height)):
             if Collision.sat(self.player_hide.get_abs_vertices(), enemy.get_abs_vertices()):
                 logger_hiding.info(
                     f"\tCouldn't add Wall #{self.player_hide.walls_counter + 1}, because it would overlap with Enemy Agent")
                 return False
         return True
+
+    def _add_wall(self):
+        """
+        Adds Wall
+
+        Parameters
+        ----------
+            None
+
+        Returns
+        -------
+            None
+        """
+
+        if self.player_hide.walls_counter < self.player_hide.walls_max and not self.player_hide.wall_timer:
+            logger_hiding.info(
+                f"\tAdding Wall #{self.player_hide.walls_counter + 1}")
+
+            wall_pos = copy.deepcopy(self.player_hide.pos)
+            wall_size = (max(int(self.player_hide.width / 10), 2),
+                         max(int(self.player_hide.height / 2), 2))  # minimum 2x2 Wall
+            vision_arc_range = np.sqrt((self.player_hide.vision_top.x - self.player_hide.pos.x) * (self.player_hide.vision_top.x - self.player_hide.pos.x) + (
+                self.player_hide.vision_top.y - self.player_hide.pos.y) * (self.player_hide.vision_top.y - self.player_hide.pos.y))
+            # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
+            wall_pos.x = wall_pos.x + vision_arc_range - \
+                (1.5 * wall_size[0])
+            wall_pos = Point.triangle_unit_circle_relative(
+                self.player_hide.direction, self.player_hide.pos, wall_pos)
+
+            wall = Wall(self.player_hide, wall_pos.x,
+                        wall_pos.y, wall_size)
+            logger_hiding.info(f"\t\tPosition: {wall_pos}")
+            wall._rotate(self.player_hide.direction, wall_pos)
+            if self._can_create_wall(wall, self.agent_env['p_hide']['enemy']):
+                self.player_hide.walls_counter += 1
+                logger_hiding.info(
+                    f"\tAdded wall #{self.player_hide.walls_counter}")
+                self.walls_group.add(wall)
+                self.player_hide.wall_timer = copy.deepcopy(
+                    self.player_hide.wall_timer_init)
+            else:
+                del wall
+
+    def _remove_wall(self):
+        """
+        Removes (randomly chosen) Wall
+        TODO: Implement decision-making algorithm which Wall to delete
+
+        Parameters
+        ----------
+            None
+
+        Returns
+        -------
+            None
+        """
+        if self.agent_env['p_seek']['walls'] and not self.player_seek.wall_timer:
+            # remove randomly selected wall in local env
+            delete_wall = random.choice(self.agent_env['p_seek']['walls'])
+            self.player_seek.wall_timer = self.player_seek.wall_timer_init
+            if delete_wall.owner:
+                delete_wall.owner.walls_counter -= 1
+                self.walls_group.remove(delete_wall)
+                del delete_wall
+
+    def _reduce_agent_cooldown(self, agent):
+        """
+        Reduces agent cooldown by 1 frame every update
+
+        Parameters
+        ----------
+            agent : hidenseek.objects.controllable.Player
+                Agent instance
+
+        Returns
+        -------
+            None
+        """
+
+        if agent.wall_timer > 0:
+            agent.wall_timer -= 1
+        # for negative it's 0, for positive - higher than 0, needed if time-based cooldown (i.e. 5s) instead of frame-based (i.e. 500 frames)
+        agent.wall_timer = max(agent.wall_timer, 0)
+
+    def _calc_local_env(self):
+        """
+        Calculates local environments for Agents
+
+        Parameters
+        ----------
+            None
+
+        Returns
+        -------
+            None
+        """
+
+        self.agent_env['p_seek'] = {
+            'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects),
+            'enemy': self.player_hide if Collision.get_objects_in_local_env([self.player_hide], self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects) else None,
+        }
+        self.agent_env['p_hide'] = {
+            'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects),
+            'enemy': self.player_seek if Collision.get_objects_in_local_env([self.player_seek], self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects) else None,
+        }
 
     def step(self):
         """
@@ -253,77 +384,31 @@ class HideNSeek(object):
         self.dt = self.clock.tick_busy_loop(self.fps)
         logger_engine.info(f"\tFPS: {self.clock.get_fps()}")
 
+        self._reduce_agent_cooldown(self.player_seek)
+        self._reduce_agent_cooldown(self.player_hide)
+
         logger_engine.debug("\tTaking actions")
+        new_action_seek = copy.deepcopy(
+            random.choice(self.player_seek.actions))
+        new_action_hide = copy.deepcopy(
+            random.choice(self.player_hide.actions))
 
-        new_action = copy.deepcopy(random.choice(self.player_seek.actions))
-        if self.player_seek.wall_timer > 0:
-            self.player_seek.wall_timer -= 1
-            # for negative it's 0, for positive - higher than 0, needed if time-based cooldown (i.e. 5s) instead of frame-based (i.e. 500 frames)
-        self.player_seek.wall_timer = max(self.player_seek.wall_timer, 0)
-
-        if new_action['type'] == 'remove_wall':
-            if self.agent_env['p_seek']['walls'] and not self.player_seek.wall_timer:
-                # remove randomly selected wall in local env
-                delete_wall = random.choice(self.agent_env['p_seek']['walls'])
-                self.player_seek.wall_timer = self.player_seek.wall_timer_init
-                if delete_wall.owner:
-                    delete_wall.owner.walls_counter -= 1
-                    self.walls_group.remove(delete_wall)
-                    del delete_wall
+        if new_action_seek['type'] == 'remove_wall':
+            self._remove_wall()
         else:
             self.player_seek.update(
-                new_action, self.agent_env['p_seek'], logger_seeker)
+                new_action_seek, self.agent_env['p_seek'], logger_seeker)
 
-        new_action = copy.deepcopy(random.choice(self.player_hide.actions))
-        if self.player_hide.wall_timer > 0:
-            self.player_hide.wall_timer -= 1
-            # for negative it's 0, for positive - higher than 0, needed if time-based cooldown (i.e. 5s) instead of frame-based (i.e. 500 frames)
-        self.player_hide.wall_timer = max(self.player_hide.wall_timer, 0)
-
-        if new_action['type'] == 'add_wall':
-            if self.player_hide.walls_counter < self.player_hide.walls_max and not self.player_hide.wall_timer:
-                logger_hiding.info(
-                    f"\tAdding Wall #{self.player_hide.walls_counter + 1}")
-
-                wall_pos = copy.deepcopy(self.player_hide.pos)
-                wall_size = (max(int(self.player_hide.width / 10), 2),
-                             max(int(self.player_hide.height / 2), 2))  # minimum 2x2 Wall
-                vision_arc_range = np.sqrt((self.player_hide.vision_top.x - self.player_hide.pos.x) * (self.player_hide.vision_top.x - self.player_hide.pos.x) + (
-                    self.player_hide.vision_top.y - self.player_hide.pos.y) * (self.player_hide.vision_top.y - self.player_hide.pos.y))
-                # vision arc range - 1.5 wall width, so the wall is always created inside PoV.
-                wall_pos.x = wall_pos.x + vision_arc_range - \
-                    (1.5 * wall_size[0])
-                wall_pos = Point.triangle_unit_circle_relative(
-                    self.player_hide.direction, self.player_hide.pos, wall_pos)
-
-                wall = Wall(self.player_hide, wall_pos.x,
-                            wall_pos.y, wall_size)
-                logger_hiding.info(f"\t\tPosition: {wall_pos}")
-                wall._rotate(self.player_hide.direction, wall_pos)
-                if self._can_create_wall(wall, self.agent_env['p_hide']['enemy']):
-                    self.player_hide.walls_counter += 1
-                    logger_hiding.info(
-                        f"\tAdded wall #{self.player_hide.walls_counter}")
-                    self.walls_group.add(wall)
-                    self.player_hide.wall_timer = copy.deepcopy(
-                        self.player_hide.wall_timer_init)
-                else:
-                    del wall
+        if new_action_hide['type'] == 'add_wall':
+            self._add_wall()
         else:
             self.player_hide.update(
-                new_action, self.agent_env['p_hide'], logger_hiding)
+                new_action_hide, self.agent_env['p_hide'], logger_hiding)
 
-        self.agent_env['p_seek'] = {
-            'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects),
-            'enemy': self.player_hide if Collision.get_objects_in_local_env([self.player_hide], self.player_seek.pos, self.player_seek.vision_radius, self.player_seek.direction, self.player_seek.ray_objects) else None,
-        }
-        self.agent_env['p_hide'] = {
-            'walls': Collision.get_objects_in_local_env(self.walls_group, self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects),
-            'enemy': self.player_seek if Collision.get_objects_in_local_env([self.player_seek], self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects) else None,
-        }
+        logger_engine.debug("\tCalculating Local Environments")
+        self._calc_local_env()
+
         logger_engine.debug("\tUpdating vision")
-        logger_engine.info("\tDrawing frame")
-
         self.player_seek.update_vision(self.agent_env['p_seek'])
         self.player_hide.update_vision(self.agent_env['p_hide'])
 
@@ -345,15 +430,16 @@ class HideNSeek(object):
         -------
             None
         """
+
         pygame.draw.line(screen, (0, 255, 0), (agent.pos.x, agent.pos.y),
                          (agent.vision_top.x, agent.vision_top.y), 1)
         ray_obj = agent.ray_objects[:-1]  # without square object
         for obj in ray_obj:
-            obj_len = len(obj)
-            for i in range(obj_len):
-                start = (obj[i].x, obj[i].y)
-                end = (obj[(i + 1) % obj_len].x, obj[(i + 1) % obj_len].y)
-                pygame.draw.line(screen, (255, 85, 55), start, end)
+            pygame.draw.polygon(screen,
+                                (255, 85, 55),
+                                [(p.x, p.y) for p in obj],
+                                1  # TODO: comment when POV done, so it looks like one whole POV instead of triangles
+                                )
 
     def render(self, mode='human', close=False):
         """
@@ -370,6 +456,7 @@ class HideNSeek(object):
         -------
             None
         """
+
         if mode == 'human':
             if close:
                 pygame.quit()
@@ -388,26 +475,7 @@ class HideNSeek(object):
 
             pygame.display.update()
         elif mode == 'console':
-            logger_engine.info("\t[Hiding Agent]")
-            logger_engine.info(f"\t\tPosition: {self.player_hide.pos}")
-            logger_engine.info(
-                f"\t\tLocal environment: {self.agent_env['p_hide']}")
-            logger_engine.info(
-                f"\t\tTriangles in POV: {len(self.player_hide.ray_objects[:-1])}")
-            logger_engine.info(
-                f"\t\tWalls: {len([wall.pos for wall in self.walls_group if wall.owner == self.player_hide])}")
-
-            logger_engine.info("\t[Seeker Agent]")
-            logger_engine.info(f"\t\tPosition: {self.player_seek.pos}")
-            logger_engine.info(
-                f"\t\tLocal environment: {self.agent_env['p_seek']}")
-            logger_engine.info(
-                f"\t\tTriangles in POV: {len(self.player_seek.ray_objects[:-1])}")
-
-            logger_engine.info("\t[Walls]")
-            logger_engine.info(
-                f"\t\tPositions: {[wall.pos for wall in self.walls_group]}")
-
+            pass
         else:
             raise Exception(
                 "Unexpected render mode, available: 'human', 'console', 'rgb_array'")

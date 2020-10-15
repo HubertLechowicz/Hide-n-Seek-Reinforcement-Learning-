@@ -140,15 +140,11 @@ class Player(pygame.sprite.Sprite):
         image_inplace = pygame.Surface((self.width, self.height))
         image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, self.color, polygon_tuples)
-        pygame.draw.rect(image_inplace, (255, 255, 255),
-                         pygame.Rect(0, 0, self.width, self.height), 1)
 
         image_movement = pygame.Surface((self.width, self.height))
         image_movement.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_movement, self.color_anim,
                             polygon_tuples)
-        pygame.draw.rect(image_movement, (255, 255, 255),
-                         pygame.Rect(0, 0, self.width, self.height), 1)
 
         self.images = [image_inplace] + \
             [image_movement for _ in range(10)]  # animations
@@ -223,15 +219,11 @@ class Player(pygame.sprite.Sprite):
         image_inplace = pygame.Surface((self.width, self.height))
         image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, self.color, polygon_points_tuples)
-        pygame.draw.rect(image_inplace, (255, 255, 255),
-                         pygame.Rect(0, 0, self.width, self.height), 1)
 
         image_movement = pygame.Surface((self.width, self.height))
         image_movement.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_movement, self.color_anim,
                             polygon_points_tuples)
-        pygame.draw.rect(image_movement, (255, 255, 255),
-                         pygame.Rect(0, 0, self.width, self.height), 1)
 
         self.images = [image_inplace] + \
             [image_movement for _ in range(10)]  # animations
@@ -274,21 +266,6 @@ class Player(pygame.sprite.Sprite):
             self.image_index = (self.image_index + 1) % len(self.images)
             if not self.image_index:
                 self.image_index += 1
-            # region  https://trello.com/c/VzyZ3CM2
-
-            # TODO delete when map is implemented, and walls are on the sides.
-            if self.pos.y - self.height / 2 <= 0:
-                self.pos.y = self.height / 2
-
-            elif self.pos.y + self.height / 2 >= self.SCREEN_HEIGHT:
-                self.pos.y = self.SCREEN_HEIGHT - self.height / 2
-
-            if self.pos.x - self.width / 2 <= 0:
-                self.pos.x = self.width / 2
-
-            elif self.pos.x + self.width / 2 >= self.SCREEN_WIDTH:
-                self.pos.x = self.SCREEN_WIDTH - self.width / 2
-            # endregion
             self.rect.center = (self.pos.x, self.pos.y)
         else:  # if not moving
             self.image_index = 0
@@ -368,13 +345,26 @@ class Player(pygame.sprite.Sprite):
                 list of new Ray Points
         """
 
+        edges_bounding_boxes = [
+            {
+                'center': (edge[0] + edge[1]) / 2,
+                'size': (abs(edge[1].x - edge[0].x), abs(edge[1].y - edge[0].y))
+            } for edge in wall_edges
+        ]
+
         temp_ray_points = [Point(self.rect.center)]
         for vertex in self.ray_points:
             # first must be the center point
             line_segment = [self.pos.round(4), vertex.round(4)]
             new_point = copy.deepcopy(vertex.round(4))
             new_point_dist = self.pos.distance(new_point)
-            for edge in wall_edges:
+            bounding_box = {
+                'center': (line_segment[0] + line_segment[1]) / 2,
+                'size': (abs(line_segment[1].x - line_segment[0].x), abs(line_segment[1].y - line_segment[0].y))
+            }
+            for edge, edge_bounding_box in zip(wall_edges, edges_bounding_boxes):
+                if not Collision.aabb(bounding_box['center'], bounding_box['size'], edge_bounding_box['center'], edge_bounding_box['size']):
+                    continue
                 p = Collision.find_intersection(line_segment, edge)
                 if p and self.pos.distance(p) <= new_point_dist:
                     new_point = p
