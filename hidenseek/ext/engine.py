@@ -441,6 +441,37 @@ class HideNSeek(object):
                                 1  # TODO: comment when POV done, so it looks like one whole POV instead of triangles
                                 )
 
+    def _draw_agent(self, agent, screen):
+        """
+        Function used only in HideNSeek class. Draws Agent POV on given Screen
+
+        Parameters
+        ----------
+            agent : hidenseek.objects.controllable.Player
+                agent instance, may be Player, Hiding or Seeker
+            screen : pygame.Display
+                game window
+
+        Returns
+        -------
+            None
+        """
+        polygon_points_tuples = [(p.x, p.y) for p in agent.polygon_points]
+        image_inplace = pygame.Surface((agent.width, agent.height))
+        image_inplace.set_colorkey((0, 0, 0))
+        pygame.draw.polygon(image_inplace, agent.color, polygon_points_tuples)
+
+        image_movement = pygame.Surface((agent.width, agent.height))
+        image_movement.set_colorkey((0, 0, 0))
+
+
+
+        pygame.draw.polygon(image_movement, agent.color_anim,
+                            polygon_points_tuples)
+        agent.images = [image_inplace] + \
+                      [image_movement for _ in range(10)]  # animations
+        agent.image = image_inplace
+
     def render(self, mode='human', close=False):
         """
         Renders game based on the mode. Raises Exception if unexpected render mode.
@@ -471,6 +502,9 @@ class HideNSeek(object):
 
             self._draw_agent_vision(self.player_seek, self.screen)
             self._draw_agent_vision(self.player_hide, self.screen)
+            self._draw_agent(self.player_hide,self.screen)
+            self._draw_agent(self.player_seek, self.screen)
+
             self.players_group.draw(self.screen)
 
             pygame.display.update()

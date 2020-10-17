@@ -215,20 +215,6 @@ class Player(pygame.sprite.Sprite):
                     self.polygon_points = old_polygon_points
                     self.direction = old_direction
 
-        polygon_points_tuples = [(p.x, p.y) for p in self.polygon_points]
-        image_inplace = pygame.Surface((self.width, self.height))
-        image_inplace.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_inplace, self.color, polygon_points_tuples)
-
-        image_movement = pygame.Surface((self.width, self.height))
-        image_movement.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_movement, self.color_anim,
-                            polygon_points_tuples)
-
-        self.images = [image_inplace] + \
-            [image_movement for _ in range(10)]  # animations
-        self.image = image_inplace
-
     def get_abs_vertices(self):
         """
         Returns absolute coordinates of Vertices in Polygon
