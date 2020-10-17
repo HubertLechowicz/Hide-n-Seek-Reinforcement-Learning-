@@ -351,7 +351,7 @@ class Player(pygame.sprite.Sprite):
             for edge, edge_bounding_box in zip(wall_edges, edges_bounding_boxes):
                 if not Collision.aabb(bounding_box['center'], bounding_box['size'], edge_bounding_box['center'], edge_bounding_box['size']):
                     continue
-                p = Collision.find_intersection(line_segment, edge)
+                p = Collision.lineIntersection(line_segment, edge)
                 if p and self.pos.distance(p) <= new_point_dist:
                     new_point = p
                     new_point_dist = self.pos.distance(p)

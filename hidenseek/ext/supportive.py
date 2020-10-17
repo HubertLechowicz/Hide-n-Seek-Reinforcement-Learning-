@@ -665,6 +665,38 @@ class Collision:
 
         return in_radius
 
+    @staticmethod
+    def lineIntersection(segment1,segment2):
+        """
+        Return an intersection point of segment1 and segment2, TODO: TBC.
+        https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+
+        Parameters
+        ----------
+            segment1 : [hidenseek.ext.supportive.Point, hidenseek.ext.supportive.Point]
+                first segment to check intersection with
+            segment2: [hidenseek.ext.supportive.Point, hidenseek.ext.supportive.Point]
+                second segment to check intersection with
+        Returns
+        -------
+            intersect_point : Point or None
+                if intersection exists, returns the Point object; else None
+        """
+
+        B_A = segment1[1] - segment1[0]
+        D_C = segment2[1] - segment2[0]
+
+
+        determinant = (-D_C.x * B_A.y + B_A.x * D_C.y)
+        if abs(determinant) < 1e-20:
+            dists = [segment1[0].distance(segment1[1]),segment1[0].distance(segment2[0]),segment1[0].distance(segment2[1])]
+            return [segment1[1],segment2[0],segment2[1]][dists.index(min(dists))]
+        # https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+        s = (-B_A.y * (segment1[0].x - segment2[0].x) + B_A.x * (segment1[0].y - segment2[0].y)) / determinant
+        t = ( D_C.x * (segment1[0].y - segment2[0].y) - D_C.y * (segment1[0].x - segment2[0].x)) / determinant
+        if s >= 0 and s <= 1 and t >= 0 and t <= 1:
+            return Point((segment1[0].x + (t * B_A.x), segment1[0].y + (t * B_A.y)))
+        return None
 
 class MapGenerator:
     """
@@ -858,3 +890,4 @@ class MapGenerator:
             if (ended == False):
                 y2 = y2 + 1
         return x2, y2
+
