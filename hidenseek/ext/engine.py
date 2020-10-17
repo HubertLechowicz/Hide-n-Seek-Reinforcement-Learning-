@@ -234,11 +234,19 @@ class HideNSeek(object):
                 if can create wall
         """
 
-        # check if 2 POV lines (between which is new Wall center) are shorter than eyesight, if yes - then it's not possible to build Wall here
-        l = round(len(self.player_hide.ray_points) / 2)
-        if self.player_hide.pos.distance(self.player_hide.vision_top) > self.player_hide.pos.distance(self.player_hide.ray_points[l - 1]) or self.player_hide.pos.distance(
-                self.player_hide.vision_top) > self.player_hide.pos.distance(self.player_hide.ray_points[l]):
-            return False
+        # check if dynamically created POV lines are shorter than eyesight -- if yes, then it's not possible to create a Wall
+        wall_edges = self.player_hide.reduce_wall_edges(
+            self.agent_env['p_hide']['walls'])
+        vision_ray_points = [[self.player_hide.pos, wall_vertice] for wall_vertice in wall.get_abs_vertices(
+        )] + [[self.player_hide.pos, self.player_hide.vision_top]]
+        for ray in vision_ray_points:
+            ray_dist = ray[0].distance(ray[1])
+            for wall_edge in wall_edges:
+                p = Collision.line_intersection(ray, wall_edge)
+                if p and p.distance(ray[0]) < ray_dist:
+                    logger_hiding.info(
+                        f"\tCouldn't add Wall #{self.player_hide.walls_counter + 1}, because something is on the way.")
+                    return False
 
         for _wall in self.agent_env['p_hide']['walls']:
             if Collision.aabb(wall.pos, (wall.width, wall.height), _wall.pos, (_wall.width, _wall.height)):
@@ -464,12 +472,10 @@ class HideNSeek(object):
         image_movement = pygame.Surface((agent.width, agent.height))
         image_movement.set_colorkey((0, 0, 0))
 
-
-
         pygame.draw.polygon(image_movement, agent.color_anim,
                             polygon_points_tuples)
         agent.images = [image_inplace] + \
-                      [image_movement for _ in range(10)]  # animations
+            [image_movement for _ in range(10)]  # animations
         agent.image = image_inplace
 
     def render(self, mode='human', close=False):
@@ -502,7 +508,7 @@ class HideNSeek(object):
 
             self._draw_agent_vision(self.player_seek, self.screen)
             self._draw_agent_vision(self.player_hide, self.screen)
-            self._draw_agent(self.player_hide,self.screen)
+            self._draw_agent(self.player_hide, self.screen)
             self._draw_agent(self.player_seek, self.screen)
 
             self.players_group.draw(self.screen)

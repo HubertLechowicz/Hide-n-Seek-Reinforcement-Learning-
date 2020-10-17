@@ -512,115 +512,6 @@ class Collision:
         return True
 
     @staticmethod
-    def _find_slope(segment):
-        """
-        Return the slope of the line segment, if it is defined. If it is
-        undefined, return None.
-        """
-        p1, p2 = segment[0], segment[1]
-        if p2.x - p1.x == 0.0:
-            return None
-        else:
-            return (p2.y - p1.y) / (p2.x-p1.x)
-
-    @staticmethod
-    def _find_y_intercept(slope, point):
-        """
-        Return the y-intercept of an infinite line with slope equal to slope that
-        passes through point. If slope does not exist, return None.
-        """
-        if slope is None:
-            return None
-        else:
-            return point.y - slope * point.x
-
-    @staticmethod
-    def _order_segment(segment):
-        """
-        Order endpoints in segment primarily by x position, and secondarily by y
-        position.
-        """
-        ep1, ep2 = segment[0], segment[1]
-        if (ep1.x > ep2.x or ep1.x == ep2.x and ep1.y > ep2.y):
-            segment[0], segment[1] = segment[1], segment[0]
-
-    @staticmethod
-    def _order_segments(segments):
-        """
-        Order segments by each segment's first endpoint. Similar to order_segment,
-        order primarily by first endpoint's x position, and secondarily by first
-        endpoint's y position.
-        """
-        seg1, seg2 = segments
-        if (seg1[0].x > seg2[0].x or seg1[0].x == seg2[0].x
-                and seg1[0].y > seg2[0].y):
-            segments[0], segments[1] = segments[1], segments[0]
-
-    @staticmethod
-    def _on(point, segment):
-        """
-        Return True if point lies on segment. Otherwise, return False.
-        """
-        return (Collision._within(segment[0].x, point.x, segment[1].x) and
-                Collision._within(segment[0].y, point.y, segment[1].y))
-
-    @staticmethod
-    def _within(p, q, r):
-        """
-        Return True if q is between p and r. Otherwise, return False.
-        """
-        return p <= q <= r or r <= q <= p
-
-    @staticmethod
-    def find_intersection(segment1, segment2):
-        """
-        Return an intersection point of segment1 and segment2, if one exists. If
-        multiple points of intersection exist, randomly return one of those
-        intersection points. If no intersection exists, return None.
-
-        Parameters
-        ----------
-            segment1 : [hidenseek.ext.supportive.Point, hidenseek.ext.supportive.Point]
-                first segment to check intersection with
-            segment2: [hidenseek.ext.supportive.Point, hidenseek.ext.supportive.Point]
-                second segment to check intersection with
-        Returns
-        -------
-            intersect_point : Point or None
-                if intersection exists, returns the Point object; else None
-        """
-        [s1, s2] = [Collision._find_slope(l) for l in [segment1, segment2]]
-        [k1, k2] = [Collision._find_y_intercept(s, l[0])
-                    for s, l in [(s1, segment1), (s2, segment2)]]
-
-        if s1 == s2:
-            if k1 != k2:
-                return None
-            #  at this point, the two line segments are known to lie on the same
-            #  infinite line (i.e. all of the endpoints are collinear)
-            segments = [segment1, segment2]
-            for segment in segments:
-                Collision._order_segment(segment)
-            Collision._order_segments(segments)
-            intersection = segments[1][0]
-        else:
-            #  assume segment 1 has slope and segment 2 doesn't
-            s, x, k = s1, segment2[0].x, k1
-            #  assumption wrong, segment 1 doesn't have a slope, but segment 2 does
-            if s1 is None:
-                s, x, k = s2, segment1[0].x, k2
-            #  assumption wrong, segments 1 and 2 both have slopes
-            elif s2 is not None:
-                x = (k2-k1) / (s1-s2)
-            y = s*x + k
-            intersection = Point((x, y)).round(4)
-
-        if Collision._on(intersection, segment1) and Collision._on(intersection, segment2):
-            return intersection
-
-        return None
-
-    @staticmethod
     def get_objects_in_local_env(objs, center, radius, angle, vertices):
         """
         Checks if objects are in Local Environment
@@ -666,7 +557,7 @@ class Collision:
         return in_radius
 
     @staticmethod
-    def lineIntersection(segment1,segment2):
+    def line_intersection(segment1, segment2):
         """
         Return an intersection point of segment1 and segment2, TODO: TBC.
         https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
@@ -686,17 +577,20 @@ class Collision:
         B_A = segment1[1] - segment1[0]
         D_C = segment2[1] - segment2[0]
 
-
         determinant = (-D_C.x * B_A.y + B_A.x * D_C.y)
         if abs(determinant) < 1e-20:
-            dists = [segment1[0].distance(segment1[1]),segment1[0].distance(segment2[0]),segment1[0].distance(segment2[1])]
-            return [segment1[1],segment2[0],segment2[1]][dists.index(min(dists))]
+            dists = [segment1[0].distance(segment1[1]), segment1[0].distance(
+                segment2[0]), segment1[0].distance(segment2[1])]
+            return [segment1[1], segment2[0], segment2[1]][dists.index(min(dists))]
         # https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-        s = (-B_A.y * (segment1[0].x - segment2[0].x) + B_A.x * (segment1[0].y - segment2[0].y)) / determinant
-        t = ( D_C.x * (segment1[0].y - segment2[0].y) - D_C.y * (segment1[0].x - segment2[0].x)) / determinant
+        s = (-B_A.y * (segment1[0].x - segment2[0].x) +
+             B_A.x * (segment1[0].y - segment2[0].y)) / determinant
+        t = (D_C.x * (segment1[0].y - segment2[0].y) -
+             D_C.y * (segment1[0].x - segment2[0].x)) / determinant
         if s >= 0 and s <= 1 and t >= 0 and t <= 1:
             return Point((segment1[0].x + (t * B_A.x), segment1[0].y + (t * B_A.y)))
         return None
+
 
 class MapGenerator:
     """
@@ -890,4 +784,3 @@ class MapGenerator:
             if (ended == False):
                 y2 = y2 + 1
         return x2, y2
-

@@ -115,7 +115,7 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
-        self.speed = cfg.getint('SPEED_RATIO', fallback=30)
+        self.speed = cfg.getfloat('SPEED_RATIO', fallback=1.0)
         self.speed_rotate = cfg.getfloat('SPEED_ROTATE_RATIO', fallback=0.1)
         self.wall_timer_init = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
         self.wall_timer = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
@@ -258,7 +258,7 @@ class Player(pygame.sprite.Sprite):
 
         self.image = self.images[self.image_index]
 
-    def _determine_new_ray_points(self):
+    def _determine_new_ray_points(self, wall_edges):
         """
         Algorithm which calculates new possible ray points based on the current Agent Position and Agent Direction
 
@@ -270,21 +270,35 @@ class Player(pygame.sprite.Sprite):
         -------
             ray_points : list of Point
                 list of new, standard Ray Points
-            angles_count : length of Ray Points
-                ray points counter
         """
 
+        epsilon = 1e-2  # 0.01
         ray_points = []
-        angles = np.linspace(0, self.vision_rad, num=int(
-            int(self.vision_rad * 180 / math.pi) * (self.vision_radius / 2) / 100), endpoint=True)  # clockwise
+        dir_t = self.direction - 2*math.pi if self.direction > math.pi else self.direction
+        point_angle_0 = self.pos + Point((self.vision_radius, 0))
+        angles = np.linspace(dir_t - self.vision_rad / 2, dir_t + self.vision_rad / 2, num=11,
+                             endpoint=True)  # counter-clockwise
+        angles_min, angles_max = min(angles), max(angles)
+
+        for p in [pnt for wall_edge in wall_edges for pnt in wall_edge]:
+            delta = p - self.pos
+            theta_radians = math.atan2(delta.y, delta.x)
+
+            if theta_radians not in angles and theta_radians > angles_min and theta_radians < angles_max:
+                angles = np.append(angles, theta_radians)
+                positive = 1 if theta_radians > 0 else 0
+                angles = np.append(angles, theta_radians +
+                                   epsilon * (-1)**positive)  # create only next to the wall
+        angles = np.sort(angles)
+
         for angle in angles:
             ray_point = Point.triangle_unit_circle_relative(
-                angle, self.pos, self.pos + Point.triangle_unit_circle(self.direction - self.vision_rad / 2, side_size=self.vision_radius))
+                angle, self.pos, point_angle_0)
             ray_points.append(ray_point)
 
-        return ray_points, len(angles)
+        return ray_points
 
-    def _reduce_wall_edges(self, walls):
+    def reduce_wall_edges(self, walls):
         """
         Algorithm which reduces wall edges from 4 per Wall to only 2 (closest ones)
 
@@ -351,51 +365,12 @@ class Player(pygame.sprite.Sprite):
             for edge, edge_bounding_box in zip(wall_edges, edges_bounding_boxes):
                 if not Collision.aabb(bounding_box['center'], bounding_box['size'], edge_bounding_box['center'], edge_bounding_box['size']):
                     continue
-                p = Collision.lineIntersection(line_segment, edge)
+                p = Collision.line_intersection(line_segment, edge)
                 if p and self.pos.distance(p) <= new_point_dist:
                     new_point = p
                     new_point_dist = self.pos.distance(p)
             temp_ray_points.append(new_point)
         return temp_ray_points
-
-    def _reduce_triangles(self, angles_count):
-        """
-        Algorithm which reduces the Ray Objects drastically by checking their distance with theirs neighbours
-
-        Parameters
-        ----------
-            angles_count : int
-                amount of Ray Points
-
-        Returns
-        -------
-            new_ray_objects : list of [Point, Point, Point]
-                list of Ray Object Triangles
-        """
-
-        new_ray_objects = []
-        vision_top_distance = round(self.pos.distance(self.vision_top), 2)
-        angles_perc_10 = round(angles_count / 10)
-        j = 0
-        for i in range(len(self.ray_objects)):
-            if j == angles_perc_10:
-                new_ray_objects.append(
-                    [self.pos, self.ray_objects[i - j][1], self.ray_objects[i - 1][2]])
-                j = 0
-
-            if round(self.ray_objects[i][0].distance(self.ray_objects[i][1]), 2) == vision_top_distance and round(self.ray_objects[i][0].distance(self.ray_objects[i][2]), 2) == vision_top_distance:
-                j += 1
-                continue
-            if j > 0:
-                new_ray_objects.append(
-                    [self.pos, self.ray_objects[i - j][1], self.ray_objects[i - 1][2]])
-
-            j = 0
-            new_ray_objects.append(self.ray_objects[i])
-        new_ray_objects.append(
-            [self.pos, self.ray_objects[i - j - 1][1], self.ray_objects[i][2]])
-
-        return new_ray_objects
 
     def update_vision(self, local_env):
         """
@@ -415,18 +390,15 @@ class Player(pygame.sprite.Sprite):
             self.direction, side_size=self.vision_radius)
         self.vision_top = self.pos + new_point
 
-        self.ray_points, angles_count = self._determine_new_ray_points()
-
-        wall_edges = self._reduce_wall_edges(local_env['walls'])
+        wall_edges = self.reduce_wall_edges(local_env['walls'])
+        self.ray_points = self._determine_new_ray_points(
+            wall_edges)
 
         self.ray_points = copy.deepcopy(
             self._look_for_intersections(wall_edges)[1:])  # without center
 
         self.ray_objects = [[self.pos, self.ray_points[i], self.ray_points[i + 1]]
                             for i in range(len(self.ray_points) - 1)]
-
-        # triangle is made from up to 10% of all triangles
-        self.ray_objects = self._reduce_triangles(angles_count)
 
         self.ray_objects.append([
             Point((self.rect.topleft)),
