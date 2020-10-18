@@ -154,25 +154,25 @@ class Player(pygame.sprite.Sprite):
 
         # base class Player actions
         self.actions = [
-            {
-                'type': 'NOOP',  # do nothing
-            },
-            {
-                'type': 'movement',
-                'content': -1,
-            },
-            {
-                'type': 'movement',
-                'content': 1,
-            },
+            # {
+            #     'type': 'NOOP',  # do nothing
+            # },
+            # {
+            #     'type': 'movement',
+            #     'content': -1,
+            # },
+            # {
+            #     'type': 'movement',
+            #     'content': 1,
+            # },
             {
                 'type': 'rotation',
                 'content': -1
             },
-            {
-                'type': 'rotation',
-                'content': 1
-            },
+            # {
+            #     'type': 'rotation',
+            #     'content': 1
+            # },
         ]
 
     def _rotate(self, turn, local_env):
@@ -284,11 +284,17 @@ class Player(pygame.sprite.Sprite):
             delta = p - self.pos
             theta_radians = math.atan2(delta.y, delta.x)
 
+            # 3rd quartet (2nd in math, 3rd in Y being from top to bottom), fixes 2nd; from [-PI; PI] to [-2PI; 0]
+            if angles_min < -math.pi and theta_radians > 0:
+                theta_radians = theta_radians - 2*math.pi
+            # 2nd quartet (3rd in math, 2nd in Y being from top to bottom), fixes 3rd; from [-PI; PI] to [0; 2PI]
+            elif angles_max > math.pi and theta_radians < 0:
+                theta_radians = theta_radians + 2*math.pi
+
             if theta_radians not in angles and theta_radians > angles_min and theta_radians < angles_max:
                 angles = np.append(angles, theta_radians)
-                positive = 1 if theta_radians > 0 else 0
-                angles = np.append(angles, theta_radians +
-                                   epsilon * (-1)**positive)  # create only next to the wall
+                angles = np.append(angles, theta_radians + epsilon)
+                angles = np.append(angles, theta_radians - epsilon)
         angles = np.sort(angles)
 
         for angle in angles:
