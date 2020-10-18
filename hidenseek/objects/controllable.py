@@ -293,8 +293,9 @@ class Player(pygame.sprite.Sprite):
 
             if theta_radians not in angles and theta_radians > angles_min and theta_radians < angles_max:
                 angles = np.append(angles, theta_radians)
-                angles = np.append(angles, theta_radians + epsilon)
-                angles = np.append(angles, theta_radians - epsilon)
+                # if not commented => losing ~30FPS (from 60-110 to 40-70)
+                # angles = np.append(angles, theta_radians + epsilon)
+                # angles = np.append(angles, theta_radians - epsilon)
         angles = np.sort(angles)
 
         for angle in angles:
