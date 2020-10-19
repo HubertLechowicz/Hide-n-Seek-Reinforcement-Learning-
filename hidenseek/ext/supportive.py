@@ -573,7 +573,6 @@ class Collision:
             intersect_point : Point or None
                 if intersection exists, returns the Point object; else None
         """
-
         B_A = segment1[1] - segment1[0]
         D_C = segment2[1] - segment2[0]
 
