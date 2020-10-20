@@ -441,12 +441,12 @@ class HideNSeek(object):
 
         pygame.draw.line(screen, (0, 255, 0), (agent.pos.x, agent.pos.y),
                          (agent.vision_top.x, agent.vision_top.y), 1)
-        ray_obj = agent.ray_objects[:-1]  # without square object
+        ray_obj = agent.ray_points  # without square object
         for obj in ray_obj:
-            pygame.draw.polygon(screen,
+            pygame.draw.line(screen,
                                 (255, 85, 55),
-                                [(p.x, p.y) for p in obj],
-                                1  # TODO: comment when POV done, so it looks like one whole POV instead of triangles
+                             (agent.pos.x,agent.pos.y),(obj.x,obj.y)
+                                ,1 # TODO: comment when POV done, so it looks like one whole POV instead of triangles
                                 )
 
     def _draw_agent(self, agent, screen):

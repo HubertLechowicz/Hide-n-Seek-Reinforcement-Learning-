@@ -154,25 +154,25 @@ class Player(pygame.sprite.Sprite):
 
         # base class Player actions
         self.actions = [
-            # {
-            #     'type': 'NOOP',  # do nothing
-            # },
-            # {
-            #     'type': 'movement',
-            #     'content': -1,
-            # },
-            # {
-            #     'type': 'movement',
-            #     'content': 1,
-            # },
+            {
+                'type': 'NOOP',  # do nothing
+            },
+            {
+                'type': 'movement',
+                'content': -1,
+            },
+            {
+                'type': 'movement',
+                'content': 1,
+            },
             {
                 'type': 'rotation',
                 'content': -1
             },
-            # {
-            #     'type': 'rotation',
-            #     'content': 1
-            # },
+            {
+                'type': 'rotation',
+                'content': 1
+            },
         ]
 
     def _rotate(self, turn, local_env):
@@ -272,7 +272,6 @@ class Player(pygame.sprite.Sprite):
                 list of new, standard Ray Points
         """
 
-        epsilon = 1e-2  # 0.01
         ray_points = []
         dir_t = self.direction - 2*math.pi if self.direction > math.pi else self.direction
         point_angle_0 = self.pos + Point((self.vision_radius, 0))
@@ -293,9 +292,6 @@ class Player(pygame.sprite.Sprite):
 
             if theta_radians not in angles and theta_radians > angles_min and theta_radians < angles_max:
                 angles = np.append(angles, theta_radians)
-                # if not commented = > losing ~30FPS(from 60-110 to 40-70)
-                angles = np.append(angles, theta_radians + epsilon)
-                angles = np.append(angles, theta_radians - epsilon)
         angles = np.sort(angles)
 
         for angle in angles:
