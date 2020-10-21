@@ -129,7 +129,7 @@ class Point():
         return self.__mul__(obj)
 
     def __str__(self):
-        return "Point( " + str(self.x) + ' , ' + str(self.y) + ' )'
+        return "Point(" + str(self.x) + ', ' + str(self.y) + ')'
 
     def __repr__(self):
         return self.__str__()

@@ -235,14 +235,18 @@ class HideNSeek(object):
         """
 
         # check if dynamically created POV lines are shorter than eyesight -- if yes, then it's not possible to create a Wall
-        wall_edges = self.player_hide.reduce_wall_edges(
+        local_wall_edges = self.player_hide.reduce_wall_edges(
             self.agent_env['p_hide']['walls'])
-        vision_ray_points = [[self.player_hide.pos, wall_vertice] for wall_vertice in wall.get_abs_vertices(
-        )] + [[self.player_hide.pos, self.player_hide.vision_top]]
+        wall_vertices = wall.get_abs_vertices()
+        wall_edges = [wall_vertices[0], wall.pos,
+                      wall_vertices[3]]  # only closer edges & center
+
+        vision_ray_points = [[self.player_hide.pos, wall_edge]
+                             for wall_edge in wall_edges] + [[self.player_hide.pos, self.player_hide.vision_top]]
         for ray in vision_ray_points:
             ray_dist = ray[0].distance(ray[1])
-            for wall_edge in wall_edges:
-                p = Collision.line_intersection(ray, wall_edge)
+            for local_wall_edge in local_wall_edges:
+                p = Collision.line_intersection(ray, local_wall_edge)
                 if p and p.distance(ray[0]) < ray_dist:
                     logger_hiding.info(
                         f"\tCouldn't add Wall #{self.player_hide.walls_counter + 1}, because something is on the way.")
@@ -444,10 +448,10 @@ class HideNSeek(object):
         ray_obj = agent.ray_points  # without square object
         for obj in ray_obj:
             pygame.draw.line(screen,
-                                (255, 85, 55),
-                             (agent.pos.x,agent.pos.y),(obj.x,obj.y)
-                                ,1 # TODO: comment when POV done, so it looks like one whole POV instead of triangles
-                                )
+                             (255, 85, 55),
+                             (agent.pos.x, agent.pos.y),
+                             (obj.x, obj.y)
+                             )
 
     def _draw_agent(self, agent, screen):
         """

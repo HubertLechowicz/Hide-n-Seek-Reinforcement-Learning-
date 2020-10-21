@@ -401,7 +401,7 @@ class Player(pygame.sprite.Sprite):
             self._look_for_intersections(wall_edges)[1:])  # without center
 
         self.ray_objects = [[self.pos, self.ray_points[i], self.ray_points[i + 1]]
-                            for i in range(len(self.ray_points) - 1)]
+                            for i in range(len(self.ray_points) - 1) if self.ray_points[i] != self.ray_points[i + 1]]
 
         self.ray_objects.append([
             Point((self.rect.topleft)),
