@@ -1,14 +1,19 @@
 import time
+import json
 
 from gym import error
 from gym.wrappers.monitoring import stats_recorder
 
+from gym.utils import atomic_write
+from gym.utils.json_utils import json_encode_np
+
 
 class StatsRecorder(stats_recorder.StatsRecorder):
-    def __init__(self, directory, file_prefix, autoreset=False, env_id=None):
+    def __init__(self, config, directory, file_prefix, autoreset=False, env_id=None):
         super().__init__(directory, file_prefix, autoreset, env_id)
 
         self.rewards = []
+        self.config = config
 
     def before_step(self, action):
         assert not self.closed
@@ -54,3 +59,17 @@ class StatsRecorder(stats_recorder.StatsRecorder):
             self.episode_lengths.append(self.steps)
             self.episode_rewards.append(self.rewards)
             self.timestamps.append(time.time())
+
+    def flush(self):
+        if self.closed:
+            return
+
+        with atomic_write.atomic_write(self.path) as f:
+            json.dump({
+                'initial_reset_timestamp': self.initial_reset_timestamp,
+                'timestamps': self.timestamps,
+                'config': self.config,
+                'episode_lengths': self.episode_lengths,
+                'episode_rewards': self.episode_rewards,
+                'episode_types': self.episode_types,
+            }, f, default=json_encode_np)

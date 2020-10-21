@@ -51,7 +51,8 @@ def train(self, core_id, config_data, start_date):
     env = gym.make('hidenseek-v0', config=cfg)
     env.seed(0)
     monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
-    env = multi_wrappers.MultiMonitor(env, monitor_folder, force=True)
+    env = multi_wrappers.MultiMonitor(
+        env, monitor_folder, force=True, config=config_data)
     done = False
 
     for i in range(1, episodes + 1):
@@ -79,8 +80,7 @@ def train(self, core_id, config_data, start_date):
             action_n = [1, 1]  # temp
             obs_n, reward_n, done, _ = env.step(action_n)
 
-            step_img_path = '/opt/app/static/images/' + \
-                start_date + '/core-' + str(core_id) + \
+            step_img_path = '/opt/app/static/images/core-' + str(core_id) + \
                 '/frame-' + str(env.duration + 1) + '.jpg'
             step_img = env.render(render_mode)
             step_img = img.fromarray(step_img, mode='RGB')
@@ -93,8 +93,7 @@ def train(self, core_id, config_data, start_date):
                 break
 
     env.close()
-    rm_path = Path('/opt/app/static/images/' +
-                   start_date + '/core-' + str(core_id))
+    rm_path = Path('/opt/app/static/images/core-' + str(core_id))
     shutil.rmtree(rm_path)
 
     return {
@@ -148,7 +147,7 @@ def start_training():
 
     tasks = list()
     for i in range(int(data['cpus'])):
-        Path('/opt/app/static/images/' + start_date + '/core-' +
+        Path('/opt/app/static/images/core-' +
              str(i)).mkdir(parents=True, exist_ok=True)
         task = train.apply_async((i, data['configs'][i], start_date))
         tasks.append(task.id)

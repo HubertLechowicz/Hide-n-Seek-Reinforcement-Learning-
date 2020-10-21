@@ -1,11 +1,15 @@
 <html>
   <head>
-    <title>Template</title>
+    <title>Hide'n'Seek Platform</title>
     <link
       rel="stylesheet"
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
       crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
     />
     <script
       src="https://code.jquery.com/jquery-3.5.1.min.js"
@@ -87,16 +91,19 @@
 
       <div class="card footer" id="progress">
         <div class="display-2">Credits</div>
-        <div class="display-3">
-          <a class="link" href="https://ms.polsl.pl">Link here to document</a>
-        </div>
         <div class="display-4">
           Hubert Lechowicz<br />
           Dawid Mrosek<br />
           Łukasz Płaneta<br />
         </div>
         <div class="display-4 text-center">
-          Copyright &copy; Created for Engineer's Thesis
+          Created for Engineer's Thesis
+          <a
+            class="link"
+            href="https://github.com/QuatZo/HideNSeek-DeepReinforcementLearning-PyGame"
+          >
+            <i class="fa fa-github"></i> Github
+          </a>
         </div>
       </div>
     </div>
@@ -203,7 +210,7 @@
             );
         } else {
           console.log(data);
-          alert(data);
+          alert(data.state + ": " + data.status);
         }
       });
     }
