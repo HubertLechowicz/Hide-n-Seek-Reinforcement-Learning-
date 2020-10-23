@@ -333,7 +333,7 @@ class Player(pygame.sprite.Sprite):
                 proper_walls_lines.append(wall_lines[3])
         return proper_walls_lines
 
-    def _look_for_intersections(self, wall_edges):
+    def _find_intersections(self, wall_edges):
         """
         Algorithm which looks for new Ray Points, which are closer to the Agent Center than radius-distance Ray Points
 
@@ -397,12 +397,14 @@ class Player(pygame.sprite.Sprite):
         self.ray_points = self._determine_new_ray_points(
             wall_edges)
 
-        self.ray_points = copy.deepcopy(
-            self._look_for_intersections(wall_edges)[1:])  # without center
+        # without center
+        self.ray_points = self._find_intersections(wall_edges)[1:]
 
+        # creates triangles
         self.ray_objects = [[self.pos, self.ray_points[i], self.ray_points[i + 1]]
                             for i in range(len(self.ray_points) - 1) if self.ray_points[i] != self.ray_points[i + 1]]
 
+        # adds Agent Rectangle to Agent Ray Objects
         self.ray_objects.append([
             Point((self.rect.topleft)),
             Point((self.rect.topright)),
