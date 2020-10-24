@@ -87,44 +87,9 @@ class HideNSeek(object):
         logger_engine.info("Initializing Game Engine")
         logger_engine.info(f"\tFPS: {self.fps}")
 
-    def _generate_map(self, all_objects):
-        """
-        Generates map by using BMP File
 
-        Parameters
-        ----------
-            all_objects : dict
-                dictionary of objects to add into the game
 
-        Returns
-        -------
-            None
-        """
-
-        for obj in all_objects:
-            center_x = (obj["vertices"][0]["x"] + obj["vertices"][1]["x"]) / 2
-            center_y = (obj["vertices"][0]["y"] + obj["vertices"][1]["y"]) / 2
-
-            obj_width = obj["vertices"][1]["x"] - obj["vertices"][0]["x"]
-            obj_height = obj["vertices"][1]["y"] - obj["vertices"][0]["y"]
-            obj_size = (obj_width, obj_height)
-
-            if obj["type"] == "wall":
-                logger_engine.info("\t\tWall")
-                self.walls_group.add(
-                    Wall(None, center_x, center_y, obj_size))
-
-            elif obj["type"] == "seeker":
-                logger_engine.info("\t\tSeeker Agent")
-                self.player_seek = Seeker(self.p_seek_cfg, obj_size, (center_x, center_y), (
-                    255, 255, 255), self.width, self.height, (255, 255, 0))
-
-            elif obj["type"] == "hider":
-                logger_engine.info("\t\tHiding Agent")
-                self.player_hide = Hiding(self.p_hide_cfg, obj_size, (center_x, center_y), (
-                    255, 0, 0), self.width, self.height)
-
-    def init(self):
+    def init(self, walls, seeker, hider, width, height):
         """
         Initializes game environment, which means creating Agents & their POV, 
         adding them to Sprite Group and creating Sprite Group for Walls
@@ -138,20 +103,20 @@ class HideNSeek(object):
             None
         """
 
-        map_bmp = MapGenerator.open_bmp(self.map_path)
-        all_objects = MapGenerator.get_objects_coordinates(
-            map_bmp, MapGenerator.get_predefined_palette())
+
+
         self.duration = self.cfg.getint('DURATION', fallback=60)
         self.clock = pygame.time.Clock()
 
-        self.width, self.height = map_bmp.size
+        self.width, self.height = width, height
         logger_engine.info(f"\tResolution: {self.width}x{self.height}")
 
         logger_engine.info("\tWalls Sprite Group")
         self.walls_group = pygame.sprite.Group()
 
-        logger_engine.info(f"\tGenerating map from BMP ({self.map_path})")
-        self._generate_map(all_objects)
+        self.walls_group.add(walls)
+        self.player_seek = seeker
+        self.player_hide = hider
 
         logger_engine.info("Initializing Environment Objects")
         self.player_seek.update_vision({'walls': [], 'enemy': None, })
@@ -509,7 +474,7 @@ class HideNSeek(object):
             self.screen.fill((0, 0, 0))
             self.walls_group.draw(self.screen)
 
-            if self.cfg.getint('DRAW_POV',fallback = 60) == 1:
+            if self.cfg.getint('DRAW_POV', fallback=1):
                 self._draw_agent_vision(self.player_seek, self.screen)
                 self._draw_agent_vision(self.player_hide, self.screen)
             self._draw_agent(self.player_hide, self.screen)
