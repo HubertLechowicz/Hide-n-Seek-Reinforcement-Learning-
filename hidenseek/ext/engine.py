@@ -80,7 +80,6 @@ class HideNSeek(object):
         self.dt = None
         self.cfg = config['GAME']
         self.duration = None
-
         self.p_hide_cfg = config['AGENT_HIDING']
         self.p_seek_cfg = config['AGENT_SEEKER']
         self.agent_env = {}
@@ -510,8 +509,9 @@ class HideNSeek(object):
             self.screen.fill((0, 0, 0))
             self.walls_group.draw(self.screen)
 
-            self._draw_agent_vision(self.player_seek, self.screen)
-            self._draw_agent_vision(self.player_hide, self.screen)
+            if self.cfg.getint('DRAW_POV',fallback = 60) == 1:
+                self._draw_agent_vision(self.player_seek, self.screen)
+                self._draw_agent_vision(self.player_hide, self.screen)
             self._draw_agent(self.player_hide, self.screen)
             self._draw_agent(self.player_seek, self.screen)
 
