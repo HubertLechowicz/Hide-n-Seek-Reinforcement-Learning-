@@ -16,39 +16,35 @@ import game_env.hidenseek_gym
 from gym import wrappers
 from game_env.hidenseek_gym import wrappers as multi_wrappers
 from game_env.hidenseek_gym.config import config as default_config
+from game_env.hidenseek_gym.controllable import Seeker, Hiding
+from game_env.hidenseek_gym.supportive import Point, Collision, MapGenerator
+from game_env.hidenseek_gym.fixed import Wall
+from helpers import Helpers
 
 app = Flask(__name__)
 celery = Celery(broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 
 
-@celery.task(name='sleep.quartet', bind=True)
+@celery.task(name='train.core', bind=True)
 def train(self, core_id, config_data, start_date):
-    cfg = copy.deepcopy(default_config)
-    if '.bmp' not in config_data['map_path']:
-        config_data['map_path'] += '.bmp'
-
-    cfg['GAME']['MAP'] = '/opt/app/' + config_data['map_path']
-    cfg['GAME']['FPS'] = config_data['fps']
-    cfg['GAME']['DURATION'] = config_data['duration']
-    episodes = int(config_data['episodes'])
-
-    cfg['AGENT_HIDING'] = {
-        'SPEED_RATIO': config_data['hiding-speed'],
-        'SPEED_ROTATE_RATIO': config_data['hiding-speed-rotate'],
-        'WALL_ACTION_TIMEOUT': config_data['hiding-wall-timeout'],
-        'WALLS_MAX': config_data['hiding-walls'],
-    }
-
-    cfg['AGENT_SEEKER'] = {
-        'SPEED_RATIO': config_data['seeker-speed'],
-        'SPEED_ROTATE_RATIO': config_data['seeker-speed-rotate'],
-        'WALL_ACTION_TIMEOUT': config_data['seeker-wall-timeout'],
-    }
+    if 'draw_pov' not in config_data:
+        config_data['draw_pov'] = "0"
+    else:
+        config_data['draw_pov'] = "1"
+    cfg, episodes = Helpers.prepare_config(config_data)
 
     start = time.time()
 
+    map_bmp = MapGenerator.open_bmp(
+        cfg['GAME'].get('MAP', fallback='maps/map.bmp'))
+    all_objects = MapGenerator.get_objects_coordinates(
+        map_bmp, MapGenerator.get_predefined_palette())
+
+    walls, seeker, hider, width, height = Helpers.generate_map(
+        all_objects, map_bmp, cfg)
+
     render_mode = 'rgb_array'
-    env = gym.make('hidenseek-v0', config=cfg)
+    env = gym.make('hidenseek-v1', config=cfg, width=width, height=height)
     env.seed(0)
     monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
     env = multi_wrappers.MultiMonitor(
@@ -56,16 +52,24 @@ def train(self, core_id, config_data, start_date):
     done = False
 
     for i in range(1, episodes + 1):
+        walls_cpy = [wall.copy() for wall in walls]
+        seeker_cpy = seeker.copy()
+        hiding_cpy = hider.copy()
+
+        step_img_path = '/opt/app/static/images/core-' + str(core_id) + \
+            '/last_frame.jpg'
+
         metadata = {
             'core_id': core_id,
             'current': i,
             'total': episodes,
             'episode_iter': config_data['duration'],
-            'status': {'fps': None, 'iteration': 0, 'iteration_percentage': 0, 'time_elapsed': round(time.time() - start), 'image_path': None, 'eta': None},
+            'status': {'fps': None, 'iteration': 0, 'iteration_percentage': 0, 'time_elapsed': round(time.time() - start), 'image_path': step_img_path, 'eta': None},
         }
         self.update_state(state='PROGRESS', meta=metadata)
 
         env.reset()
+        env.reset_objects(walls_cpy, seeker_cpy, hiding_cpy)
         env.render(render_mode)
         while True:
             metadata['status'] = {
@@ -80,11 +84,12 @@ def train(self, core_id, config_data, start_date):
             action_n = [1, 1]  # temp
             obs_n, reward_n, done, _ = env.step(action_n)
 
-            step_img_path = '/opt/app/static/images/core-' + str(core_id) + \
-                '/frame-' + str(env.duration + 1) + '.jpg'
-            step_img = env.render(render_mode)
-            step_img = img.fromarray(step_img, mode='RGB')
-            step_img.save(step_img_path)
+            # 5% chance to get new frame update
+            if random.random() < .05:
+                step_img = env.render(render_mode)
+                step_img = img.fromarray(step_img, mode='RGB')
+                step_img.save(step_img_path)
+                step_img.close()
             metadata['status']['image_path'] = step_img_path[8:]
 
             self.update_state(state='PROGRESS', meta=metadata)

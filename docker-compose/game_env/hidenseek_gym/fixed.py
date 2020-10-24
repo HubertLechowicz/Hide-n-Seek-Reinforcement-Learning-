@@ -33,7 +33,7 @@ class Wall(pygame.sprite.Sprite):
             rotates the Wall by Angle and moves its center to Position
     """
 
-    def __init__(self, owner, cfg, x, y):
+    def __init__(self, owner, x, y, size):
         """
         Constructs all neccesary attributes for the Wall Object
 
@@ -41,22 +41,23 @@ class Wall(pygame.sprite.Sprite):
         ----------
             owner : None, hidenseek.objects.controllable.Hiding, hidenseek.objects.controllable.Seeker
                 Wall owner, None for game environment
-            cfg : configparser Object
-                Wall Config
             x : float
                 center of the rectangle in 'x' axis for absolute coordinate system (game screen)
             y : float
                 center of the rectangle in 'y' axis for absolute coordinate system (game screen)
+            size : tuple
+                Wall size, at least 2x2
         """
 
         super().__init__()
 
         self.owner = owner
 
-        self.width = cfg.getint('WIDTH', fallback=15)
-        self.height = cfg.getint('HEIGHT', fallback=15)
+        self.width = size[0]
+        self.height = size[1]
 
         self.pos = Point((x, y))
+        self.pos_init = Point((x, y))
 
         image = pygame.Surface((self.width, self.height))
         image.fill((0, 0, 0, 0))
@@ -127,3 +128,6 @@ class Wall(pygame.sprite.Sprite):
         # Update the polygon points for collisions
         self.polygon_points = [Point.triangle_unit_circle_relative(
             angle, self.pos, polygon_point) for polygon_point in self.polygon_points]
+
+    def copy(self):
+        return Wall(self.owner, self.pos_init.x, self.pos_init.y, (self.width, self.height))
