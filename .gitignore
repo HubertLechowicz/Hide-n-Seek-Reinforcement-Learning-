@@ -129,5 +129,11 @@ dmypy.json
 #### custom
 # Logging
 /logs
+
+# Monitor
+monitor
+
+# Platform Images
+images
 #idea folder
 .idea/

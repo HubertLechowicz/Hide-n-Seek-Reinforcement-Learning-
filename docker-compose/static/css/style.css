@@ -1,0 +1,111 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap");
+body {
+  font-family: "Roboto", sans-serif;
+  line-height: 1.5;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: rgb(248, 249, 250);
+}
+
+.container {
+  width: 70%;
+  margin: auto;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  justify-content: space-between;
+}
+
+.btn-custom {
+  background-color: #00afe6;
+  color: #ededed;
+}
+
+.btn-custom:hover,
+.btn-custom:focus {
+  background-color: #00799f;
+  color: #ededed;
+}
+
+.display-1 {
+  font-size: 40px;
+  text-align: center;
+}
+
+.display-2 {
+  font-size: 30px;
+  text-align: center;
+}
+.display-3 {
+  font-size: 20px;
+  text-align: center;
+}
+
+.display-4 {
+  font-size: 15px;
+}
+
+.content {
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.card {
+  padding: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  border: 1px solid rgb(222, 226, 230);
+  border-radius: 3px;
+  border-top: 2px solid #00afe6;
+  background-color: rgb(255, 255, 255);
+  width: 100%;
+}
+
+.inner-top-border {
+  border-top: 2px solid #00afe6;
+  margin-top: 10px;
+}
+
+.inner-top-border-min {
+  border-top: 2px solid #00afe6;
+  margin: auto;
+  margin-top: 30px;
+  width: 75%;
+}
+
+.row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.footer {
+  padding: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  border: 1px solid rgb(222, 226, 230);
+  border-radius: 3px;
+  background-color: rgb(255, 255, 255);
+  width: 100%;
+  position: relative;
+  bottom: 0;
+}
+
+.link,
+.link:hover,
+.link:visited,
+.link:active {
+  color: #00afe6;
+  text-decoration: none;
+}
+
+.img-status {
+  width: 100%;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  padding: 2px;
+}
