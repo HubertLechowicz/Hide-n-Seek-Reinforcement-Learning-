@@ -135,3 +135,5 @@ monitor
 
 # Platform Images
 images
+#idea folder
+.idea/
