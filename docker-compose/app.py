@@ -43,22 +43,27 @@ def train(self, core_id, config_data, start_date):
     walls, seeker, hider, width, height = Helpers.generate_map(
         all_objects, map_bmp, cfg)
 
+    map_bmp.close()  # memory management
+
     render_mode = 'rgb_array'
-    env = gym.make('hidenseek-v1', config=cfg, width=width, height=height)
+    env = gym.make(
+        'hidenseek-v1',
+        config=cfg,
+        width=width,
+        height=height,
+        seeker=seeker,
+        hiding=hider,
+        walls=walls
+    )
     env.seed(0)
     monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
     env = multi_wrappers.MultiMonitor(
         env, monitor_folder, force=True, config=config_data)
     done = False
+    step_img_path = '/opt/app/static/images/core-' + \
+        str(core_id) + '/last_frame.jpg'
 
     for i in range(1, episodes + 1):
-        walls_cpy = [wall.copy() for wall in walls]
-        seeker_cpy = seeker.copy()
-        hiding_cpy = hider.copy()
-
-        step_img_path = '/opt/app/static/images/core-' + str(core_id) + \
-            '/last_frame.jpg'
-
         metadata = {
             'core_id': core_id,
             'current': i,
@@ -69,8 +74,6 @@ def train(self, core_id, config_data, start_date):
         self.update_state(state='PROGRESS', meta=metadata)
 
         env.reset()
-        env.reset_objects(walls_cpy, seeker_cpy, hiding_cpy)
-        env.render(render_mode)
         while True:
             metadata['status'] = {
                 'fps': env.clock.get_fps(),
@@ -78,19 +81,19 @@ def train(self, core_id, config_data, start_date):
                 'iteration_percentage': round(((int(config_data['duration']) - env.duration) / int(config_data['duration'])) * 100, 2),
                 'time_elapsed': round(time.time() - start),
                 'eta': round((env.duration / env.clock.get_fps()) + int(config_data['duration']) / env.clock.get_fps() * (episodes - i)) if env.clock.get_fps() else None,
+                'image_path': step_img_path[8:],
             }
 
             # action_n = agent.act(ob, reward, done) # should be some function to choose action
             action_n = [1, 1]  # temp
             obs_n, reward_n, done, _ = env.step(action_n)
 
-            # 5% chance to get new frame update
-            if random.random() < .05:
+            # 1% chance to get new frame update
+            if random.random() < .01:
                 step_img = env.render(render_mode)
                 step_img = img.fromarray(step_img, mode='RGB')
                 step_img.save(step_img_path)
                 step_img.close()
-            metadata['status']['image_path'] = step_img_path[8:]
 
             self.update_state(state='PROGRESS', meta=metadata)
 

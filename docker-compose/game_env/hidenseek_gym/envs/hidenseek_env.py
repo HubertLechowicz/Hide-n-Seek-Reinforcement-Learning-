@@ -18,7 +18,7 @@ from game_env.hidenseek_gym.supportive import Point, Collision
 class HideNSeekEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array', 'console']}
 
-    def __init__(self, config, width, height):
+    def __init__(self, config, width, height, seeker, hiding, walls):
         self.default_cfg = config
 
         self.map_path = config['GAME'].get(
@@ -34,21 +34,30 @@ class HideNSeekEnv(gym.Env):
         self.width = width
         self.height = height
 
-        self.walls_group = None
-        self.player_seek = None
-        self.player_hide = None
-        self.players_group = None
+        self.walls_group = pygame.sprite.Group()
+        self.env_walls = walls
+        self.walls_group.add(walls)
+
+        self.player_seek = seeker
+        self.player_hide = hiding
+        self.players_group = pygame.sprite.Group()
+        self.players_group.add(self.player_seek)
+        self.players_group.add(self.player_hide)
 
         self.p_hide_cfg = config['AGENT_HIDING']
         self.p_seek_cfg = config['AGENT_SEEKER']
         self.agent_env = {}
 
-    def reset_objects(self, walls, seeker, hider):
-        self.walls_group = pygame.sprite.Group()
-        self.walls_group.add(walls)
+    def reset(self):
+        self.duration = self.cfg.getint('DURATION', fallback=60)
+        self.screen = None
+        self.agent_env = {}
 
-        self.player_seek = seeker
-        self.player_hide = hider
+        self.walls_group = pygame.sprite.Group()
+        self.walls_group.add(self.env_walls)
+
+        self.player_seek.reset()
+        self.player_hide.reset()
 
         self.player_seek.update_vision({'walls': [], 'enemy': None, })
         self.player_hide.update_vision({'walls': [], 'enemy': None, })
@@ -61,9 +70,6 @@ class HideNSeekEnv(gym.Env):
         self.players_group = pygame.sprite.Group()
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
-
-    def reset(self):
-        self.__init__(self.default_cfg, self.width, self.height)
 
     def game_over(self):
         if self.duration <= 0:

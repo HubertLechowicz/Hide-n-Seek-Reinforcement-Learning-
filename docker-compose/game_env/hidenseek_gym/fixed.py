@@ -128,6 +128,3 @@ class Wall(pygame.sprite.Sprite):
         # Update the polygon points for collisions
         self.polygon_points = [Point.triangle_unit_circle_relative(
             angle, self.pos, polygon_point) for polygon_point in self.polygon_points]
-
-    def copy(self):
-        return Wall(self.owner, self.pos_init.x, self.pos_init.y, (self.width, self.height))

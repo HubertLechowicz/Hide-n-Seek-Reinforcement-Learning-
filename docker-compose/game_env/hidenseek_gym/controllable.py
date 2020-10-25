@@ -110,7 +110,7 @@ class Player(pygame.sprite.Sprite):
             tmp_pos[1] *= SCREEN_HEIGHT
 
         self.pos = Point(tmp_pos)
-        self.pos_init = pos_ratio
+        self.pos_init = Point(tmp_pos)
 
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
@@ -448,6 +448,35 @@ class Player(pygame.sprite.Sprite):
         elif new_action['type'] == 'rotation':
             self._rotate(new_action['content'], local_env)
 
+    def reset(self):
+        self.pos = copy.deepcopy(self.pos_init)
+        self.wall_timer = copy.deepcopy(self.wall_timer_init)
+        self.vision_top = None
+        self.ray_objects = None
+        self.image_index = 0
+        self.direction = 0
+        self.polygon_points = [
+            Point((self.width - 10, self.height / 2)),
+            Point((.4 * self.width, self.height - 5)),
+            Point((.4 * self.width, 5)),
+        ]
+        polygon_tuples = [(p.x, p.y) for p in self.polygon_points]
+
+        image_inplace = pygame.Surface((self.width, self.height))
+        image_inplace.set_colorkey((0, 0, 0))
+        pygame.draw.polygon(image_inplace, self.color, polygon_tuples)
+
+        image_movement = pygame.Surface((self.width, self.height))
+        image_movement.set_colorkey((0, 0, 0))
+        pygame.draw.polygon(image_movement, self.color_anim,
+                            polygon_tuples)
+
+        self.images = [image_inplace] + \
+            [image_movement for _ in range(10)]  # animations
+        self.image = image_inplace
+        self.rect = self.image.get_rect()
+        self.rect.center = (self.pos.x, self.pos.y)
+
 
 class Hiding(Player):
     """
@@ -554,8 +583,9 @@ class Hiding(Player):
     def __str__(self):
         return "[Hiding Agent]"
 
-    def copy(self):
-        return Hiding(self.cfg, (self.width, self.height), self.pos_init, self.color, self.SCREEN_WIDTH, self.SCREEN_HEIGHT)
+    def reset(self):
+        super().reset()
+        self.walls_counter = 0
 
 
 class Seeker(Player):
@@ -657,6 +687,3 @@ class Seeker(Player):
 
     def __str__(self):
         return "[Seeker]"
-
-    def copy(self):
-        return Seeker(self.cfg, (self.width, self.height), self.pos_init, self.color, self.SCREEN_WIDTH, self.SCREEN_HEIGHT, self.color_anim)
