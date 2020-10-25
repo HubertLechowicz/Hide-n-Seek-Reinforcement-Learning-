@@ -14,11 +14,12 @@ class StatsRecorder(stats_recorder.StatsRecorder):
 
         self.rewards = []
         self.config = config
+        self.episode_winners = []
 
     def before_step(self, action):
         assert not self.closed
 
-        if self.done:
+        if self.done[0]:
             raise error.ResetNeeded(
                 "Trying to step environment which is currently done. While the monitor is active for {}, you cannot step beyond the end of an episode. Call 'env.reset()' to start the next episode.".format(self.env_id))
         elif self.steps is None:
@@ -31,21 +32,23 @@ class StatsRecorder(stats_recorder.StatsRecorder):
         self.rewards.append(reward)
         self.done = done
 
-        if done:
+        print(done)
+
+        if done[0]:
             self.save_complete()
 
-        if done and self.autoreset:
+        if done[0] and self.autoreset:
             self.before_reset()
             self.after_reset(observation)
 
     def before_reset(self):
         assert not self.closed
 
-        if self.done is not None and not self.done and self.steps > 0:
+        if self.done is not None and not self.done[0] and self.steps > 0:
             raise error.Error(
                 "Tried to reset environment which is not done. While the monitor is active for {}, you cannot call reset() unless the episode is over.".format(self.env_id))
 
-        self.done = False
+        self.done = [False, None]
         if self.initial_reset_timestamp is None:
             self.initial_reset_timestamp = time.time()
 
@@ -58,6 +61,7 @@ class StatsRecorder(stats_recorder.StatsRecorder):
         if self.steps is not None:
             self.episode_lengths.append(self.steps)
             self.episode_rewards.append(self.rewards)
+            self.episode_winners.append(self.done[1])
             self.timestamps.append(time.time())
 
     def flush(self):
@@ -71,5 +75,6 @@ class StatsRecorder(stats_recorder.StatsRecorder):
                 'config': self.config,
                 'episode_lengths': self.episode_lengths,
                 'episode_rewards': self.episode_rewards,
+                'episode_winners': self.episode_winners,
                 'episode_types': self.episode_types,
             }, f, default=json_encode_np)

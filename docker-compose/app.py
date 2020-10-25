@@ -59,7 +59,7 @@ def train(self, core_id, config_data, start_date):
     monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
     env = multi_wrappers.MultiMonitor(
         env, monitor_folder, force=True, config=config_data)
-    done = False
+    done = [False, None]
     step_img_path = '/opt/app/static/images/core-' + \
         str(core_id) + '/last_frame.jpg'
 
@@ -97,7 +97,7 @@ def train(self, core_id, config_data, start_date):
 
             self.update_state(state='PROGRESS', meta=metadata)
 
-            if done:
+            if done[0]:
                 break
 
     env.close()

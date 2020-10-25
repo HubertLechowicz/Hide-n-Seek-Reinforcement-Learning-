@@ -204,8 +204,7 @@ class HideNSeekEnv(gym.Env):
         # AS FOR NOW IT'S HARD-CODED
         reward_n = [1, 1]
 
-        if self.game_over()[0]:
-            done = True
+        done = self.game_over()
 
         # info_n has NOTHING
         return obs_n, reward_n, done, info_n
