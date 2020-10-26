@@ -151,10 +151,12 @@
           }
 
           d = new Date();
-          $(el)
-            .find("#core-" + core_id + "-img")
+          var image = $(el).find("#core-" + core_id + "-img");
+          image
             .attr("src", data.status.image_path + "?" + d.getTime())
             .attr("alt", "Waiting for update...");
+          var cw = image.width();
+          image.css({ height: cw + "px" });
           $(el)
             .find("#core-" + core_id + "-status-episode")
             .text(
