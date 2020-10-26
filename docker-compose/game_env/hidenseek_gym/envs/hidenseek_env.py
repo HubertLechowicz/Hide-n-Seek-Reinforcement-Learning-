@@ -161,7 +161,6 @@ class HideNSeekEnv(gym.Env):
     def step(self, action_n):
         obs_n = list()
         reward_n = list()
-        done = False
         info_n = {'n': []}
 
         self.dt = self.clock.tick_busy_loop(self.fps)
