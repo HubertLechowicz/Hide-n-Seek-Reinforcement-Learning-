@@ -51,7 +51,7 @@ class HideNSeekEnv(gym.Env):
         '''
         0 - NOOP 
         1 - FORWARD MOVEMENT
-        2 -  BACKWARD MOVEMENT
+        2 - BACKWARD MOVEMENT
         3 - ROTATE RIGHT (clockwise)
         4 - ROTATE LEFT (counter-clockwise)
         5 - SPECIAL (ADD/DELETE WALL)
@@ -261,7 +261,7 @@ class HideNSeekEnv(gym.Env):
         5 - SPECIAL (ADD/DELETE WALL)
         '''
 
-    def _agent_rotate(self, agent, turn, local_env):
+    def _rotate_agent(self, agent, turn, local_env):
         """
         Rotates the object, accordingly to the value, along its axis.
 
@@ -297,38 +297,41 @@ class HideNSeekEnv(gym.Env):
                     break
 
     def _perform_agent_action(self, agent, action, local_env):
-        if action == 5:
-            if isinstance(agent,Seeker):
-                self._remove_wall()
-            else:
-                self._add_wall()
-        elif action == 0:
+        if action == 0:
             '''
             agent.image_index = 0
             agent.image = agent.images[agent.image_index]
             '''
             return 0
-
-        elif action in [1,2]:
-            x = math.cos(agent.direction) * agent.speed * ((action - 1.5) * 2)
-            y = math.sin(agent.direction) * agent.speed * ((action - 1.5) * 2)
+        elif action in [1, 2]:
+            # (1 - 1.5) * 2 = -1, so for Forward it needs to be * (-1)
+            x = math.cos(agent.direction) * agent.speed * \
+                (action - 1.5) * 2 * (-1)
+            # (1 - 1.5) * 2 = -1, so for Forward it needs to be * (-1)
+            y = math.sin(agent.direction) * agent.speed * \
+                (action - 1.5) * 2 * (-1)
             old_pos = copy.deepcopy(agent.pos)
             new_pos = agent.pos + Point((x, y))
 
-            self._agent_move_action(agent,new_pos)
+            self._move_agent(agent, new_pos)
             for wall in local_env['walls']:
                 if Collision.aabb(new_pos, (agent.width, agent.height), wall.pos, (wall.width, wall.height)):
                     if Collision.sat(agent.get_abs_vertices(), wall.get_abs_vertices()):
-                        self._agent_move_action(agent, old_pos)
+                        self._move_agent(agent, old_pos)
                         return
-
-        elif action in [3,4]:
-            self._agent_rotate(agent,((action - 3.5) * 2), local_env)
+        elif action in [3, 4]:
+            # (3 - 3.5) * 2 = -1, so for Clockwise Rotate it needs to be * (-1)
+            self._rotate_agent(agent, (action - 3.5) * 2 * (-1), local_env)
+        elif action == 5:
+            if isinstance(agent, Seeker):
+                self._remove_wall()
+            else:
+                self._add_wall()
 
         reward = 0
         return reward
 
-    def _agent_move_action(self,agent, new_pos):
+    def _move_agent(self, agent, new_pos):
         """
         Algorithm which moves the Player object to given direction, if not outside map (game screen)
 
@@ -354,6 +357,7 @@ class HideNSeekEnv(gym.Env):
             agent.image_index = 0
 
         agent.image = agent.images[agent.image_index]
+
     def step(self, action_n):
         obs_n = list()
         reward_n = list()
@@ -364,18 +368,17 @@ class HideNSeekEnv(gym.Env):
         self._reduce_agent_cooldown(self.player_seek)
         self._reduce_agent_cooldown(self.player_hide)
 
-        self._perform_agent_action(self.player_seek, action_n[0], self.agent_env['p_seek'])
-        self._perform_agent_action(self.player_hide, action_n[1], self.agent_env['p_hide'])
-
+        self._perform_agent_action(
+            self.player_seek, action_n[0], self.agent_env['p_seek'])
+        self._perform_agent_action(
+            self.player_hide, action_n[1], self.agent_env['p_hide'])
 
         self._calc_local_env()
 
         self.player_seek.update_vision(self.agent_env['p_seek'])
         self.player_hide.update_vision(self.agent_env['p_hide'])
 
-        # THER SHOULD BE CHECK FIRST FOR HIDE PLAYER IF HE DID CREATE WALL (IF YES, THEN GIVE HIM POINTS), MOVE OR ROTATE
-        # THER SHOULD BE CHECK SECOND FOR SEEKER PLAYER IF HE DID CREATE WALL (IF YES, THEN GIVE HIM POINTS), MOVE OR ROTATE
-        # AS FOR NOW IT'S HARD-CODED
+        # REWARD SHOULD HAVE AN APPEND AT PERFORM_AGENT_ACTION
         reward_n = [random.random(), random.random()]
 
         done = self.game_over()
