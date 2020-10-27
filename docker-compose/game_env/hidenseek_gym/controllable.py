@@ -176,6 +176,28 @@ class Player(pygame.sprite.Sprite):
             },
         ]
 
+    def act(self, obs, reward, game_end, action_space):
+        """
+        Decides on the action
+
+        Parameters
+        ----------
+            obs : PLACEHOLDER
+                What agent sees.
+            reward : float
+                Reward for previous action.
+            game_end : boolean
+                contains Player Local Environment
+            action_space : spaces.Discrete
+                actions possible to perform.
+
+        Returns
+        -------
+            None
+        """
+        action = action_space.sample()
+        return action
+
     def _rotate(self, turn, local_env):
         """
         Rotates the object, accordingly to the value, along its axis.

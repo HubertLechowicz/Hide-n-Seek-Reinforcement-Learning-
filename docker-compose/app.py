@@ -59,7 +59,6 @@ def train(self, core_id, config_data, start_date):
     monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
     env = multi_wrappers.MultiMonitor(
         env, monitor_folder, force=True, config=config_data)
-    done = [False, None]
     step_img_path = '/opt/app/static/images/core-' + \
         str(core_id) + '/last_frame.jpg'
 
@@ -74,6 +73,8 @@ def train(self, core_id, config_data, start_date):
         self.update_state(state='PROGRESS', meta=metadata)
 
         obs_n = env.reset()
+        reward_n = [0,0]
+        done = [False, None]
         while True:
             metadata['status'] = {
                 'fps': env.clock.get_fps(),
@@ -85,7 +86,8 @@ def train(self, core_id, config_data, start_date):
             }
 
             # action_n = agent.act(ob, reward, done) # should be some function to choose action
-            action_n = [random.random(), random.random()]  # temp
+            action_n = [seeker.act(obs_n[0],reward_n[0],done[0],env.action_space),
+                        hider.act(obs_n[1],reward_n[1],done[0],env.action_space)]
             obs_n, reward_n, done, _ = env.step(action_n)
 
             # 1% chance to get new frame update

@@ -47,7 +47,15 @@ class HideNSeekEnv(gym.Env):
         self.p_hide_cfg = config['AGENT_HIDING']
         self.p_seek_cfg = config['AGENT_SEEKER']
         self.agent_env = {}
-
+        self.action_space = spaces.Discrete(6)  # for both agents
+        '''
+        0 - NOOP 
+        1 - FORWARD MOVEMENT
+        2 -  BACKWARD MOVEMENT
+        3 - ROTATE RIGHT (clockwise)
+        4 - ROTATE LEFT (counter-clockwise)
+        5 - SPECIAL (ADD/DELETE WALL)
+        '''
         self.observation_space_n = [
             spaces.Dict({
                 'agent': spaces.Dict({
@@ -244,6 +252,108 @@ class HideNSeekEnv(gym.Env):
 
         return next_obs
 
+        '''
+        0 - NOOP 
+        1 -  BACKWARD MOVEMENT
+        2 - FORWARD MOVEMENT
+        3 - ROTATE LEFT (counter-clockwise)
+        4 - ROTATE RIGHT (clockwise)
+        5 - SPECIAL (ADD/DELETE WALL)
+        '''
+
+    def _agent_rotate(self, agent, turn, local_env):
+        """
+        Rotates the object, accordingly to the value, along its axis.
+
+        Parameters
+        ----------
+            agent : object
+            turn : int, [-1,1]
+                in which direction should agent rotate (clockwise or counterclockwise)
+            local_env : dict
+                contains Player Local Environment
+
+        Returns
+        -------
+            None
+        """
+        old_direction = copy.deepcopy(agent.direction)
+        agent.direction += agent.speed_rotate * turn
+        # base 2PI, because it's circle
+        agent.direction = agent.direction % (2 * math.pi)
+
+        angle = (agent.direction - old_direction)
+
+        # Update the polygon points for collisions
+        old_polygon_points = copy.deepcopy(agent.polygon_points)
+        agent.polygon_points = [Point.triangle_unit_circle_relative(
+            angle, Point((agent.width / 2, agent.height / 2)), polygon_point) for polygon_point in agent.polygon_points]
+
+        for wall in local_env['walls']:
+            if Collision.aabb(agent.pos, (agent.width, agent.height), wall.pos, (wall.width, wall.height)):
+                if Collision.sat(agent.get_abs_vertices(), wall.get_abs_vertices()):
+                    agent.polygon_points = old_polygon_points
+                    agent.direction = old_direction
+                    break
+
+    def _perform_agent_action(self, agent, action, local_env):
+        if action == 5:
+            if isinstance(agent,Seeker):
+                self._remove_wall()
+            else:
+                self._add_wall()
+        elif action == 0:
+            '''
+            agent.image_index = 0
+            agent.image = agent.images[agent.image_index]
+            '''
+            return 0
+
+        elif action in [1,2]:
+            x = math.cos(agent.direction) * agent.speed * ((action - 1.5) * 2)
+            y = math.sin(agent.direction) * agent.speed * ((action - 1.5) * 2)
+            old_pos = copy.deepcopy(agent.pos)
+            new_pos = agent.pos + Point((x, y))
+
+            self._agent_move_action(agent,new_pos)
+            for wall in local_env['walls']:
+                if Collision.aabb(new_pos, (agent.width, agent.height), wall.pos, (wall.width, wall.height)):
+                    if Collision.sat(agent.get_abs_vertices(), wall.get_abs_vertices()):
+                        self._agent_move_action(agent, old_pos)
+                        return
+
+        elif action in [3,4]:
+            self._agent_rotate(agent,((action - 3.5) * 2), local_env)
+
+        reward = 0
+        return reward
+
+    def _agent_move_action(self,agent, new_pos):
+        """
+        Algorithm which moves the Player object to given direction, if not outside map (game screen)
+
+        Parameters
+        ----------
+            new_pos : hidenseek.ext.supportive.Point
+                Point object of the new position
+
+        Returns
+        -------
+            None
+        """
+
+        old_pos = copy.deepcopy(agent.pos)
+        agent.pos = new_pos
+
+        if old_pos != agent.pos:  # if moving
+            agent.image_index = (agent.image_index + 1) % len(agent.images)
+            if not agent.image_index:
+                agent.image_index += 1
+            agent.rect.center = (agent.pos.x, agent.pos.y)
+        else:  # if not moving
+            agent.image_index = 0
+
+        agent.image = agent.images[agent.image_index]
     def step(self, action_n):
         obs_n = list()
         reward_n = list()
@@ -254,26 +364,9 @@ class HideNSeekEnv(gym.Env):
         self._reduce_agent_cooldown(self.player_seek)
         self._reduce_agent_cooldown(self.player_hide)
 
-        ################################
-        # PLAYER_SEEK then PLAYER_HIDE #
-        ################################
-        # TEMP!
-        new_action_seek = copy.deepcopy(
-            random.choice(self.player_seek.actions))
-        new_action_hide = copy.deepcopy(
-            random.choice(self.player_hide.actions))
+        self._perform_agent_action(self.player_seek, action_n[0], self.agent_env['p_seek'])
+        self._perform_agent_action(self.player_hide, action_n[1], self.agent_env['p_hide'])
 
-        if new_action_seek['type'] == 'remove_wall':
-            self._remove_wall()
-        else:
-            self.player_seek.update(
-                new_action_seek, self.agent_env['p_seek'])
-
-        if new_action_hide['type'] == 'add_wall':
-            self._add_wall()
-        else:
-            self.player_hide.update(
-                new_action_hide, self.agent_env['p_hide'])
 
         self._calc_local_env()
 
