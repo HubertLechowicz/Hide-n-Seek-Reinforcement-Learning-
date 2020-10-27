@@ -239,6 +239,9 @@ class HideNSeekEnv(gym.Env):
             },
         }
 
+        if isinstance(agent, Hiding):
+            next_obs['walls_max'] = agent.walls_max - agent.walls_counter
+
         return next_obs
 
     def step(self, action_n):
