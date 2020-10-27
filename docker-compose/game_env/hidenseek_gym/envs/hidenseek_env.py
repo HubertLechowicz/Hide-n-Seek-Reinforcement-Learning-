@@ -48,6 +48,54 @@ class HideNSeekEnv(gym.Env):
         self.p_seek_cfg = config['AGENT_SEEKER']
         self.agent_env = {}
 
+        self.observation_space_n = [
+            spaces.Dict({
+                'agent': spaces.Dict({
+                    # position, assuming width=height
+                    'position': spaces.Box(low=0, high=self.width, shape=(2, )),
+                    'direction': spaces.Box(low=0, high=2*math.pi, shape=(1, )),
+                }),
+                'enemy':  spaces.Dict({
+                    # position, assuming width=height, not inf if in local env
+                    'position': spaces.Box(low=0, high=np.inf, shape=(2, )),
+                    # direction, not inf if in local env
+                    'direction': spaces.Box(low=0, high=np.inf, shape=(1, )),
+                    # distance, not inf if in local env
+                    'distance': spaces.Box(low=0, high=np.inf, shape=(1, )),
+                }),
+                'walls': spaces.Dict({
+                    "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
+                    "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
+                    "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
+                    "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
+                    "owners": spaces.Tuple((spaces.Discrete(2), )),
+                }),
+            }),
+            spaces.Dict({
+                'agent': spaces.Dict({
+                    # position, assuming width=height
+                    'position': spaces.Box(low=0, high=self.width, shape=(2, )),
+                    'direction': spaces.Box(low=0, high=2*math.pi, shape=(1, )),
+                }),
+                'enemy':  spaces.Dict({
+                    # position, assuming width=height, not inf if in local env
+                    'position': spaces.Box(low=0, high=np.inf, shape=(2, )),
+                    # direction, not inf if in local env
+                    'direction': spaces.Box(low=0, high=np.inf, shape=(1, )),
+                    # distance, not inf if in local env
+                    'distance': spaces.Box(low=0, high=np.inf, shape=(1, )),
+                }),
+                'walls': spaces.Dict({
+                    "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
+                    "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
+                    "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
+                    "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
+                    "owners": spaces.Tuple((spaces.Discrete(2), )),
+                }),
+                'walls_max': spaces.Discrete(config['AGENT_HIDING'].getint('WALLS_MAX', fallback=5) + 1)
+            }),
+        ]
+
     def reset(self):
         self.duration = self.cfg.getint('DURATION', fallback=60)
         self.screen = None
@@ -70,6 +118,11 @@ class HideNSeekEnv(gym.Env):
         self.players_group = pygame.sprite.Group()
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
+
+        return [
+            self._get_agent_obs(self.player_seek, self.agent_env['p_seek']),
+            self._get_agent_obs(self.player_hide, self.agent_env['p_hide'])
+        ]
 
     def game_over(self):
         if self.duration <= 0:
@@ -158,6 +211,36 @@ class HideNSeekEnv(gym.Env):
             'enemy': self.player_seek if Collision.get_objects_in_local_env([self.player_seek], self.player_hide.pos, self.player_hide.vision_radius, self.player_hide.direction, self.player_hide.ray_objects) else None,
         }
 
+    def _get_agent_obs(self, agent, local_env):
+        walls_data = [{
+            'position': np.array([wall.pos.x, wall.pos.y]),
+            'size': np.array([wall.width, wall.height]),
+            'direction': np.array(wall.direction),
+            'distance': np.array(wall.pos.distance(agent.pos)),
+            'owner': 1 if wall.owner else 0,
+        } for wall in local_env['walls']]
+
+        next_obs = {
+            'agent': {
+                'position': np.array([agent.pos.x, agent.pos.y]),
+                'direction': np.array(agent.direction),
+            },
+            'enemy': {
+                'position': np.array([local_env['enemy'].pos.x, local_env['enemy'].pos.y] if local_env['enemy'] else [np.inf, np.inf]),
+                'direction': np.array(local_env['enemy'].direction if local_env['enemy'] else np.inf),
+                'distance': np.array(local_env['enemy'].pos.distance(agent.pos) if local_env['enemy'] else np.inf)
+            },
+            'walls': {
+                'positions': tuple(wall_data['position'] for wall_data in walls_data),
+                'sizes': tuple(wall_data['size'] for wall_data in walls_data),
+                'directions': tuple(wall_data['direction'] for wall_data in walls_data),
+                'distances': tuple(wall_data['distance'] for wall_data in walls_data),
+                'owners': tuple(wall_data['owner'] for wall_data in walls_data),
+            },
+        }
+
+        return next_obs
+
     def step(self, action_n):
         obs_n = list()
         reward_n = list()
@@ -194,18 +277,20 @@ class HideNSeekEnv(gym.Env):
         self.player_seek.update_vision(self.agent_env['p_seek'])
         self.player_hide.update_vision(self.agent_env['p_hide'])
 
-        obs_n = [self.agent_env['p_seek'], self.agent_env['p_hide']]
-
-        self.duration -= 1
-
         # THER SHOULD BE CHECK FIRST FOR HIDE PLAYER IF HE DID CREATE WALL (IF YES, THEN GIVE HIM POINTS), MOVE OR ROTATE
         # THER SHOULD BE CHECK SECOND FOR SEEKER PLAYER IF HE DID CREATE WALL (IF YES, THEN GIVE HIM POINTS), MOVE OR ROTATE
         # AS FOR NOW IT'S HARD-CODED
-        reward_n = [1, 1]
+        reward_n = [random.random(), random.random()]
 
         done = self.game_over()
 
-        # info_n has NOTHING
+        obs_n = [
+            self._get_agent_obs(self.player_seek, self.agent_env['p_seek']),
+            self._get_agent_obs(self.player_hide, self.agent_env['p_hide'])
+        ]
+
+        self.duration -= 1
+
         return obs_n, reward_n, done, info_n
 
     def get_state(self):

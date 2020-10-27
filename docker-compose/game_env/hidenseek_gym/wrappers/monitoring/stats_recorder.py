@@ -66,12 +66,13 @@ class StatsRecorder(stats_recorder.StatsRecorder):
         if self.closed:
             return
 
-        ep_first = []
-        ep_second = []
-        for episode in self.episode_rewards:
-            for reward in episode:
-                ep_first.append(reward[0])
-                ep_second.append(reward[1])
+        ep_first = list()
+        ep_second = list()
+        for episode_reward in self.episode_rewards:
+            ep_f_temp = [ep_rew[0] for ep_rew in episode_reward]
+            ep_s_temp = [ep_rew[1] for ep_rew in episode_reward]
+            ep_first.append(sum(ep_f_temp))
+            ep_second.append(sum(ep_s_temp))
 
         with atomic_write.atomic_write(self.path) as f:
             json.dump({
@@ -83,7 +84,8 @@ class StatsRecorder(stats_recorder.StatsRecorder):
                 'episode_winners': self.episode_winners,
                 'episode_types': self.episode_types,
                 'episode_best': {
-                    'episode': [ep_first.index(max(ep_first)), ep_second.index(max(ep_second))],
+                    # episode 1 => 0 + 1 => 1
+                    'episode': [ep_first.index(max(ep_first)) + 1, ep_second.index(max(ep_second)) + 1],
                     'reward': [max(ep_first), max(ep_second)],
                 }
             }, f, default=json_encode_np)

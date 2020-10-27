@@ -33,7 +33,7 @@ class Wall(pygame.sprite.Sprite):
             rotates the Wall by Angle and moves its center to Position
     """
 
-    def __init__(self, owner, x, y, size):
+    def __init__(self, owner, x, y, size, direction=0):
         """
         Constructs all neccesary attributes for the Wall Object
 
@@ -76,6 +76,8 @@ class Wall(pygame.sprite.Sprite):
         self.polygon_points = [Point((self.rect.left, self.rect.top)), Point((self.rect.right, self.rect.top)), Point(
             (self.rect.right, self.rect.bottom)), Point((self.rect.left, self.rect.bottom))]
 
+        self.direction = direction
+
     def __str__(self):
         return str(self.pos)
 
@@ -113,6 +115,7 @@ class Wall(pygame.sprite.Sprite):
         -------
             None
         """
+        self.direction = angle
         # Copy and then rotate the original image.
         copied_image = self.image.copy()
         self.image = pygame.transform.rotozoom(

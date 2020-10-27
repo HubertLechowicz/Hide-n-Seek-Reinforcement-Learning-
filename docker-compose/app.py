@@ -63,29 +63,29 @@ def train(self, core_id, config_data, start_date):
     step_img_path = '/opt/app/static/images/core-' + \
         str(core_id) + '/last_frame.jpg'
 
-    for i in range(1, episodes + 1):
+    for i in range(episodes):
         metadata = {
             'core_id': core_id,
-            'current': i,
+            'current': i + 1,
             'total': episodes,
             'episode_iter': config_data['duration'],
             'status': {'fps': None, 'iteration': 0, 'iteration_percentage': 0, 'time_elapsed': round(time.time() - start), 'image_path': step_img_path, 'eta': None},
         }
         self.update_state(state='PROGRESS', meta=metadata)
 
-        env.reset()
+        obs_n = env.reset()
         while True:
             metadata['status'] = {
                 'fps': env.clock.get_fps(),
                 'iteration': int(config_data['duration']) - env.duration,
                 'iteration_percentage': round(((int(config_data['duration']) - env.duration) / int(config_data['duration'])) * 100, 2),
                 'time_elapsed': round(time.time() - start),
-                'eta': round((env.duration / env.clock.get_fps()) + int(config_data['duration']) / env.clock.get_fps() * (episodes - i)) if env.clock.get_fps() else None,
+                'eta': round((env.duration / env.clock.get_fps()) + int(config_data['duration']) / env.clock.get_fps() * episodes) if env.clock.get_fps() else None,
                 'image_path': step_img_path[8:],
             }
 
             # action_n = agent.act(ob, reward, done) # should be some function to choose action
-            action_n = [1, 1]  # temp
+            action_n = [random.random(), random.random()]  # temp
             obs_n, reward_n, done, _ = env.step(action_n)
 
             # 1% chance to get new frame update

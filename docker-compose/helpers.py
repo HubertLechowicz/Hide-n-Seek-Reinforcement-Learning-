@@ -3,6 +3,7 @@ from game_env.hidenseek_gym.controllable import Seeker, Hiding
 from game_env.hidenseek_gym.fixed import Wall
 
 import copy
+import math
 
 
 class Helpers:
@@ -71,8 +72,9 @@ class Helpers:
             obj_size = (obj_width, obj_height)
 
             if obj["type"] == "wall":
+                wall_direction = math.pi / 2 if obj_width > obj_height else 0
                 walls_group.append(
-                    Wall(None, center_x, center_y, obj_size))
+                    Wall(None, center_x, center_y, obj_size, wall_direction))
 
             elif obj["type"] == "seeker":
                 player_seek = Seeker(cfg['AGENT_SEEKER'], obj_size, (center_x, center_y), (
