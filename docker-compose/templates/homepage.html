@@ -84,7 +84,7 @@
           Set up environment parameters to start training models
         </div>
         <div id="yes-config" style="display: none">
-          <div class="display-2">Watch how your PC BUUUUUURNS!</div>
+          <div class="display-2">Watch how Agents are learning!</div>
           <div class="row" id="yes-config-training"></div>
         </div>
       </div>
@@ -211,6 +211,21 @@
                 .toISOString()
                 .substr(11, 8)
             );
+          $(el)
+            .find("#core-" + core_id + "-fps-peak")
+            .text(data.result.fps_peak);
+          $(el)
+            .find("#core-" + core_id + "-fps-lower")
+            .text(data.result.fps_lower);
+          $(el)
+            .find("#core-" + core_id + "-fps-mean")
+            .text(data.result.fps_mean);
+          $(el)
+            .find("#core-" + core_id + "-fps-median")
+            .text(data.result.fps_median);
+          $(el)
+            .find("#core-" + core_id + "-fps-quantiles")
+            .text(data.result.fps_quantiles);
         } else {
           alert(data.state + ": " + data.status);
         }
@@ -254,7 +269,7 @@
       $("#yes-config").css("display", "unset");
 
       let env_html =
-        '<div class="col-12 col-sm-6 mt-2"> <div class="inner-top-border" id="core-{core_id}"> <div class="display-2 mt-2">Environment #{core_id}</div> <div id="core-{core_id}-status" style="display: none"> <img src="" class="img-status" id="core-{core_id}-img" /> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Status</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episode</th> <td id="core-{core_id}-status-episode"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-status-fps"></td> </tr> <tr> <th>Frame</th> <td id="core-{core_id}-status-frame"></td> </tr> <tr> <th>Time elapsed</th> <td id="core-{core_id}-status-time"></td> </tr> <tr> <th>ETA</th> <td id="core-{core_id}-status-eta"></td> </tr> </tbody> </table> </div> <div id="core-{core_id}-success" style="display: none"> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Success</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Time elapsed</th> <td id="core-{core_id}-success-time"></td> </tr> </tbody> </table> </div> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Config</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episodes</th> <td id="core-{core_id}-config-episodes"></td> </tr> <tr> <th>Map</th> <td id="core-{core_id}-config-map"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-config-fps"></td> </tr> <tr> <th>Episode Duration</th> <td id="core-{core_id}-config-duration"></td> </tr> <tr> <th>Seeker Speed Ratio</th> <td id="core-{core_id}-config-seeker-speed"></td> </tr> <tr> <th>Seeker Rotate Ratio</th> <td id="core-{core_id}-config-seeker-rotate"></td> </tr> <tr> <th>Seeker Wall Action Timeout</th> <td id="core-{core_id}-config-seeker-wall-action"></td> </tr> <tr> <th>Hiding Speed Ratio</th> <td id="core-{core_id}-config-hiding-speed"></td> </tr> <tr> <th>Hiding Rotate Ratio</th> <td id="core-{core_id}-config-hiding-rotate"></td> </tr> <tr> <th>Hiding Wall Action Timeout</th> <td id="core-{core_id}-config-hiding-wall-action"></td> </tr> <tr> <th>Hiding Max Walls</th> <td id="core-{core_id}-config-hiding-walls-max"></td> </tr> <tr> <th>POV</th> <td id="core-{core_id}-config-draw-pov"></td> </tr> </tbody> </table> </div> </div>';
+        '<div class="col-12 col-sm-6 mt-2"> <div class="inner-top-border" id="core-{core_id}"> <div class="display-2 mt-2">Environment #{core_id}</div> <div id="core-{core_id}-status" style="display: none"> <img src="" class="img-status" id="core-{core_id}-img" /> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Status</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episode</th> <td id="core-{core_id}-status-episode"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-status-fps"></td> </tr> <tr> <th>Frame</th> <td id="core-{core_id}-status-frame"></td> </tr> <tr> <th>Time elapsed</th> <td id="core-{core_id}-status-time"></td> </tr> <tr> <th>ETA</th> <td id="core-{core_id}-status-eta"></td> </tr> </tbody> </table> </div> <div id="core-{core_id}-success" style="display: none"> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Success</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Time elapsed</th> <td id="core-{core_id}-success-time"></td> </tr> <tr> <th>Highest FPS</th> <td id="core-{core_id}-fps-peak"></td> </tr> <tr> <th>Lowest FPS</th> <td id="core-{core_id}-fps-lower"></td> </tr> <tr> <th>Mean FPS</th> <td id="core-{core_id}-fps-mean"></td> </tr> <tr> <th>Median FPS</th> <td id="core-{core_id}-fps-median"></td> </tr> <tr> <th>FPS Quantiles</th> <td id="core-{core_id}-fps-quantiles"></td> </tr> </tbody> </table> </div> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Config</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episodes</th> <td id="core-{core_id}-config-episodes"></td> </tr> <tr> <th>Map</th> <td id="core-{core_id}-config-map"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-config-fps"></td> </tr> <tr> <th>Episode Duration</th> <td id="core-{core_id}-config-duration"></td> </tr> <tr> <th>Seeker Speed Ratio</th> <td id="core-{core_id}-config-seeker-speed"></td> </tr> <tr> <th>Seeker Rotate Ratio</th> <td id="core-{core_id}-config-seeker-rotate"></td> </tr> <tr> <th>Seeker Wall Action Timeout</th> <td id="core-{core_id}-config-seeker-wall-action"></td> </tr> <tr> <th>Hiding Speed Ratio</th> <td id="core-{core_id}-config-hiding-speed"></td> </tr> <tr> <th>Hiding Rotate Ratio</th> <td id="core-{core_id}-config-hiding-rotate"></td> </tr> <tr> <th>Hiding Wall Action Timeout</th> <td id="core-{core_id}-config-hiding-wall-action"></td> </tr> <tr> <th>Hiding Max Walls</th> <td id="core-{core_id}-config-hiding-walls-max"></td> </tr> <tr> <th>POV</th> <td id="core-{core_id}-config-draw-pov"></td> </tr> </tbody> </table> </div> </div>';
 
       $.ajax({
         url: "train",

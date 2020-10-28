@@ -137,3 +137,5 @@ monitor
 images
 #idea folder
 .idea/
+
+.vscode

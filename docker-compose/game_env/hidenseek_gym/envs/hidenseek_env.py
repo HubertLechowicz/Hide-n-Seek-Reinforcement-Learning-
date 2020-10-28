@@ -297,12 +297,13 @@ class HideNSeekEnv(gym.Env):
                     break
 
     def _perform_agent_action(self, agent, action, local_env):
+        reward = 0
         if action == 0:
             '''
             agent.image_index = 0
             agent.image = agent.images[agent.image_index]
             '''
-            return 0
+            reward = 0
         elif action in [1, 2]:
             # (1 - 1.5) * 2 = -1, so for Forward it needs to be * (-1)
             x = math.cos(agent.direction) * agent.speed * \
@@ -318,17 +319,20 @@ class HideNSeekEnv(gym.Env):
                 if Collision.aabb(new_pos, (agent.width, agent.height), wall.pos, (wall.width, wall.height)):
                     if Collision.sat(agent.get_abs_vertices(), wall.get_abs_vertices()):
                         self._move_agent(agent, old_pos)
-                        return
+                        return 0  # no reward, not possible to perform action
+            reward = 1  # placeholder
         elif action in [3, 4]:
             # (3 - 3.5) * 2 = -1, so for Clockwise Rotate it needs to be * (-1)
             self._rotate_agent(agent, (action - 3.5) * 2 * (-1), local_env)
+            reward = 1  # placeholder
         elif action == 5:
             if isinstance(agent, Seeker):
                 self._remove_wall()
+                reward = 1  # placeholder
             else:
                 self._add_wall()
+                reward = 1  # placeholder
 
-        reward = 0
         return reward
 
     def _move_agent(self, agent, new_pos):
@@ -368,18 +372,17 @@ class HideNSeekEnv(gym.Env):
         self._reduce_agent_cooldown(self.player_seek)
         self._reduce_agent_cooldown(self.player_hide)
 
-        self._perform_agent_action(
-            self.player_seek, action_n[0], self.agent_env['p_seek'])
-        self._perform_agent_action(
-            self.player_hide, action_n[1], self.agent_env['p_hide'])
+        reward_n = [
+            self._perform_agent_action(
+                self.player_seek, action_n[0], self.agent_env['p_seek']),
+            self._perform_agent_action(
+                self.player_hide, action_n[1], self.agent_env['p_hide'])
+        ]
 
         self._calc_local_env()
 
         self.player_seek.update_vision(self.agent_env['p_seek'])
         self.player_hide.update_vision(self.agent_env['p_hide'])
-
-        # REWARD SHOULD HAVE AN APPEND AT PERFORM_AGENT_ACTION
-        reward_n = [random.random(), random.random()]
 
         done = self.game_over()
 
@@ -392,7 +395,7 @@ class HideNSeekEnv(gym.Env):
 
         return obs_n, reward_n, done, info_n
 
-    def get_state(self):
+    def _get_state(self):
         state = np.fliplr(np.flip(np.rot90(pygame.surfarray.array3d(
             pygame.display.get_surface()).astype(np.uint8))))
         return state
@@ -478,7 +481,7 @@ class HideNSeekEnv(gym.Env):
                 self.players_group.draw(self.screen)
 
             pygame.display.update()
-            img = self.get_state()
+            img = self._get_state()
             return img
         elif mode == 'console':
             pass

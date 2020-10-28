@@ -10,6 +10,7 @@ import copy
 from PIL import Image as img
 from pathlib import Path
 import shutil
+import statistics
 
 import gym
 import game_env.hidenseek_gym
@@ -62,6 +63,8 @@ def train(self, core_id, config_data, start_date):
     step_img_path = '/opt/app/static/images/core-' + \
         str(core_id) + '/last_frame.jpg'
 
+    fps_batch = []
+
     for i in range(episodes):
         metadata = {
             'core_id': core_id,
@@ -73,8 +76,9 @@ def train(self, core_id, config_data, start_date):
         self.update_state(state='PROGRESS', meta=metadata)
 
         obs_n = env.reset()
-        reward_n = [0,0]
+        reward_n = [0, 0]
         done = [False, None]
+        fps_episode = []
         while True:
             metadata['status'] = {
                 'fps': env.clock.get_fps(),
@@ -84,10 +88,11 @@ def train(self, core_id, config_data, start_date):
                 'eta': round((env.duration / env.clock.get_fps()) + int(config_data['duration']) / env.clock.get_fps() * episodes) if env.clock.get_fps() else None,
                 'image_path': step_img_path[8:],
             }
+            fps_episode.append(env.clock.get_fps())
 
             # action_n = agent.act(ob, reward, done) # should be some function to choose action
-            action_n = [seeker.act(obs_n[0],reward_n[0],done[0],env.action_space),
-                        hider.act(obs_n[1],reward_n[1],done[0],env.action_space)]
+            action_n = [seeker.act(obs_n[0], reward_n[0], done[0], env.action_space),
+                        hider.act(obs_n[1], reward_n[1], done[0], env.action_space)]
             obs_n, reward_n, done, _ = env.step(action_n)
 
             # 1% chance to get new frame update
@@ -102,6 +107,8 @@ def train(self, core_id, config_data, start_date):
             if done[0]:
                 break
 
+        fps_batch.append(statistics.fmean(fps_episode))
+
     env.close()
     rm_path = Path('/opt/app/static/images/core-' + str(core_id))
     shutil.rmtree(rm_path)
@@ -109,6 +116,11 @@ def train(self, core_id, config_data, start_date):
     return {
         'core_id': core_id,
         'time_elapsed': round(time.time() - start),
+        'fps_peak': round(max(fps_batch)),
+        'fps_lower': round(min(fps_batch)),
+        'fps_mean': round(statistics.fmean(fps_batch)),
+        'fps_median': round(statistics.median(fps_batch)),
+        'fps_quantiles': [round(quantile) for quantile in statistics.quantiles(fps_batch)],
     }
 
 
