@@ -603,7 +603,7 @@ class Hiding(Player):
         ]
 
     def __str__(self):
-        return "[Hiding Agent]"
+        return "[HIDING]"
 
     def reset(self):
         super().reset()
@@ -708,4 +708,4 @@ class Seeker(Player):
         ]
 
     def __str__(self):
-        return "[Seeker]"
+        return "[SEEKER]"

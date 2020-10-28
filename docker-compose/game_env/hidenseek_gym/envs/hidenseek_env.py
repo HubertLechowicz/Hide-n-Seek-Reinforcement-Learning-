@@ -71,13 +71,13 @@ class HideNSeekEnv(gym.Env):
                     # distance, not inf if in local env
                     'distance': spaces.Box(low=0, high=np.inf, shape=(1, )),
                 }),
-                'walls': spaces.Dict({
-                    "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
-                    "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
-                    "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
-                    "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
-                    "owners": spaces.Tuple((spaces.Discrete(2), )),
-                }),
+                # 'walls': spaces.Dict({
+                #     "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
+                #     "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
+                #     "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
+                #     "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
+                #     "owners": spaces.Tuple((spaces.Discrete(2), )),
+                # }),
             }),
             spaces.Dict({
                 'agent': spaces.Dict({
@@ -93,13 +93,13 @@ class HideNSeekEnv(gym.Env):
                     # distance, not inf if in local env
                     'distance': spaces.Box(low=0, high=np.inf, shape=(1, )),
                 }),
-                'walls': spaces.Dict({
-                    "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
-                    "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
-                    "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
-                    "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
-                    "owners": spaces.Tuple((spaces.Discrete(2), )),
-                }),
+                # 'walls': spaces.Dict({
+                #     "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
+                #     "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
+                #     "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
+                #     "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
+                #     "owners": spaces.Tuple((spaces.Discrete(2), )),
+                # }),
                 'walls_max': spaces.Discrete(config['AGENT_HIDING'].getint('WALLS_MAX', fallback=5) + 1)
             }),
         ]
@@ -189,8 +189,11 @@ class HideNSeekEnv(gym.Env):
                 self.walls_group.add(wall)
                 self.player_hide.wall_timer = copy.deepcopy(
                     self.player_hide.wall_timer_init)
+                return True
             else:
                 del wall
+
+        return False
 
     def _remove_wall(self):
         # TODO: Implement decision-making algorithm which Wall to delete
@@ -202,6 +205,9 @@ class HideNSeekEnv(gym.Env):
                 delete_wall.owner.walls_counter -= 1
                 self.walls_group.remove(delete_wall)
                 del delete_wall
+                return True
+
+        return False
 
     def _reduce_agent_cooldown(self, agent):
         if agent.wall_timer > 0:
@@ -220,13 +226,13 @@ class HideNSeekEnv(gym.Env):
         }
 
     def _get_agent_obs(self, agent, local_env):
-        walls_data = [{
-            'position': np.array([wall.pos.x, wall.pos.y]),
-            'size': np.array([wall.width, wall.height]),
-            'direction': np.array(wall.direction),
-            'distance': np.array(wall.pos.distance(agent.pos)),
-            'owner': 1 if wall.owner else 0,
-        } for wall in local_env['walls']]
+        # walls_data = [{
+        #     'position': np.array([wall.pos.x, wall.pos.y]),
+        #     'size': np.array([wall.width, wall.height]),
+        #     'direction': np.array(wall.direction),
+        #     'distance': np.array(wall.pos.distance(agent.pos)),
+        #     'owner': 1 if wall.owner else 0,
+        # } for wall in local_env['walls']]
 
         next_obs = {
             'agent': {
@@ -238,28 +244,19 @@ class HideNSeekEnv(gym.Env):
                 'direction': np.array(local_env['enemy'].direction if local_env['enemy'] else np.inf),
                 'distance': np.array(local_env['enemy'].pos.distance(agent.pos) if local_env['enemy'] else np.inf)
             },
-            'walls': {
-                'positions': tuple(wall_data['position'] for wall_data in walls_data),
-                'sizes': tuple(wall_data['size'] for wall_data in walls_data),
-                'directions': tuple(wall_data['direction'] for wall_data in walls_data),
-                'distances': tuple(wall_data['distance'] for wall_data in walls_data),
-                'owners': tuple(wall_data['owner'] for wall_data in walls_data),
-            },
+            # 'walls': {
+            #     'positions': tuple(wall_data['position'] for wall_data in walls_data),
+            #     'sizes': tuple(wall_data['size'] for wall_data in walls_data),
+            #     'directions': tuple(wall_data['direction'] for wall_data in walls_data),
+            #     'distances': tuple(wall_data['distance'] for wall_data in walls_data),
+            #     'owners': tuple(wall_data['owner'] for wall_data in walls_data),
+            # },
         }
 
         if isinstance(agent, Hiding):
             next_obs['walls_max'] = agent.walls_max - agent.walls_counter
 
         return next_obs
-
-        '''
-        0 - NOOP 
-        1 -  BACKWARD MOVEMENT
-        2 - FORWARD MOVEMENT
-        3 - ROTATE LEFT (counter-clockwise)
-        4 - ROTATE RIGHT (clockwise)
-        5 - SPECIAL (ADD/DELETE WALL)
-        '''
 
     def _rotate_agent(self, agent, turn, local_env):
         """
@@ -294,16 +291,40 @@ class HideNSeekEnv(gym.Env):
                 if Collision.sat(agent.get_abs_vertices(), wall.get_abs_vertices()):
                     agent.polygon_points = old_polygon_points
                     agent.direction = old_direction
-                    break
+                    return False
+
+        return True
+
+    def _calc_action_reward(self, agent, action, success=True):
+        agent_str = str(agent)  # [HIDING], [SEEKER]
+        # [REWARDS_HIDING], [REWARDS_SEEKER]
+        agent_reward_str = 'REWARDS_' + agent_str[1:-1]
+        if action == 0:
+            reward = self.default_cfg[agent_reward_str].getint(
+                'NOOP', fallback=0)
+        elif action in [1, 2]:
+            reward = self.default_cfg[agent_reward_str].getint(
+                'MOVE', fallback=1)
+        elif action in [3, 4]:
+            reward = self.default_cfg[agent_reward_str].getint(
+                'ROTATE', fallback=1)
+        elif action == 5:
+            if isinstance(agent, Seeker):
+                reward = self.default_cfg[agent_reward_str].getint(
+                    'REMOVE_WALL', fallback=5)
+            else:
+                reward = self.default_cfg[agent_reward_str].getint(
+                    'ADD_WALL', fallback=5)
+
+        return reward if success else reward * (-1)
 
     def _perform_agent_action(self, agent, action, local_env):
-        reward = 0
         if action == 0:
             '''
             agent.image_index = 0
             agent.image = agent.images[agent.image_index]
             '''
-            reward = 0
+            return self._calc_action_reward(agent, action)
         elif action in [1, 2]:
             # (1 - 1.5) * 2 = -1, so for Forward it needs to be * (-1)
             x = math.cos(agent.direction) * agent.speed * \
@@ -319,21 +340,23 @@ class HideNSeekEnv(gym.Env):
                 if Collision.aabb(new_pos, (agent.width, agent.height), wall.pos, (wall.width, wall.height)):
                     if Collision.sat(agent.get_abs_vertices(), wall.get_abs_vertices()):
                         self._move_agent(agent, old_pos)
-                        return 0  # no reward, not possible to perform action
-            reward = 1  # placeholder
+                        return self._calc_action_reward(agent, action, success=False)
+            return self._calc_action_reward(agent, action)
         elif action in [3, 4]:
             # (3 - 3.5) * 2 = -1, so for Clockwise Rotate it needs to be * (-1)
-            self._rotate_agent(agent, (action - 3.5) * 2 * (-1), local_env)
-            reward = 1  # placeholder
+            did_rotate = self._rotate_agent(
+                agent, (action - 3.5) * 2 * (-1), local_env)
+            return self._calc_action_reward(agent, action, success=did_rotate)
         elif action == 5:
             if isinstance(agent, Seeker):
-                self._remove_wall()
-                reward = 1  # placeholder
+                did_remove = self._remove_wall()
+                return self._calc_action_reward(agent, action, success=did_remove)
             else:
-                self._add_wall()
-                reward = 1  # placeholder
+                did_add = self._add_wall()
+                return self._calc_action_reward(agent, action, success=did_add)
 
-        return reward
+        raise Exception(
+            f"Unknown action, available action space: {self.action_space}")
 
     def _move_agent(self, agent, new_pos):
         """
@@ -390,6 +413,15 @@ class HideNSeekEnv(gym.Env):
             self._get_agent_obs(self.player_seek, self.agent_env['p_seek']),
             self._get_agent_obs(self.player_hide, self.agent_env['p_hide'])
         ]
+
+        if done[0]:
+            endscore = ['LOSE', 'WIN']
+            if done[1] == 'SEEKER':
+                endscore = endscore[::-1]
+            reward_n[0] += self.default_cfg['REWARDS_SEEKER'].getint(
+                endscore[0], fallback=0)
+            reward_n[1] += self.default_cfg['REWARDS_HIDING'].getint(
+                endscore[1], fallback=0)
 
         self.duration -= 1
 
