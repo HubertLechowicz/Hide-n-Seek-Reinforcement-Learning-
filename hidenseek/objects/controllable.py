@@ -74,8 +74,7 @@ class Player(pygame.sprite.Sprite):
             Not implemented in Parent Class
     """
 
-    # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
-    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
+    def __init__(self, cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT):
         """
         Constructs all neccesary attributes for the Player Object
 
@@ -88,16 +87,10 @@ class Player(pygame.sprite.Sprite):
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen);
                 if value < 1 then it's ratio in percentage, otherwise it's coord
-            color : tuple
-                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
             SCREEN_WIDTH : int
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
-            color_anim : tuple
-                if no image, represents the shape fill color for animation in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
         """
 
         super().__init__()
@@ -126,45 +119,54 @@ class Player(pygame.sprite.Sprite):
         self.ray_objects = None
         self.vision_rad = math.pi
         self.ray_points = []
-        self.image_index = 0
         self.direction = 0  # radians from which vision_rad is added/substracted
-        self.color = color  # temp, until sprites
-        self.color_anim = color_anim  # temp, until sprites
 
-        # self.polygon_points = [
-        #     Point((self.width - 10, self.height / 2)),
-        #     Point((.4 * self.width, self.height - 5)),
-        #     Point((.4 * self.width, 5)),
-        # ]
+        """
+        OCTAGON
+            > 0.15 on every side because we need to cover only 0.7 of space, to be able to freely rotate without making bigger rectangle
+            > 2*x / sqrt(2) + x = 0.7
+            > x ~= 0.29
+            > x / sqrt(2) ~= 0.205
 
+            x/sqrt(2)   x     x/sqrt(2)
+            ........---------........
+            ....../           \......
+            ...../             \.....
+            ..../               \....
+            .../                 \...
+            ..|                   |..
+            ..|                   |..
+            ..|                   |..
+            ..|                   |..
+            ..|                   |..
+            ...\                 /...
+            ....\               /....
+            .....\             /.....
+            ......\           /......
+            ........---------........
+
+        """
         self.polygon_points = [
-            Point((self.width * 0.15, self.height * 0.15)), # + +
-            Point((self.width * 0.15, self.height * 0.85)), # - +
-            Point((self.width* 0.85, self.height * 0.85)), # - -
-            Point((self.width* 0.85, self.height * 0.15)) # + -
+            Point((self.width * .355, self.height * .15)),
+            Point((self.width * .645, self.height * .15)),
+            Point((self.width * .85, self.height * .355)),
+            Point((self.width * .85, self.height * .645)),
+            Point((self.width * .645, self.height * .85)),
+            Point((self.width * .355, self.height * .85)),
+            Point((self.width * .15, self.height * .645)),
+            Point((self.width * .15, self.height * .355)),
+
         ]
 
         polygon_tuples = [(p.x, p.y) for p in self.polygon_points]
-        self.graphics = [pygame.image.load(os.path.join(os.getcwd(),'people',cfg.get('GRAPHICS_PATH', fallback='bald'),file)) for file in os.listdir(os.path.join(os.getcwd(),'people',cfg.get('GRAPHICS_PATH', fallback='bald')))]
-        self.graphics = [pygame.transform.smoothscale(graphic,(self.width,self.height)) for graphic in self.graphics]
-        self.graphic_standing = self.graphics[0]
+        self.sprites = [pygame.image.load(os.path.join(os.getcwd(), 'people', cfg.get('GRAPHICS_PATH', fallback='bald'), file))
+                        for file in os.listdir(os.path.join(os.getcwd(), 'people', cfg.get('GRAPHICS_PATH', fallback='bald')))]
 
+        surface = pygame.Surface((self.width, self.height))
+        surface.set_colorkey((0, 0, 0))
 
-        image_inplace = pygame.Surface((self.width, self.height))
-        image_inplace.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_inplace, self.color, polygon_tuples)
-        image_inplace.blit(self.graphic_standing,(0, 0))
-
-        image_movement = pygame.Surface((self.width, self.height))
-        image_movement.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_movement, self.color_anim,
-                            polygon_tuples)
-        image_movement.blit(self.graphic_standing,(0, 0))
-
-        #self.images = [image_inplace] + [image_movement for _ in range(10)]  # animations
-        self.images = self.graphics
-
-        self.image = image_inplace
+        self.image_index = 0
+        self.image = surface
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
 
@@ -206,6 +208,7 @@ class Player(pygame.sprite.Sprite):
         -------
             None
         """
+        self.image_index = 0
         old_direction = copy.deepcopy(self.direction)
         self.direction += self.speed_rotate * turn
         # base 2PI, because it's circle
@@ -231,10 +234,6 @@ class Player(pygame.sprite.Sprite):
                     self.polygon_points = old_polygon_points
                     self.direction = old_direction
                     return
-
-
-
-
 
     def get_abs_vertices(self):
         """
@@ -270,14 +269,12 @@ class Player(pygame.sprite.Sprite):
         self.pos = new_pos
 
         if old_pos != self.pos:  # if moving
-            self.image_index = (self.image_index + 1) % len(self.images)
+            self.image_index = (self.image_index + 1) % len(self.sprites)
             if not self.image_index:
                 self.image_index += 1
             self.rect.center = (self.pos.x, self.pos.y)
         else:  # if not moving
             self.image_index = 0
-
-        self.image = self.images[self.image_index]
 
     def _determine_new_ray_points(self, wall_edges):
         """
@@ -452,7 +449,6 @@ class Player(pygame.sprite.Sprite):
         """
         if new_action['type'] == 'NOOP':
             self.image_index = 0
-            self.image = self.images[self.image_index]
             logger.info("NOOP! NOOP!")
         elif new_action['type'] == 'movement':
             x = math.cos(self.direction) * self.speed * new_action['content']
@@ -546,7 +542,7 @@ class Hiding(Player):
             takes and performs the action
     """
 
-    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT):
+    def __init__(self, cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT):
         """
         Constructs all neccesary attributes for the Hiding Object
 
@@ -559,16 +555,13 @@ class Hiding(Player):
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen);
                 if value < 1 then it's ratio in percentage, otherwise it's coord
-            color : tuple
-                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
             SCREEN_WIDTH : int
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
         """
 
-        super().__init__(cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
+        super().__init__(cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         logger_hiding.info(
             f"{LOGGING_DASHES} Creating New Hiding Agent (probably new game) {LOGGING_DASHES} ")
@@ -656,7 +649,7 @@ class Seeker(Player):
             takes and performs the action
     """
 
-    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
+    def __init__(self, cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT, ):
         """
         Constructs all neccesary attributes for the Seeker Object
 
@@ -669,20 +662,13 @@ class Seeker(Player):
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen);
                 if value < 1 then it's ratio in percentage, otherwise it's coord
-            color : tuple
-                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
             SCREEN_WIDTH : int
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
-            color_anim : tuple
-                if no image, represents the shape fill color for animation in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
         """
 
-        super().__init__(cfg, size, pos_ratio, color,
-                         SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
+        super().__init__(cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         logger_seeker.info(
             f"{LOGGING_DASHES} Creating New Seeker Agent (probably new game) {LOGGING_DASHES} ")
