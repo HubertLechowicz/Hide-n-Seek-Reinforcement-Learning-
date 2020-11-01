@@ -1,0 +1,77 @@
+#	HIDE'N'SEEK DEEP REINFORCEMENT LEARNING CONFIG FILE
+
+#	AUTHORS: Lechowicz Hubert, Mrosek Dawid, Płaneta Lukasz
+#	LICENSE: MIT
+
+#	VIDEO:
+#		CENTERED: whenever game window should be centered (0 - no, 1 - yes)
+#		DRAW_POV: If Agent POV should be drawn
+# 	MONITORING: If Environment should be monitored (recorded)
+
+#	GAME:
+#		EPISODES: Training Episodes
+#		FPS: Frames Per Second
+#		DURATION: Game duration in frames, ends  if seeker don't find Hiding
+#		REVERSE: If turn order should be reversed (Hiding first instead of Seeker first)
+
+#	HIDING:
+#		SPEED_RATIO: multiplier for Agent movement (in frames)
+#		SPEED_ROTATE_RATIO: multiplier for Agent rotate angle (in frames)
+#		WALL_ACTION_TIMEOUT: timeout after doing wall-related action (in frames)
+#		WALLS_MAX: max number of walls created by Agent
+
+# 	REWARDS:
+#			MOVE: Points per move (successful)
+#			ROTATE: Points per rotate (successful)
+#			SPECIAL: Points per added Wall (successful)
+#			WIN: Points if won the game
+#			LOSE: Points if lost the game
+
+#	SEEKER:
+#		SPEED_RATIO: multiplier for Agent movement (in frames)
+#		SPEED_ROTATE_RATIO: multiplier for Agent rotate angle (in frames)
+#		WALL_ACTION_TIMEOUT: timeout after doing wall-related action (in frames)
+
+#		REWARDS:
+#			MOVE: Points per move (successful)
+#			ROTATE: Points per rotate (successful)
+#			SPECIAL: Points per deleted Wall (successful)
+#			WIN: Points if won the game
+#			LOSE: Points if lost the game
+
+video:
+  centered: yes
+  draw_pov: no
+  monitoring: yes
+
+game:
+  episodes: 100
+  fps: 600
+  duration: 500
+  reverse: no
+  map: maps/map.bmp
+
+hiding:
+  speed_ratio: 5
+  speed_rotate_ratio: 0.2
+  wall_action_timeout: 5
+  walls_max: 5
+  rewards:
+    noop: 1
+    move: 1
+    rotate: 1
+    special: 5
+    win: 100
+    lose: -100
+
+seeker:
+  speed_ratio: 5
+  speed_rotate_ratio: 0.2
+  wall_action_timeout: 500
+  rewards:
+    noop: 0
+    move: 1
+    rotate: 1
+    special: 5
+    win: 100
+    lose: -100

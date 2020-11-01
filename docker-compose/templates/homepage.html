@@ -127,9 +127,7 @@
       $("#cpu-check").css("display", "none");
 
       let form_config_div =
-        '<div class="col-12 col-sm-6"><div class="inner-top-border"><form id="form-config-{form_id}">' +
-        '<div class="display-2 mb-3">Environment #{form_id}</div> <div class="row"> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="episodes-{form_id}">Episodes</label> <input type="number" name="episodes" id="episodes-{form_id}" class="form-control" value="100" min="5" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="map-{form_id}">Map File</label> <input type="text" name="map_path" id="map-{form_id}" class="form-control" placeholder="map.bmp" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="fps-{form_id}">Max FPS</label> <input type="number" name="fps" id="fps-{form_id}" class="form-control" value="1000" min="1" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="duration-{form_id}"> Game Duration (frames) </label> <input type="number" name="duration" id="duration-{form_id}" class="form-control" value="1000" min="100" max="100000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-speed-{form_id}"> [Seeker] Speed Ratio </label> <input type="number" name="seeker-speed" id="seeker-speed-{form_id}" class="form-control" value="1.00" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-speed-rotate-{form_id}"> [Seeker] Speed Rotate Ratio </label> <input type="number" name="seeker-speed-rotate" id="seeker-speed-rotate-{form_id}" class="form-control" value="0.10" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="seeker-wall-timeout-{form_id}"> [Seeker] Wall Action Timeout </label> <input type="number" name="seeker-wall-timeout" id="seeker-wall-timeout-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-speed-{form_id}">[Hiding] Speed Ratio</label> <input type="number" name="hiding-speed" id="hiding-speed-{form_id}" class="form-control" value="1.00" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-speed-rotate-{form_id}"> [Hiding] Speed Rotate Ratio </label> <input type="number" name="hiding-speed-rotate" id="hiding-speed-rotate-{form_id}" class="form-control" value="0.10" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-wall-timeout-{form_id}"> [Hiding] Wall Action Timeout </label> <input type="number" name="hiding-wall-timeout" id="hiding-wall-timeout-{form_id}" class="form-control" value="100" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-group"> <label for="hiding-walls-{form_id}"> [Hiding] Max Walls </label> <input type="number" name="hiding-walls" id="hiding-walls-{form_id}" class="form-control" value="5" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-6"> <div class="form-check"> <input type="checkbox" name="draw_pov" id="draw_pov-{form_id}" class="form-check-input" required /> <label for="draw_pov-{form_id}"> Draw POV </label> </div> </div>  <div class="display-2 m-auto"></div> </div> ' +
-        "</form></div></div>";
+        '<div class="col-12"> <div class="inner-top-border"> <form id="form-config-{form_id}"> <div class="display-2 mb-3 mt-1">Environment #{form_id}</div> <div class="row"> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="game-episodes-{form_id}">Episodes</label> <input type="number" name="game-episodes" id="game-episodes-{form_id}" class="form-control" value="{{ cfg.game.episodes }}" min="5" max="10000" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="game-map-{form_id}">Map File</label> <input type="text" name="game-map" id="game-map-{form_id}" class="form-control" value="{{ cfg.game.map }}" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="game-fps-{form_id}">Max FPS</label> <input type="number" name="game-fps" id="game-fps-{form_id}" class="form-control" value="{{ cfg.game.fps }}" min="1" max="10000" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="game-duration-{form_id}"> Game Duration (frames) </label> <input type="number" name="game-duration" id="game-duration-{form_id}" class="form-control" value="{{ cfg.game.duration }}" min="100" max="100000" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="seeker-speed_ratio-{form_id}"> [Seeker] Speed Ratio </label> <input type="number" name="seeker-speed_ratio" id="seeker-speed_ratio-{form_id}" class="form-control" value="{{ cfg.seeker.speed_ratio }}" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="seeker-speed_rotate_ratio-{form_id}"> [Seeker] Speed Rotate Ratio </label> <input type="number" name="seeker-speed_rotate_ratio" id="seeker-speed_rotate_ratio-{form_id}" class="form-control" value="{{ cfg.seeker.speed_rotate_ratio }}" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="seeker-wall_action_timeout-{form_id}"> [Seeker] Wall Action Timeout </label> <input type="number" name="seeker-wall_action_timeout" id="seeker-wall_action_timeout-{form_id}" class="form-control" value="{{ cfg.seeker.wall_action_timeout }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-check"> <input type="checkbox" name="video-draw_pov" id="video-draw_pov-{form_id}" class="form-check-input" required {% if cfg.video.draw_pov %}checked{% endif %} /> <label for="video-draw_pov-{form_id}"> Draw POV </label> </div> <div class="form-check"> <input type="checkbox" name="video-monitoring" id="video-monitoring-{form_id}" class="form-check-input" required {% if cfg.video.monitoring %}checked{% endif %} /> <label for="video-monitoring-{form_id}"> Recording </label> </div> <div class="form-check"> <input type="checkbox" name="game-reverse" id="game-reverse-{form_id}" class="form-check-input" required {% if cfg.game.reverse %}checked{% endif %} /> <label for="game-reverse-{form_id}"> Reverse (Hiding -> Seeker) </label> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="hiding-speed_ratio-{form_id}" >[Hiding] Speed Ratio</label > <input type="number" name="hiding-speed_ratio" id="hiding-speed_ratio-{form_id}" class="form-control" value="{{ cfg.hiding.speed_ratio }}" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="hiding-speed_rotate_ratio-{form_id}"> [Hiding] Speed Rotate Ratio </label> <input type="number" name="hiding-speed_rotate_ratio" id="hiding-speed_rotate_ratio-{form_id}" class="form-control" value="{{ cfg.hiding.speed_rotate_ratio }}" min="0.01" max="100" step="0.01" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="hiding-wall_action_timeout-{form_id}"> [Hiding] Wall Action Timeout </label> <input type="number" name="hiding-wall_action_timeout" id="hiding-wall_action_timeout-{form_id}" class="form-control" value="{{ cfg.hiding.wall_action_timeout }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-3"> <div class="form-group"> <label for="hiding-walls_max-{form_id}"> [Hiding] Max Walls </label> <input type="number" name="hiding-walls_max" id="hiding-walls_max-{form_id}" class="form-control" value="{{ cfg.hiding.walls_max }}" min="0" max="10000" required /> </div> </div> <div class="col-12 display-3 mt-1 mb-3 text-center">Rewards</div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="seeker-rewards-noop-{form_id}"> [Seeker] Noop </label> <input type="number" name="seeker-rewards-noop" id="seeker-rewards-noop-{form_id}" class="form-control" value="{{ cfg.seeker.rewards.noop }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="seeker-rewards-move-{form_id}"> [Seeker] Move </label> <input type="number" name="seeker-rewards-move" id="seeker-rewards-move-{form_id}" class="form-control" value="{{ cfg.seeker.rewards.move }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="seeker-rewards-rotate-{form_id}"> [Seeker] Rotate </label> <input type="number" name="seeker-rewards-rotate" id="seeker-rewards-rotate-{form_id}" class="form-control" value="{{ cfg.seeker.rewards.rotate }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="seeker-rewards-special-{form_id}"> [Seeker] Special </label> <input type="number" name="seeker-rewards-special" id="seeker-rewards-special-{form_id}" class="form-control" value="{{ cfg.seeker.rewards.special }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="seeker-rewards-win-{form_id}"> [Seeker] Win </label> <input type="number" name="seeker-rewards-win" id="seeker-rewards-win-{form_id}" class="form-control" value="{{ cfg.seeker.rewards.win }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="seeker-rewards-lose-{form_id}"> [Seeker] Lose </label> <input type="number" name="seeker-rewards-lose" id="seeker-rewards-lose-{form_id}" class="form-control" value="{{ cfg.seeker.rewards.lose }}" min="0" max="10000" required /> </div> </div>  <div class="col-12 col-sm-2"> <div class="form-group"> <label for="hiding-rewards-noop-{form_id}"> [Hiding] Noop </label> <input type="number" name="hiding-rewards-noop" id="hiding-rewards-noop-{form_id}" class="form-control" value="{{ cfg.hiding.rewards.noop }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="hiding-rewards-move-{form_id}"> [Hiding] Move </label> <input type="number" name="hiding-rewards-move" id="hiding-rewards-move-{form_id}" class="form-control" value="{{ cfg.hiding.rewards.move }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="hiding-rewards-rotate-{form_id}"> [Hiding] Rotate </label> <input type="number" name="hiding-rewards-rotate" id="hiding-rewards-rotate-{form_id}" class="form-control" value="{{ cfg.hiding.rewards.rotate }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="hiding-rewards-special-{form_id}"> [Hiding] Special </label> <input type="number" name="hiding-rewards-special" id="hiding-rewards-special-{form_id}" class="form-control" value="{{ cfg.hiding.rewards.special }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="hiding-rewards-win-{form_id}"> [Hiding] Win </label> <input type="number" name="hiding-rewards-win" id="hiding-rewards-win-{form_id}" class="form-control" value="{{ cfg.hiding.rewards.win }}" min="0" max="10000" required /> </div> </div> <div class="col-12 col-sm-2"> <div class="form-group"> <label for="hiding-rewards-lose-{form_id}"> [Hiding] Lose </label> <input type="number" name="hiding-rewards-lose" id="hiding-rewards-lose-{form_id}" class="form-control" value="{{ cfg.hiding.rewards.lose }}" min="0" max="10000" required /> </div> </div> </div> </form> </div> </div>';
       for (var i = 0; i < cpus; i++) {
         $("#yes-cpus-config").append(
           form_config_div.replaceAll("{form_id}", i)
@@ -190,6 +188,9 @@
           $(el)
             .find("#core-" + core_id + "-status-eta")
             .text(new Date(data.status.eta * 1000).toISOString().substr(11, 8));
+          $(el)
+            .find("#core-" + core_id + "-status-rewards")
+            .text(data.status.rewards);
 
           setTimeout(function () {
             get_task_status(task_id, core_id);
@@ -240,6 +241,7 @@
       let dataValid = true;
       for (var i = 0; i < cpus; i++) {
         data = $("#form-config-" + i).serializeArray();
+        data.push({ name: "video-centered", value: true });
         data_obj = {};
 
         $.map(data, function (n, j) {
@@ -269,7 +271,7 @@
       $("#yes-config").css("display", "unset");
 
       let env_html =
-        '<div class="col-12 col-sm-6 mt-2"> <div class="inner-top-border" id="core-{core_id}"> <div class="display-2 mt-2">Environment #{core_id}</div> <div id="core-{core_id}-status" style="display: none"> <img src="" class="img-status" id="core-{core_id}-img" /> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Status</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episode</th> <td id="core-{core_id}-status-episode"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-status-fps"></td> </tr> <tr> <th>Frame</th> <td id="core-{core_id}-status-frame"></td> </tr> <tr> <th>Time elapsed</th> <td id="core-{core_id}-status-time"></td> </tr> <tr> <th>ETA</th> <td id="core-{core_id}-status-eta"></td> </tr> </tbody> </table> </div> <div id="core-{core_id}-success" style="display: none"> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Success</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Time elapsed</th> <td id="core-{core_id}-success-time"></td> </tr> <tr> <th>Highest FPS</th> <td id="core-{core_id}-fps-peak"></td> </tr> <tr> <th>Lowest FPS</th> <td id="core-{core_id}-fps-lower"></td> </tr> <tr> <th>Mean FPS</th> <td id="core-{core_id}-fps-mean"></td> </tr> <tr> <th>Median FPS</th> <td id="core-{core_id}-fps-median"></td> </tr> <tr> <th>FPS Quantiles</th> <td id="core-{core_id}-fps-quantiles"></td> </tr> </tbody> </table> </div> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Config</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episodes</th> <td id="core-{core_id}-config-episodes"></td> </tr> <tr> <th>Map</th> <td id="core-{core_id}-config-map"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-config-fps"></td> </tr> <tr> <th>Episode Duration</th> <td id="core-{core_id}-config-duration"></td> </tr> <tr> <th>Seeker Speed Ratio</th> <td id="core-{core_id}-config-seeker-speed"></td> </tr> <tr> <th>Seeker Rotate Ratio</th> <td id="core-{core_id}-config-seeker-rotate"></td> </tr> <tr> <th>Seeker Wall Action Timeout</th> <td id="core-{core_id}-config-seeker-wall-action"></td> </tr> <tr> <th>Hiding Speed Ratio</th> <td id="core-{core_id}-config-hiding-speed"></td> </tr> <tr> <th>Hiding Rotate Ratio</th> <td id="core-{core_id}-config-hiding-rotate"></td> </tr> <tr> <th>Hiding Wall Action Timeout</th> <td id="core-{core_id}-config-hiding-wall-action"></td> </tr> <tr> <th>Hiding Max Walls</th> <td id="core-{core_id}-config-hiding-walls-max"></td> </tr> <tr> <th>POV</th> <td id="core-{core_id}-config-draw-pov"></td> </tr> </tbody> </table> </div> </div>';
+        '<div class="col-12 col-sm-6 mt-2"> <div class="inner-top-border" id="core-{core_id}"> <div class="display-2 mt-2">Environment #{core_id}</div> <div id="core-{core_id}-status" style="display: none"> <img src="" class="img-status" id="core-{core_id}-img" /> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Status</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episode</th> <td id="core-{core_id}-status-episode"></td> </tr> <tr> <th>FPS</th> <td id="core-{core_id}-status-fps"></td> </tr> <tr> <th>Frame</th> <td id="core-{core_id}-status-frame"></td> </tr> <tr> <th>Time elapsed</th> <td id="core-{core_id}-status-time"></td> </tr> <tr> <th>ETA</th> <td id="core-{core_id}-status-eta"></td> </tr> <tr> <th>Current Rewards</th> <td id="core-{core_id}-status-rewards"></td> </tr> </tbody> </table> </div> <div id="core-{core_id}-success" style="display: none"> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Success</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Time elapsed</th> <td id="core-{core_id}-success-time"></td> </tr> <tr> <th>Highest FPS</th> <td id="core-{core_id}-fps-peak"></td> </tr> <tr> <th>Lowest FPS</th> <td id="core-{core_id}-fps-lower"></td> </tr> <tr> <th>Mean FPS</th> <td id="core-{core_id}-fps-mean"></td> </tr> <tr> <th>Median FPS</th> <td id="core-{core_id}-fps-median"></td> </tr> <tr> <th>FPS Quantiles</th> <td id="core-{core_id}-fps-quantiles"></td> </tr> </tbody> </table> </div> <div class="inner-top-border-min"></div> <div class="display-3 my-2">Config</div> <table class="table table-striped w-75 m-auto"> <tbody> <tr> <th>Episodes</th> <td id="core-{core_id}-config-episodes"></td> </tr> <tr> <th>Episode Duration</th> <td id="core-{core_id}-config-duration"></td> </tr> <tr> <th>Map</th> <td id="core-{core_id}-config-map"></td> </tr> <tr> <th>Max FPS</th> <td id="core-{core_id}-config-fps"></td> </tr> <tr> <th>POV</th> <td id="core-{core_id}-config-draw-pov"></td> </tr> <tr> <th>Recording</th> <td id="core-{core_id}-config-monitoring"></td> </tr> <tr> <th>Reverse Order</th> <td id="core-{core_id}-config-reverse"></td> </tr>  <tr> <th>Seeker Speed Ratio</th> <td id="core-{core_id}-config-seeker-speed"></td> </tr> <tr> <th>Seeker Rotate Ratio</th> <td id="core-{core_id}-config-seeker-rotate"></td> </tr> <tr> <th>Seeker Wall Action Timeout</th> <td id="core-{core_id}-config-seeker-wall-action"></td> </tr> <tr> <th>Seeker Reward NOOP</th> <td id="core-{core_id}-config-seeker-rewards-noop"></td> </tr> <tr> <th>Seeker Reward Move</th> <td id="core-{core_id}-config-seeker-rewards-move"></td> </tr> <tr> <th>Seeker Reward Rotate</th> <td id="core-{core_id}-config-seeker-rewards-rotate"></td> </tr> <tr> <th>Seeker Reward Special</th> <td id="core-{core_id}-config-seeker-rewards-special"></td> </tr> <tr> <th>Seeker Reward Win</th> <td id="core-{core_id}-config-seeker-rewards-win"></td> </tr> <tr> <th>Seeker Reward Lose</th> <td id="core-{core_id}-config-seeker-rewards-lose"></td> </tr>  <tr> <th>Hiding Speed Ratio</th> <td id="core-{core_id}-config-hiding-speed"></td> </tr> <tr> <th>Hiding Rotate Ratio</th> <td id="core-{core_id}-config-hiding-rotate"></td> </tr> <tr> <th>Hiding Wall Action Timeout</th> <td id="core-{core_id}-config-hiding-wall-action"></td> </tr> <tr> <th>Hiding Max Walls</th> <td id="core-{core_id}-config-hiding-walls-max"></td> </tr> <tr> <th>Hiding Reward NOOP</th> <td id="core-{core_id}-config-hiding-rewards-noop"></td> </tr> <tr> <th>Hiding Reward Move</th> <td id="core-{core_id}-config-hiding-rewards-move"></td> </tr> <tr> <th>Hiding Reward Rotate</th> <td id="core-{core_id}-config-hiding-rewards-rotate"></td> </tr> <tr> <th>Hiding Reward Special</th> <td id="core-{core_id}-config-hiding-rewards-special"></td> </tr> <tr> <th>Hiding Reward Win</th> <td id="core-{core_id}-config-hiding-rewards-win"></td> </tr> <tr> <th>Hiding Reward Lose</th> <td id="core-{core_id}-config-hiding-rewards-lose"></td> </tr> </tbody> </table> </div> </div>';
 
       $.ajax({
         url: "train",
@@ -282,42 +284,88 @@
           $.each(response.task_ids, function (id, val) {
             let el = $(env_html.replaceAll("{core_id}", id));
             let cfg = dataToSend.configs[id];
+            console.log(cfg);
             $(el)
               .find("#core-" + id + "-config-episodes")
-              .text(cfg.episodes);
+              .text(cfg["game-episodes"]);
             $(el)
               .find("#core-" + id + "-config-map")
-              .text(cfg.map_path);
+              .text(cfg["game-map"]);
             $(el)
               .find("#core-" + id + "-config-fps")
-              .text(cfg.fps);
+              .text(cfg["game-fps"]);
             $(el)
               .find("#core-" + id + "-config-duration")
-              .text(cfg.duration);
+              .text(cfg["game-duration"]);
+
             $(el)
               .find("#core-" + id + "-config-seeker-speed")
-              .text(cfg["seeker-speed"]);
+              .text(cfg["seeker-speed_ratio"]);
             $(el)
               .find("#core-" + id + "-config-seeker-rotate")
-              .text(cfg["seeker-speed-rotate"]);
+              .text(cfg["seeker-speed_rotate_ratio"]);
             $(el)
               .find("#core-" + id + "-config-seeker-wall-action")
-              .text(cfg["seeker-wall-timeout"]);
+              .text(cfg["seeker-wall_action_timeout"]);
+            $(el)
+              .find("#core-" + id + "-config-seeker-rewards-noop")
+              .text(cfg["seeker-rewards-noop"]);
+            $(el)
+              .find("#core-" + id + "-config-seeker-rewards-move")
+              .text(cfg["seeker-rewards-move"]);
+            $(el)
+              .find("#core-" + id + "-config-seeker-rewards-rotate")
+              .text(cfg["seeker-rewards-rotate"]);
+            $(el)
+              .find("#core-" + id + "-config-seeker-rewards-special")
+              .text(cfg["seeker-rewards-special"]);
+            $(el)
+              .find("#core-" + id + "-config-seeker-rewards-win")
+              .text(cfg["seeker-rewards-win"]);
+            $(el)
+              .find("#core-" + id + "-config-seeker-rewards-lose")
+              .text(cfg["seeker-rewards-lose"]);
+
             $(el)
               .find("#core-" + id + "-config-hiding-speed")
-              .text(cfg["hiding-speed"]);
+              .text(cfg["hiding-speed_ratio"]);
             $(el)
               .find("#core-" + id + "-config-hiding-rotate")
-              .text(cfg["hiding-speed-rotate"]);
+              .text(cfg["hiding-speed_rotate_ratio"]);
             $(el)
               .find("#core-" + id + "-config-hiding-wall-action")
-              .text(cfg["hiding-wall-timeout"]);
+              .text(cfg["hiding-wall_action_timeout"]);
             $(el)
               .find("#core-" + id + "-config-hiding-walls-max")
-              .text(cfg["hiding-walls"]);
+              .text(cfg["hiding-walls_max"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-rewards-noop")
+              .text(cfg["hiding-rewards-noop"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-rewards-move")
+              .text(cfg["hiding-rewards-move"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-rewards-rotate")
+              .text(cfg["hiding-rewards-rotate"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-rewards-special")
+              .text(cfg["hiding-rewards-special"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-rewards-win")
+              .text(cfg["hiding-rewards-win"]);
+            $(el)
+              .find("#core-" + id + "-config-hiding-rewards-lose")
+              .text(cfg["hiding-rewards-lose"]);
+
             $(el)
               .find("#core-" + id + "-config-draw-pov")
-              .text(cfg["draw_pov"] ? "True" : "False");
+              .text(cfg["video-draw_pov"] ? "True" : "False");
+            $(el)
+              .find("#core-" + id + "-config-monitoring")
+              .text(cfg["video-monitoring"] ? "True" : "False");
+            $(el)
+              .find("#core-" + id + "-config-reverse")
+              .text(cfg["game-reverse"] ? "True" : "False");
             $("#yes-config-training").append(el);
             get_task_status(val, id);
           });

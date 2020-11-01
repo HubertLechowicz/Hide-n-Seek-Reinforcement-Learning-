@@ -634,7 +634,7 @@ class MapGenerator:
                 if intersection exists, returns the Point object; else None
         """
 
-        return Image.open(filename)
+        return Image.open(filename + '.bmp' if '.bmp' not in filename else filename)
 
     @staticmethod
     def in_object(list_objects, x, y):

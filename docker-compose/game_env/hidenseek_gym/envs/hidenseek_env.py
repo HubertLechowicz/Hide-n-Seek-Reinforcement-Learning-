@@ -21,15 +21,14 @@ class HideNSeekEnv(gym.Env):
     def __init__(self, config, width, height, seeker, hiding, walls):
         self.default_cfg = config
 
-        self.map_path = config['GAME'].get(
-            'MAP_PATH', fallback='fallback_map') + '.bmp'
-        self.fps = config['GAME'].getint('FPS', fallback=60)
+        self.map_path = config['game']['map']
+        self.fps = config['game']['fps']
         self.clock = pygame.time.Clock()
         self.screen = None
 
         self.dt = self.clock.tick_busy_loop(self.fps)
-        self.cfg = config['GAME']
-        self.duration = config['GAME'].getint('DURATION', fallback=60)
+        self.cfg = config['game']
+        self.duration = config['game']['duration']
 
         self.width = width
         self.height = height
@@ -44,8 +43,8 @@ class HideNSeekEnv(gym.Env):
         self.players_group.add(self.player_seek)
         self.players_group.add(self.player_hide)
 
-        self.p_hide_cfg = config['AGENT_HIDING']
-        self.p_seek_cfg = config['AGENT_SEEKER']
+        self.p_hide_cfg = config['hiding']
+        self.p_seek_cfg = config['seeker']
         self.agent_env = {}
         self.action_space = spaces.Discrete(6)  # for both agents
         '''
@@ -62,6 +61,7 @@ class HideNSeekEnv(gym.Env):
                     # position, assuming width=height
                     'position': spaces.Box(low=0, high=self.width, shape=(2, )),
                     'direction': spaces.Box(low=0, high=2*math.pi, shape=(1, )),
+                    'action_cooldown': spaces.Box(low=0, high=config['seeker']['wall_action_timeout'], shape=(1, )),
                 }),
                 'enemy':  spaces.Dict({
                     # position, assuming width=height, not inf if in local env
@@ -84,6 +84,8 @@ class HideNSeekEnv(gym.Env):
                     # position, assuming width=height
                     'position': spaces.Box(low=0, high=self.width, shape=(2, )),
                     'direction': spaces.Box(low=0, high=2*math.pi, shape=(1, )),
+                    'action_cooldown': spaces.Box(low=0, high=config['hiding']['wall_action_timeout'], shape=(1, )),
+                    'walls_available': spaces.Discrete(config['hiding']['walls_max'] + 1),
                 }),
                 'enemy':  spaces.Dict({
                     # position, assuming width=height, not inf if in local env
@@ -93,19 +95,11 @@ class HideNSeekEnv(gym.Env):
                     # distance, not inf if in local env
                     'distance': spaces.Box(low=0, high=np.inf, shape=(1, )),
                 }),
-                # 'walls': spaces.Dict({
-                #     "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
-                #     "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
-                #     "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
-                #     "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
-                #     "owners": spaces.Tuple((spaces.Discrete(2), )),
-                # }),
-                'walls_max': spaces.Discrete(config['AGENT_HIDING'].getint('WALLS_MAX', fallback=5) + 1)
             }),
         ]
 
     def reset(self):
-        self.duration = self.cfg.getint('DURATION', fallback=60)
+        self.duration = self.cfg['duration']
         self.screen = None
         self.agent_env = {}
 
@@ -296,25 +290,15 @@ class HideNSeekEnv(gym.Env):
         return True
 
     def _calc_action_reward(self, agent, action, success=True):
-        agent_str = str(agent)  # [HIDING], [SEEKER]
-        # [REWARDS_HIDING], [REWARDS_SEEKER]
-        agent_reward_str = 'REWARDS_' + agent_str[1:-1]
+        agent_str = str(agent)[1:-1].lower()  # hiding, seeker
         if action == 0:
-            reward = self.default_cfg[agent_reward_str].getint(
-                'NOOP', fallback=0)
+            reward = self.default_cfg[agent_str]['rewards']['noop']
         elif action in [1, 2]:
-            reward = self.default_cfg[agent_reward_str].getint(
-                'MOVE', fallback=1)
+            reward = self.default_cfg[agent_str]['rewards']['move']
         elif action in [3, 4]:
-            reward = self.default_cfg[agent_reward_str].getint(
-                'ROTATE', fallback=1)
+            reward = self.default_cfg[agent_str]['rewards']['rotate']
         elif action == 5:
-            if isinstance(agent, Seeker):
-                reward = self.default_cfg[agent_reward_str].getint(
-                    'REMOVE_WALL', fallback=5)
-            else:
-                reward = self.default_cfg[agent_reward_str].getint(
-                    'ADD_WALL', fallback=5)
+            reward = self.default_cfg[agent_str]['rewards']['special']
 
         return reward if success else reward * (-1)
 
@@ -415,13 +399,11 @@ class HideNSeekEnv(gym.Env):
         ]
 
         if done[0]:
-            endscore = ['LOSE', 'WIN']
+            endscore = ['lose', 'win']
             if done[1] == 'SEEKER':
                 endscore = endscore[::-1]
-            reward_n[0] += self.default_cfg['REWARDS_SEEKER'].getint(
-                endscore[0], fallback=0)
-            reward_n[1] += self.default_cfg['REWARDS_HIDING'].getint(
-                endscore[1], fallback=0)
+            reward_n[0] += self.default_cfg['seeker']['rewards'][endscore[0]]
+            reward_n[1] += self.default_cfg['seeker']['rewards'][endscore[1]]
 
         self.duration -= 1
 
@@ -503,7 +485,7 @@ class HideNSeekEnv(gym.Env):
                 self.walls_group.draw(self.screen)
 
             if self.player_hide and self.player_seek:
-                if self.cfg.getint('DRAW_POV', fallback=1):
+                if self.default_cfg['video']['draw_pov']:
                     self._draw_agent_vision(self.player_seek, self.screen)
                     self._draw_agent_vision(self.player_hide, self.screen)
                 self._draw_agent(self.player_hide, self.screen)

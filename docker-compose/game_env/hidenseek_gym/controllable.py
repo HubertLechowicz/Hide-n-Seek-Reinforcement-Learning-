@@ -116,10 +116,10 @@ class Player(pygame.sprite.Sprite):
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
 
         self.cfg = cfg
-        self.speed = cfg.getfloat('SPEED_RATIO', fallback=1.0)
-        self.speed_rotate = cfg.getfloat('SPEED_ROTATE_RATIO', fallback=0.1)
-        self.wall_timer_init = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
-        self.wall_timer = cfg.getint('WALL_ACTION_TIMEOUT', fallback=5)
+        self.speed = cfg['speed_ratio']
+        self.speed_rotate = cfg['speed_rotate_ratio']
+        self.wall_timer_init = cfg['wall_action_timeout']
+        self.wall_timer = cfg['wall_action_timeout']
 
         self.vision_radius = self.width * 2
         self.vision_top = None
@@ -153,29 +153,6 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
 
-        # base class Player actions
-        self.actions = [
-            {
-                'type': 'NOOP',  # do nothing
-            },
-            {
-                'type': 'movement',
-                'content': -1,
-            },
-            {
-                'type': 'movement',
-                'content': 1,
-            },
-            {
-                'type': 'rotation',
-                'content': -1
-            },
-            {
-                'type': 'rotation',
-                'content': 1
-            },
-        ]
-
     def act(self, obs, reward, game_end, action_space):
         """
         Decides on the action
@@ -198,46 +175,6 @@ class Player(pygame.sprite.Sprite):
         action = action_space.sample()
         return action
 
-    def _rotate(self, turn, local_env):
-        """
-        Rotates the object, accordingly to the value, along its axis.
-
-        Parameters
-        ----------
-            turn : int, [-1,1]
-                in which direction should agent rotate (clockwise or counterclockwise)
-            local_env : dict
-                contains Player Local Environment
-
-        Returns
-        -------
-            None
-        """
-        old_direction = copy.deepcopy(self.direction)
-        self.direction += self.speed_rotate * turn
-        # base 2PI, because it's circle
-        self.direction = self.direction % (2 * math.pi)
-
-        angle = (self.direction - old_direction)
-
-        # Update the polygon points for collisions
-        old_polygon_points = copy.deepcopy(self.polygon_points)
-        self.polygon_points = [Point.triangle_unit_circle_relative(
-            angle, Point((self.width / 2, self.height / 2)), polygon_point) for polygon_point in self.polygon_points]
-
-        for wall in local_env['walls']:
-            if Collision.aabb(self.pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                    self.polygon_points = old_polygon_points
-                    self.direction = old_direction
-                    break
-
-        if local_env['enemy']:
-            if Collision.aabb(self.pos, (self.width, self.height), local_env['enemy'].pos, (local_env['enemy'].width, local_env['enemy'].height)):
-                if Collision.sat(self.get_abs_vertices(), local_env['enemy'].get_abs_vertices()):
-                    self.polygon_points = old_polygon_points
-                    self.direction = old_direction
-
     def get_abs_vertices(self):
         """
         Returns absolute coordinates of Vertices in Polygon
@@ -253,33 +190,6 @@ class Player(pygame.sprite.Sprite):
         """
 
         return [Point((polygon_point.x + self.rect.left, polygon_point.y + self.rect.top)) for polygon_point in self.polygon_points]
-
-    def _move_action(self, new_pos):
-        """
-        Algorithm which moves the Player object to given direction, if not outside map (game screen)
-
-        Parameters
-        ----------
-            new_pos : hidenseek.ext.supportive.Point
-                Point object of the new position
-
-        Returns
-        -------
-            None
-        """
-
-        old_pos = copy.deepcopy(self.pos)
-        self.pos = new_pos
-
-        if old_pos != self.pos:  # if moving
-            self.image_index = (self.image_index + 1) % len(self.images)
-            if not self.image_index:
-                self.image_index += 1
-            self.rect.center = (self.pos.x, self.pos.y)
-        else:  # if not moving
-            self.image_index = 0
-
-        self.image = self.images[self.image_index]
 
     def _determine_new_ray_points(self, wall_edges):
         """
@@ -435,41 +345,6 @@ class Player(pygame.sprite.Sprite):
             Point((self.rect.bottomleft)),
         ])
 
-    def update(self, new_action, local_env):
-        """
-        Takes and performs the action
-
-        Parameters
-        ----------
-            new_action : dict
-                action taken by Agent
-            local_env : dict
-                contains Player Local Environment
-
-        Returns
-        -------
-            None
-        """
-        if new_action['type'] == 'NOOP':
-            self.image_index = 0
-            self.image = self.images[self.image_index]
-        elif new_action['type'] == 'movement':
-            x = math.cos(self.direction) * self.speed * new_action['content']
-            y = math.sin(self.direction) * self.speed * new_action['content']
-            old_pos = copy.deepcopy(self.pos)
-            new_pos = self.pos + Point((x, y))
-
-            for wall in local_env['walls']:
-                if Collision.aabb(new_pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                    self._move_action(new_pos)
-                    if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                        self._move_action(old_pos)
-                        return
-
-            self._move_action(new_pos)
-        elif new_action['type'] == 'rotation':
-            self._rotate(new_action['content'], local_env)
-
     def reset(self):
         self.pos = copy.deepcopy(self.pos_init)
         self.wall_timer = copy.deepcopy(self.wall_timer_init)
@@ -594,13 +469,7 @@ class Hiding(Player):
         super().__init__(cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         self.walls_counter = 0
-        self.walls_max = cfg.getint('WALLS_MAX', fallback=5)
-
-        self.actions += [
-            {
-                'type': 'add_wall',
-            }
-        ]
+        self.walls_max = cfg['walls_max']
 
     def __str__(self):
         return "[HIDING]"
@@ -700,12 +569,6 @@ class Seeker(Player):
 
         super().__init__(cfg, size, pos_ratio, color,
                          SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
-
-        self.actions += [
-            {
-                'type': 'remove_wall',
-            },
-        ]
 
     def __str__(self):
         return "[SEEKER]"

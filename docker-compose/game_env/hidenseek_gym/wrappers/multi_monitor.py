@@ -17,6 +17,9 @@ class MultiMonitor(wrappers.Monitor):
         self.stats_recorder = stats_recorder.StatsRecorder(
             self.config, directory, f'{self.file_prefix}.episode_batch', autoreset=self.env_semantics_autoreset, env_id=self.env.spec.id)
 
+    def _video_enabled(self):
+        return self.config['video']['monitoring'] and self.video_callable(self.episode_id)
+
     def reset_video_recorder(self):
         # Close any existing video recorder
         if self.video_recorder:

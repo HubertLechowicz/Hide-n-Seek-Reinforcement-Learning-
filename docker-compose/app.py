@@ -28,16 +28,11 @@ celery = Celery(broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 
 @celery.task(name='train.core', bind=True)
 def train(self, core_id, config_data, start_date):
-    if 'draw_pov' not in config_data:
-        config_data['draw_pov'] = "0"
-    else:
-        config_data['draw_pov'] = "1"
-    cfg, episodes = Helpers.prepare_config(config_data)
+    cfg = Helpers.prepare_config(config_data)
 
     start = time.time()
 
-    map_bmp = MapGenerator.open_bmp(
-        cfg['GAME'].get('MAP', fallback='maps/map.bmp'))
+    map_bmp = MapGenerator.open_bmp(cfg['game']['map'])
     all_objects = MapGenerator.get_objects_coordinates(
         map_bmp, MapGenerator.get_predefined_palette())
 
@@ -59,44 +54,51 @@ def train(self, core_id, config_data, start_date):
     env.seed(0)
     monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
     env = multi_wrappers.MultiMonitor(
-        env, monitor_folder, force=True, config=config_data)
+        env,
+        monitor_folder,
+        force=True,
+        config=cfg
+    )
     step_img_path = '/opt/app/static/images/core-' + \
         str(core_id) + '/last_frame.jpg'
 
     fps_batch = []
 
-    for i in range(episodes):
+    for i in range(cfg['game']['episodes']):
         metadata = {
             'core_id': core_id,
             'current': i + 1,
-            'total': episodes,
-            'episode_iter': config_data['duration'],
-            'status': {'fps': None, 'iteration': 0, 'iteration_percentage': 0, 'time_elapsed': round(time.time() - start), 'image_path': step_img_path, 'eta': None},
+            'total': cfg['game']['episodes'],
+            'episode_iter': cfg['game']['duration'],
+            'status': {'fps': None, 'iteration': 0, 'iteration_percentage': 0, 'time_elapsed': round(time.time() - start), 'image_path': step_img_path, 'eta': None, 'rewards': [0, 0]},
         }
         self.update_state(state='PROGRESS', meta=metadata)
 
         obs_n = env.reset()
         reward_n = [0, 0]
+        rewards_ep = [0, 0]
         done = [False, None]
         fps_episode = []
         while True:
+            rewards_ep = [rewards_ep[0] + reward_n[0],
+                          rewards_ep[1] + reward_n[1]]
             metadata['status'] = {
                 'fps': env.clock.get_fps(),
-                'iteration': int(config_data['duration']) - env.duration,
-                'iteration_percentage': round(((int(config_data['duration']) - env.duration) / int(config_data['duration'])) * 100, 2),
+                'iteration': int(cfg['game']['duration']) - env.duration,
+                'iteration_percentage': round(((int(cfg['game']['duration']) - env.duration) / int(cfg['game']['duration'])) * 100, 2),
                 'time_elapsed': round(time.time() - start),
-                'eta': round((env.duration / env.clock.get_fps()) + int(config_data['duration']) / env.clock.get_fps() * episodes) if env.clock.get_fps() else None,
+                'eta': round((env.duration / env.clock.get_fps()) + int(cfg['game']['duration']) / env.clock.get_fps() * cfg['game']['episodes']) if env.clock.get_fps() else None,
                 'image_path': step_img_path[8:],
+                'rewards': rewards_ep,
             }
             fps_episode.append(env.clock.get_fps())
 
-            # action_n = agent.act(ob, reward, done) # should be some function to choose action
             action_n = [seeker.act(obs_n[0], reward_n[0], done[0], env.action_space),
                         hider.act(obs_n[1], reward_n[1], done[0], env.action_space)]
             obs_n, reward_n, done, _ = env.step(action_n)
 
-            # 1% chance to get new frame update
-            if random.random() < .01:
+            # 1% chance to get new frame update if monitoring enabled
+            if cfg['video']['monitoring'] and random.random() < .01:
                 step_img = env.render(render_mode)
                 step_img = img.fromarray(step_img, mode='RGB')
                 step_img.save(step_img_path)
@@ -179,7 +181,7 @@ def start_training():
 
 @ app.route('/')
 def homepage():
-    return render_template('homepage.html')
+    return render_template('homepage.html', cfg=default_config)
 
 
 if __name__ == '__main__':

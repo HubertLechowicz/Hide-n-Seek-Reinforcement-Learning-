@@ -1,4 +1,8 @@
-import configparser
+import yaml
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
-config = configparser.ConfigParser()
-config.read('/opt/app/game_env/default_config.ini')
+stream = open('/opt/app/game_env/default_config.yml', 'r')
+config = yaml.load(stream, Loader=Loader)
