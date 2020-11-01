@@ -7,6 +7,7 @@ import json
 import math
 from ext.loggers import LOGGING_DASHES, logger_seeker, logger_hiding
 import numpy as np
+import os
 
 
 class Player(pygame.sprite.Sprite):
@@ -130,24 +131,39 @@ class Player(pygame.sprite.Sprite):
         self.color = color  # temp, until sprites
         self.color_anim = color_anim  # temp, until sprites
 
+        # self.polygon_points = [
+        #     Point((self.width - 10, self.height / 2)),
+        #     Point((.4 * self.width, self.height - 5)),
+        #     Point((.4 * self.width, 5)),
+        # ]
+
         self.polygon_points = [
-            Point((self.width - 10, self.height / 2)),
-            Point((.4 * self.width, self.height - 5)),
-            Point((.4 * self.width, 5)),
+            Point((self.width * 0.15, self.height * 0.15)), # + +
+            Point((self.width * 0.15, self.height * 0.85)), # - +
+            Point((self.width* 0.85, self.height * 0.85)), # - -
+            Point((self.width* 0.85, self.height * 0.15)) # + -
         ]
+
         polygon_tuples = [(p.x, p.y) for p in self.polygon_points]
+        self.graphics = [pygame.image.load(os.path.join(os.getcwd(),'people',cfg.get('GRAPHICS_PATH', fallback='bald'),file)) for file in os.listdir(os.path.join(os.getcwd(),'people',cfg.get('GRAPHICS_PATH', fallback='bald')))]
+        self.graphics = [pygame.transform.smoothscale(graphic,(self.width,self.height)) for graphic in self.graphics]
+        self.graphic_standing = self.graphics[0]
+
 
         image_inplace = pygame.Surface((self.width, self.height))
         image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, self.color, polygon_tuples)
+        image_inplace.blit(self.graphic_standing,(0, 0))
 
         image_movement = pygame.Surface((self.width, self.height))
         image_movement.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_movement, self.color_anim,
                             polygon_tuples)
+        image_movement.blit(self.graphic_standing,(0, 0))
 
-        self.images = [image_inplace] + \
-            [image_movement for _ in range(10)]  # animations
+        #self.images = [image_inplace] + [image_movement for _ in range(10)]  # animations
+        self.images = self.graphics
+
         self.image = image_inplace
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
@@ -207,13 +223,18 @@ class Player(pygame.sprite.Sprite):
                 if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
                     self.polygon_points = old_polygon_points
                     self.direction = old_direction
-                    break
+                    return
 
         if local_env['enemy']:
             if Collision.aabb(self.pos, (self.width, self.height), local_env['enemy'].pos, (local_env['enemy'].width, local_env['enemy'].height)):
                 if Collision.sat(self.get_abs_vertices(), local_env['enemy'].get_abs_vertices()):
                     self.polygon_points = old_polygon_points
                     self.direction = old_direction
+                    return
+
+
+
+
 
     def get_abs_vertices(self):
         """

@@ -433,19 +433,40 @@ class HideNSeek(object):
             None
         """
         polygon_points_tuples = [(p.x, p.y) for p in agent.polygon_points]
+
+        # Copy and then rotate the original image.
+        copied_sprite = agent.graphics[agent.image_index].copy()
+
+        copied_sprite = pygame.transform.rotozoom(
+            copied_sprite, -agent.direction * 180 / math.pi, 1)
+        copied_sprite_rect = copied_sprite.get_rect()
+        copied_sprite_rect.center = (agent.pos.x,agent.pos.y)
+        self.screen.blit(copied_sprite,copied_sprite_rect)
+        agent.image.set_colorkey((0, 0, 0))
+        pygame.draw.polygon(agent.image, (255, 255, 255), polygon_points_tuples, 1)
+
+        print(str(agent), agent.image.get_rect(), "#1")
+
+
         image_inplace = pygame.Surface((agent.width, agent.height))
         image_inplace.set_colorkey((0, 0, 0))
         pygame.draw.polygon(image_inplace, agent.color, polygon_points_tuples)
 
+        print(str(agent), agent.image.get_rect(), "#2")
         image_movement = pygame.Surface((agent.width, agent.height))
         image_movement.set_colorkey((0, 0, 0))
-
         pygame.draw.polygon(image_movement, agent.color_anim,
                             polygon_points_tuples)
-        agent.images = [image_inplace] + \
-            [image_movement for _ in range(10)]  # animations
-        agent.image = image_inplace
 
+
+        print(str(agent), agent.image.get_rect(), "#3")
+
+
+        temp = agent.image.get_rect()
+
+        pygame.draw.polygon(agent.image, (255, 255, 0), [temp.topleft,temp.topright,temp.bottomright,temp.bottomleft], 1)
+
+        print(str(agent),agent.image.get_rect(),"#4")
     def render(self, mode='human', close=False):
         """
         Renders game based on the mode. Raises Exception if unexpected render mode.
