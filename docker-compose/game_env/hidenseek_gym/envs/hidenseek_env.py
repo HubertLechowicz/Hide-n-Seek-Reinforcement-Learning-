@@ -1,6 +1,7 @@
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
+from gym.spaces.utils import flatten_space, flatten
 
 import pygame
 import math
@@ -76,7 +77,7 @@ class HideNSeekEnv(gym.Env):
                 #     "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
                 #     "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
                 #     "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
-                #     "owners": spaces.Tuple((spaces.Discrete(2), )),
+                #     "owners": spaces.Tuple((spaces.Box(low=0, high=1, shape=(1, )), )),
                 # }),
             }),
             spaces.Dict({
@@ -85,7 +86,7 @@ class HideNSeekEnv(gym.Env):
                     'position': spaces.Box(low=0, high=self.width, shape=(2, )),
                     'direction': spaces.Box(low=0, high=2*math.pi, shape=(1, )),
                     'action_cooldown': spaces.Box(low=0, high=config['hiding']['wall_action_timeout'], shape=(1, )),
-                    'walls_available': spaces.Discrete(config['hiding']['walls_max'] + 1),
+                    'walls_available': spaces.Box(low=0, high=config['hiding']['walls_max'], shape=(1, )),
                 }),
                 'enemy':  spaces.Dict({
                     # position, assuming width=height, not inf if in local env
@@ -97,6 +98,8 @@ class HideNSeekEnv(gym.Env):
                 }),
             }),
         ]
+        self.flatten_observation_space_n = [flatten_space(
+            space) for space in self.observation_space_n]
 
     def reset(self):
         self.duration = self.cfg['duration']
@@ -232,6 +235,7 @@ class HideNSeekEnv(gym.Env):
             'agent': {
                 'position': np.array([agent.pos.x, agent.pos.y]),
                 'direction': np.array(agent.direction),
+                'action_cooldown': np.array(agent.wall_timer),
             },
             'enemy': {
                 'position': np.array([local_env['enemy'].pos.x, local_env['enemy'].pos.y] if local_env['enemy'] else [np.inf, np.inf]),
@@ -248,7 +252,11 @@ class HideNSeekEnv(gym.Env):
         }
 
         if isinstance(agent, Hiding):
-            next_obs['walls_max'] = agent.walls_max - agent.walls_counter
+            next_obs['agent']['walls_available'] = agent.walls_max - \
+                agent.walls_counter
+            next_obs = flatten(self.observation_space_n[1], next_obs)
+        else:
+            next_obs = flatten(self.observation_space_n[0], next_obs)
 
         return next_obs
 
