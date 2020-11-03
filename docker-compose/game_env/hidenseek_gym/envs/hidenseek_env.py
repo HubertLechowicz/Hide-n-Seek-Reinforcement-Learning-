@@ -408,11 +408,17 @@ class HideNSeekEnv(gym.Env):
 
         if done[0]:
             endscore = ['lose', 'win']
+            score = [
+                -min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2)
+            ]
             if done[1] == 'SEEKER':
                 endscore = endscore[::-1]
-            reward_n[0] += self.default_cfg['seeker']['rewards'][endscore[0]]
-            reward_n[1] += self.default_cfg['seeker']['rewards'][endscore[1]]
-
+                score = [
+                    min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                    -min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2)
+                ]
+            reward_n = [reward_n[i] + score[i] for i in range(len(score))]
         self.duration -= 1
 
         return obs_n, reward_n, done, info_n

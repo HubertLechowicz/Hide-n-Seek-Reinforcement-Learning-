@@ -51,27 +51,29 @@ game:
   reverse: no
   map: maps/map.bmp
 
+seeker:
+  speed_ratio: 5
+  speed_rotate_ratio: 0.2
+  wall_action_timeout: 500
+  rewards:
+    noop: -1
+    move: 1
+    rotate: 1
+    special: 10
+    win: 100
+    lose: 100
+
 hiding:
   speed_ratio: 5
   speed_rotate_ratio: 0.2
   wall_action_timeout: 5
   walls_max: 5
   rewards:
-    noop: 1
-    move: 1
-    rotate: 1
-    special: 5
-    win: 100
-    lose: -100
-
-seeker:
-  speed_ratio: 5
-  speed_rotate_ratio: 0.2
-  wall_action_timeout: 500
-  rewards:
     noop: 0
     move: 1
     rotate: 1
     special: 5
     win: 100
-    lose: -100
+    lose: 100
+
+
