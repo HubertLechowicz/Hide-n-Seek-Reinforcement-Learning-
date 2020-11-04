@@ -87,8 +87,6 @@ class HideNSeek(object):
         logger_engine.info("Initializing Game Engine")
         logger_engine.info(f"\tFPS: {self.fps}")
 
-
-
     def init(self, walls, seeker, hider, width, height):
         """
         Initializes game environment, which means creating Agents & their POV, 
@@ -102,8 +100,6 @@ class HideNSeek(object):
         -------
             None
         """
-
-
 
         self.duration = self.cfg.getint('DURATION', fallback=60)
         self.clock = pygame.time.Clock()
@@ -433,18 +429,31 @@ class HideNSeek(object):
             None
         """
         polygon_points_tuples = [(p.x, p.y) for p in agent.polygon_points]
-        image_inplace = pygame.Surface((agent.width, agent.height))
-        image_inplace.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_inplace, agent.color, polygon_points_tuples)
 
-        image_movement = pygame.Surface((agent.width, agent.height))
-        image_movement.set_colorkey((0, 0, 0))
+        # Copy and then rotate the original image.
+        copied_sprite = agent.sprites[agent.image_index].copy()
 
-        pygame.draw.polygon(image_movement, agent.color_anim,
-                            polygon_points_tuples)
-        agent.images = [image_inplace] + \
-            [image_movement for _ in range(10)]  # animations
-        agent.image = image_inplace
+        copied_sprite = pygame.transform.rotozoom(
+            copied_sprite, -agent.direction * 180 / math.pi, 1)
+        copied_sprite_rect = copied_sprite.get_rect()
+        copied_sprite_rect.center = (agent.pos.x, agent.pos.y)
+        screen.blit(copied_sprite, copied_sprite_rect)
+
+        agent.image = pygame.Surface((agent.width, agent.height))
+        agent.image.set_colorkey((0, 0, 0))
+        pygame.draw.polygon(agent.image, (255, 255, 255),
+                            polygon_points_tuples, 1)
+
+        temp = agent.image.get_rect()
+
+        # pygame.draw.polygon(agent.image, (255, 255, 0), agent.ray_objects[-1], 1)
+        xd = agent.ray_objects[-1]
+        for i in range(len(xd)):
+            start = xd[i % len(xd)]
+            start = (start.x, start.y)
+            end = xd[(i + 1) % len(xd)]
+            end = (end.x, end.y)
+            pygame.draw.line(screen, (255, 255, 0), start, end, 1)
 
     def render(self, mode='human', close=False):
         """
