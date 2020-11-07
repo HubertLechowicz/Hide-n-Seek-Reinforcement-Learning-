@@ -56,48 +56,93 @@ class HideNSeekEnv(gym.Env):
         4 - ROTATE LEFT (counter-clockwise)
         5 - SPECIAL (ADD/DELETE WALL)
         '''
-        self.observation_space_n = [
-            spaces.Dict({
-                'agent': spaces.Dict({
-                    # position, assuming width=height
-                    'position': spaces.Box(low=0, high=self.width, shape=(2, )),
-                    'direction': spaces.Box(low=0, high=2*math.pi, shape=(1, )),
-                    'action_cooldown': spaces.Box(low=0, high=config['seeker']['wall_action_timeout'], shape=(1, )),
+
+        if self.cfg['reverse']:
+            self.observation_space_n = [
+                spaces.Dict({
+                    'agent': spaces.Dict({
+                        # position, assuming width=height
+                        'position': spaces.Box(low=0, high=self.width, shape=(2,)),
+                        'direction': spaces.Box(low=0, high=2 * math.pi, shape=(1,)),
+                        'action_cooldown': spaces.Box(low=0, high=config['hiding']['wall_action_timeout'], shape=(1,)),
+                        'walls_available': spaces.Box(low=0, high=config['hiding']['walls_max'], shape=(1,)),
+                    }),
+                    'enemy': spaces.Dict({
+                        # position, assuming width=height, not inf if in local env
+                        'position': spaces.Box(low=0, high=np.inf, shape=(2,)),
+                        # direction, not inf if in local env
+                        'direction': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                        # distance, not inf if in local env
+                        'distance': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                    }),
                 }),
-                'enemy':  spaces.Dict({
-                    # position, assuming width=height, not inf if in local env
-                    'position': spaces.Box(low=0, high=np.inf, shape=(2, )),
-                    # direction, not inf if in local env
-                    'direction': spaces.Box(low=0, high=np.inf, shape=(1, )),
-                    # distance, not inf if in local env
-                    'distance': spaces.Box(low=0, high=np.inf, shape=(1, )),
+                spaces.Dict({
+                    'agent': spaces.Dict({
+                        # position, assuming width=height
+                        'position': spaces.Box(low=0, high=self.width, shape=(2,)),
+                        'direction': spaces.Box(low=0, high=2 * math.pi, shape=(1,)),
+                        'action_cooldown': spaces.Box(low=0, high=config['seeker']['wall_action_timeout'], shape=(1,)),
+                    }),
+                    'enemy': spaces.Dict({
+                        # position, assuming width=height, not inf if in local env
+                        'position': spaces.Box(low=0, high=np.inf, shape=(2,)),
+                        # direction, not inf if in local env
+                        'direction': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                        # distance, not inf if in local env
+                        'distance': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                    }),
+                    # 'walls': spaces.Dict({
+                    #     "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
+                    #     "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
+                    #     "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
+                    #     "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
+                    #     "owners": spaces.Tuple((spaces.Box(low=0, high=1, shape=(1, )), )),
+                    # }),
                 }),
-                # 'walls': spaces.Dict({
-                #     "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
-                #     "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
-                #     "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
-                #     "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
-                #     "owners": spaces.Tuple((spaces.Box(low=0, high=1, shape=(1, )), )),
-                # }),
-            }),
-            spaces.Dict({
-                'agent': spaces.Dict({
-                    # position, assuming width=height
-                    'position': spaces.Box(low=0, high=self.width, shape=(2, )),
-                    'direction': spaces.Box(low=0, high=2*math.pi, shape=(1, )),
-                    'action_cooldown': spaces.Box(low=0, high=config['hiding']['wall_action_timeout'], shape=(1, )),
-                    'walls_available': spaces.Box(low=0, high=config['hiding']['walls_max'], shape=(1, )),
+            ]
+        else:
+            self.observation_space_n = [
+                spaces.Dict({
+                    'agent': spaces.Dict({
+                        # position, assuming width=height
+                        'position': spaces.Box(low=0, high=self.width, shape=(2,)),
+                        'direction': spaces.Box(low=0, high=2 * math.pi, shape=(1,)),
+                        'action_cooldown': spaces.Box(low=0, high=config['seeker']['wall_action_timeout'], shape=(1,)),
+                    }),
+                    'enemy': spaces.Dict({
+                        # position, assuming width=height, not inf if in local env
+                        'position': spaces.Box(low=0, high=np.inf, shape=(2,)),
+                        # direction, not inf if in local env
+                        'direction': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                        # distance, not inf if in local env
+                        'distance': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                    }),
+                    # 'walls': spaces.Dict({
+                    #     "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
+                    #     "sizes": spaces.Tuple((spaces.Box(low=1, high=self.width, shape=(2, )), )),
+                    #     "directions": spaces.Tuple((spaces.Box(low=0, high=2*math.pi, shape=(1, )), )),
+                    #     "distances": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(1, )), )),
+                    #     "owners": spaces.Tuple((spaces.Box(low=0, high=1, shape=(1, )), )),
+                    # }),
                 }),
-                'enemy':  spaces.Dict({
-                    # position, assuming width=height, not inf if in local env
-                    'position': spaces.Box(low=0, high=np.inf, shape=(2, )),
-                    # direction, not inf if in local env
-                    'direction': spaces.Box(low=0, high=np.inf, shape=(1, )),
-                    # distance, not inf if in local env
-                    'distance': spaces.Box(low=0, high=np.inf, shape=(1, )),
+                spaces.Dict({
+                    'agent': spaces.Dict({
+                        # position, assuming width=height
+                        'position': spaces.Box(low=0, high=self.width, shape=(2,)),
+                        'direction': spaces.Box(low=0, high=2 * math.pi, shape=(1,)),
+                        'action_cooldown': spaces.Box(low=0, high=config['hiding']['wall_action_timeout'], shape=(1,)),
+                        'walls_available': spaces.Box(low=0, high=config['hiding']['walls_max'], shape=(1,)),
+                    }),
+                    'enemy': spaces.Dict({
+                        # position, assuming width=height, not inf if in local env
+                        'position': spaces.Box(low=0, high=np.inf, shape=(2,)),
+                        # direction, not inf if in local env
+                        'direction': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                        # distance, not inf if in local env
+                        'distance': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                    }),
                 }),
-            }),
-        ]
+            ]
         self.flatten_observation_space_n = [flatten_space(
             space) for space in self.observation_space_n]
 
@@ -254,9 +299,16 @@ class HideNSeekEnv(gym.Env):
         if isinstance(agent, Hiding):
             next_obs['agent']['walls_available'] = agent.walls_max - \
                 agent.walls_counter
-            next_obs = flatten(self.observation_space_n[1], next_obs)
+            if self.cfg['reverse']:
+                next_obs = flatten(self.observation_space_n[0], next_obs)
+            else:
+                next_obs = flatten(self.observation_space_n[1], next_obs)
         else:
-            next_obs = flatten(self.observation_space_n[0], next_obs)
+            if self.cfg['reverse']:
+                next_obs = flatten(self.observation_space_n[1], next_obs)
+            else:
+                next_obs = flatten(self.observation_space_n[0], next_obs)
+
 
         return next_obs
 
@@ -390,10 +442,12 @@ class HideNSeekEnv(gym.Env):
 
 
             reward_n = [
-                self._perform_agent_action(self._perform_agent_action(
+                self._perform_agent_action(
                     self.player_hide, action_n[1], self.agent_env['p_hide']),
+                self._perform_agent_action(
                     self.player_seek, action_n[0], self.agent_env['p_seek'])
             ]
+
 
             self._calc_local_env()
 
