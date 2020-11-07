@@ -46,6 +46,7 @@ class Helpers:
 
         # checkboxes
         tree['game']['reverse'] = True if 'game-reverse' in config_data else False
+        tree['game']['continuous_reward'] = True if 'game-continuous_reward' in config_data else False
         tree['video']['draw_pov'] = True if 'video-draw_pov' in config_data else False
         tree['video']['monitoring'] = True if 'video-monitoring' in config_data else False
 
