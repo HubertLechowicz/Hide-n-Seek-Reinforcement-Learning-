@@ -381,47 +381,92 @@ class HideNSeekEnv(gym.Env):
         obs_n = list()
         reward_n = list()
         info_n = {'n': []}
+        if self.cfg['reverse']:
 
-        self.dt = self.clock.tick_busy_loop(self.fps)
+            self.dt = self.clock.tick_busy_loop(self.fps)
 
-        self._reduce_agent_cooldown(self.player_seek)
-        self._reduce_agent_cooldown(self.player_hide)
+            self._reduce_agent_cooldown(self.player_hide)
+            self._reduce_agent_cooldown(self.player_seek)
 
-        reward_n = [
-            self._perform_agent_action(
-                self.player_seek, action_n[0], self.agent_env['p_seek']),
-            self._perform_agent_action(
-                self.player_hide, action_n[1], self.agent_env['p_hide'])
-        ]
 
-        self._calc_local_env()
-
-        self.player_seek.update_vision(self.agent_env['p_seek'])
-        self.player_hide.update_vision(self.agent_env['p_hide'])
-
-        done = self.game_over()
-
-        obs_n = [
-            self._get_agent_obs(self.player_seek, self.agent_env['p_seek']),
-            self._get_agent_obs(self.player_hide, self.agent_env['p_hide'])
-        ]
-
-        if done[0]:
-            endscore = ['lose', 'win']
-            score = [
-                -min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
-                min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2)
+            reward_n = [
+                self._perform_agent_action(self._perform_agent_action(
+                    self.player_hide, action_n[1], self.agent_env['p_hide']),
+                    self.player_seek, action_n[0], self.agent_env['p_seek'])
             ]
-            if done[1] == 'SEEKER':
-                endscore = endscore[::-1]
-                score = [
-                    min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
-                    -min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2)
-                ]
-            reward_n = [reward_n[i] + score[i] for i in range(len(score))]
-        self.duration -= 1
 
-        return obs_n, reward_n, done, info_n
+            self._calc_local_env()
+
+            self.player_hide.update_vision(self.agent_env['p_hide'])
+            self.player_seek.update_vision(self.agent_env['p_seek'])
+
+
+            done = self.game_over()
+
+            obs_n = [
+                self._get_agent_obs(self.player_hide, self.agent_env['p_hide']),
+                self._get_agent_obs(self.player_seek, self.agent_env['p_seek']),
+            ]
+
+            if done[0]:
+                endscore = ['win','lose']
+                score = [
+                    min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                    -min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                ]
+                if done[1] == 'SEEKER':
+                    endscore = endscore[::-1]
+                    score = [
+                        -min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                        min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2)
+                    ]
+                reward_n = [reward_n[i] + score[i] for i in range(len(score))]
+            self.duration -= 1
+            return obs_n, reward_n, done, info_n
+        else:
+            self.dt = self.clock.tick_busy_loop(self.fps)
+
+            self._reduce_agent_cooldown(self.player_seek)
+            self._reduce_agent_cooldown(self.player_hide)
+
+            reward_n = [
+                self._perform_agent_action(
+                    self.player_seek, action_n[0], self.agent_env['p_seek']),
+                self._perform_agent_action(
+                    self.player_hide, action_n[1], self.agent_env['p_hide'])
+            ]
+
+            self._calc_local_env()
+
+            self.player_seek.update_vision(self.agent_env['p_seek'])
+            self.player_hide.update_vision(self.agent_env['p_hide'])
+
+            done = self.game_over()
+
+            obs_n = [
+                self._get_agent_obs(self.player_seek, self.agent_env['p_seek']),
+                self._get_agent_obs(self.player_hide, self.agent_env['p_hide'])
+            ]
+
+            if done[0]:
+                endscore = ['lose', 'win']
+                score = [
+                    -min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                    min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2)
+                ]
+                if done[1] == 'SEEKER':
+                    endscore = endscore[::-1]
+                    score = [
+                        min(self.default_cfg['seeker']['rewards'][endscore[0]],
+                            self.default_cfg['game']['duration'] / 2),
+                        -min(self.default_cfg['hiding']['rewards'][endscore[0]],
+                             self.default_cfg['game']['duration'] / 2)
+                    ]
+                reward_n = [reward_n[i] + score[i] for i in range(len(score))]
+            self.duration -= 1
+
+            return obs_n, reward_n, done, info_n
+
 
     def _get_state(self):
         state = np.fliplr(np.flip(np.rot90(pygame.surfarray.array3d(
