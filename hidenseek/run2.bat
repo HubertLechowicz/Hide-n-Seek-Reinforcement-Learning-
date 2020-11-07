@@ -1,2 +1,3 @@
+@ECHO OFF
+ECHO python main.py
 pipenv shell
-python main.py

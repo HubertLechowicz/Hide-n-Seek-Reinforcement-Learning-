@@ -49,7 +49,14 @@ def generate_map(all_objects, map_bmp):
         if obj["type"] == "wall":
             logger_engine.info("\t\tWall")
             walls_group.append(
-                Wall(None, center_x, center_y, obj_size))
+                Wall(
+                    None,
+                    center_x,
+                    center_y,
+                    obj_size,
+                    config['GAME']
+                )
+            )
 
         elif obj["type"] == "seeker":
             logger_engine.info("\t\tSeeker Agent")
