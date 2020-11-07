@@ -50,6 +50,7 @@ game:
   duration: 500
   reverse: no
   map: maps/map.bmp
+  continuous_reward: yes
 
 seeker:
   speed_ratio: 5

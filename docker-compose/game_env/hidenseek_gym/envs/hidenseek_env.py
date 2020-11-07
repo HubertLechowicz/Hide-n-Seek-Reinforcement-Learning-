@@ -433,7 +433,7 @@ class HideNSeekEnv(gym.Env):
         obs_n = list()
         reward_n = list()
         info_n = {'n': []}
-        if self.cfg['reverse']:
+        if self.cfg['reverse']: # reversed order
 
             self.dt = self.clock.tick_busy_loop(self.fps)
 
@@ -461,23 +461,45 @@ class HideNSeekEnv(gym.Env):
                 self._get_agent_obs(self.player_hide, self.agent_env['p_hide']),
                 self._get_agent_obs(self.player_seek, self.agent_env['p_seek']),
             ]
-
             if done[0]:
                 endscore = ['win','lose']
-                score = [
-                    min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
-                    -min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
-                ]
+
+
+                if self.cfg['continuous_reward']:
+                    score = [
+                        min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                        -min(self.default_cfg['seeker']['rewards'][endscore[1]], self.default_cfg['game']['duration'] / 2),
+                    ]
+                else:
+                    score = [
+                        min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                        -min(self.default_cfg['seeker']['rewards'][endscore[1]], self.default_cfg['game']['duration'] / 2),
+                    ]
+
+
                 if done[1] == 'SEEKER':
                     endscore = endscore[::-1]
-                    score = [
-                        -min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
-                        min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2)
-                    ]
+
+
+                    if self.cfg['continuous_reward']:
+                        score = [
+                            -(self.default_cfg['hiding']['rewards'][endscore[0]] + self.default_cfg['game']['duration'] - self.duration),
+                            self.default_cfg['seeker']['rewards'][endscore[1]] + self.default_cfg['game']['duration'] - self.duration
+                        ]
+                    else:
+                        score = [
+                            -min(self.default_cfg['hiding']['rewards'][endscore[0]],
+                                 self.default_cfg['game']['duration'] / 2),
+                            min(self.default_cfg['seeker']['rewards'][endscore[1]],
+                                self.default_cfg['game']['duration'] / 2)
+                        ]
+
+
                 reward_n = [reward_n[i] + score[i] for i in range(len(score))]
             self.duration -= 1
             return obs_n, reward_n, done, info_n
-        else:
+
+        else: # normal order
             self.dt = self.clock.tick_busy_loop(self.fps)
 
             self._reduce_agent_cooldown(self.player_seek)
@@ -504,18 +526,36 @@ class HideNSeekEnv(gym.Env):
 
             if done[0]:
                 endscore = ['lose', 'win']
-                score = [
-                    -min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
-                    min(self.default_cfg['hiding']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2)
-                ]
+
+
+                if self.cfg['continuous_reward']:
+                    score = [
+                        -min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                        min(self.default_cfg['hiding']['rewards'][endscore[1]], self.default_cfg['game']['duration'] / 2)
+                    ]
+                else:
+                    score = [
+                        -min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                        min(self.default_cfg['hiding']['rewards'][endscore[1]], self.default_cfg['game']['duration'] / 2)
+                    ]
+
+
                 if done[1] == 'SEEKER':
                     endscore = endscore[::-1]
-                    score = [
-                        min(self.default_cfg['seeker']['rewards'][endscore[0]],
-                            self.default_cfg['game']['duration'] / 2),
-                        -min(self.default_cfg['hiding']['rewards'][endscore[0]],
-                             self.default_cfg['game']['duration'] / 2)
-                    ]
+
+
+                    if self.cfg['continuous_reward']:
+                        score = [
+                            self.default_cfg['seeker']['rewards'][endscore[0]] + self.default_cfg['game']['duration'] - self.duration,
+                            -(self.default_cfg['hiding']['rewards'][endscore[1]] + self.default_cfg['game']['duration'] - self.duration)
+                        ]
+                    else:
+                        score = [
+                            min(self.default_cfg['seeker']['rewards'][endscore[0]], self.default_cfg['game']['duration'] / 2),
+                            -min(self.default_cfg['hiding']['rewards'][endscore[1]], self.default_cfg['game']['duration'] / 2)
+                        ]
+
+
                 reward_n = [reward_n[i] + score[i] for i in range(len(score))]
             self.duration -= 1
 
