@@ -3,7 +3,7 @@ import os
 import pygame
 import copy
 from ext.supportive import Point
-
+from PIL import Image
 
 class Wall(pygame.sprite.Sprite):
     """
@@ -78,16 +78,16 @@ class Wall(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
 
-        filling_width = self.filling[0].get_width()  # = 8
-        filling_height = self.filling[0].get_height() # = 8
+        filling_width = self.filling[0].get_width()
+        filling_height = self.filling[0].get_height()
 
-        if self.width > self.height:
-            blit_list = [(self.filling[0], (filling_width * i, 0)) for i in range(0, math.ceil(self.width/filling_width))]
-            image.blits(blit_list)
+        img_full_size_w = self.width / filling_width
+        img_rounded_size_w = math.ceil(img_full_size_w)
+        img_full_size_h = self.height / filling_height
+        img_rounded_size_h = math.ceil(img_full_size_h)
 
-        elif self.width <= self.height:
-            blit_list = [(self.filling[0], (0, filling_height * i)) for i in range(0, math.ceil(self.height / filling_height))]
-            image.blits(blit_list)
+        blit_list = [(self.filling[0], (filling_width * i, j * filling_height)) for i in range(0, img_rounded_size_w) for j in range(0, img_rounded_size_h)]
+        image.blits(blit_list)
 
         self.polygon_points = [Point((self.rect.left, self.rect.top)), Point((self.rect.right, self.rect.top)), Point(
             (self.rect.right, self.rect.bottom)), Point((self.rect.left, self.rect.bottom))]
