@@ -1,9 +1,9 @@
 import math
-
+import os
 import pygame
 import copy
 from ext.supportive import Point
-
+from PIL import Image
 
 class Wall(pygame.sprite.Sprite):
     """
@@ -34,7 +34,7 @@ class Wall(pygame.sprite.Sprite):
             rotates the Wall by Angle and moves its center to Position
     """
 
-    def __init__(self, owner, x, y, size):
+    def __init__(self, owner, x, y, size, cfg):
         """
         Constructs all neccesary attributes for the Wall Object
 
@@ -71,8 +71,24 @@ class Wall(pygame.sprite.Sprite):
         )
 
         self.image = image
+
+        self.filling = [pygame.image.load(os.path.join(os.getcwd(), 'wall', cfg.get('GRAPHICS_PATH_WALL', fallback='wall_game'), file))
+                        for file in os.listdir(os.path.join(os.getcwd(), 'wall', cfg.get('GRAPHICS_PATH_WALL', fallback='wall_game')))]
+
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
+
+        filling_width = self.filling[0].get_width()
+        filling_height = self.filling[0].get_height()
+
+        img_full_size_w = self.width / filling_width
+        img_rounded_size_w = math.ceil(img_full_size_w)
+        img_full_size_h = self.height / filling_height
+        img_rounded_size_h = math.ceil(img_full_size_h)
+
+        blit_list = [(self.filling[0], (filling_width * i, j * filling_height)) for i in range(0, img_rounded_size_w) for j in range(0, img_rounded_size_h)]
+        image.blits(blit_list)
+
         self.polygon_points = [Point((self.rect.left, self.rect.top)), Point((self.rect.right, self.rect.top)), Point(
             (self.rect.right, self.rect.bottom)), Point((self.rect.left, self.rect.bottom))]
 
@@ -124,7 +140,7 @@ class Wall(pygame.sprite.Sprite):
         self.rect.center = (position.x, position.y)
         self.width = self.rect.width
         self.height = self.rect.height
-
+        print('after rotate',self.width)
         # Update the polygon points for collisions
         self.polygon_points = [Point.triangle_unit_circle_relative(
             angle, self.pos, polygon_point) for polygon_point in self.polygon_points]

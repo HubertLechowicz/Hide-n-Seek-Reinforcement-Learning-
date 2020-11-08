@@ -10,7 +10,6 @@ from objects.controllable import Seeker, Hiding
 from objects.fixed import Wall
 
 
-
 def generate_map(all_objects, map_bmp):
     """
     Generates map by using BMP File
@@ -50,25 +49,44 @@ def generate_map(all_objects, map_bmp):
         if obj["type"] == "wall":
             logger_engine.info("\t\tWall")
             walls_group.append(
-                Wall(None, center_x, center_y, obj_size))
+                Wall(
+                    None,
+                    center_x,
+                    center_y,
+                    obj_size,
+                    config['GAME']
+                )
+            )
 
         elif obj["type"] == "seeker":
             logger_engine.info("\t\tSeeker Agent")
-            player_seek = Seeker(config['AGENT_SEEKER'], obj_size, (center_x, center_y), (
-                255, 255, 255), width, height, (255, 255, 0))
+            player_seek = Seeker(
+                config['AGENT_SEEKER'],
+                obj_size,
+                (center_x, center_y),
+                width, height
+            )
 
         elif obj["type"] == "hider":
             logger_engine.info("\t\tHiding Agent")
-            player_hide = Hiding(config['AGENT_HIDING'], obj_size, (center_x, center_y), (
-                255, 0, 0), width, height)
+            player_hide = Hiding(
+                config['AGENT_HIDING'],
+                obj_size,
+                (center_x, center_y),
+                width,
+                height
+            )
 
     return walls_group, player_seek, player_hide, width, height
+
+
 if __name__ == "__main__":
     logger_engine.info(f"{LOGGING_DASHES} Initializing game {LOGGING_DASHES}")
     os.environ['SDL_VIDEO_CENTERED'] = config['VIDEO']['CENTERED']
     render_mode = 'human'
 
-    logger_engine.info(f"\tGenerating map from BMP ({config['GAME'].get('MAP_PATH', fallback='maps/map')}.bmp)")
+    logger_engine.info(
+        f"\tGenerating map from BMP ({config['GAME'].get('MAP_PATH', fallback='maps/map')}.bmp)")
     map_bmp = MapGenerator.open_bmp(config['GAME'].get(
         'MAP_PATH', fallback='maps/map') + '.bmp')
     all_objects = MapGenerator.get_objects_coordinates(

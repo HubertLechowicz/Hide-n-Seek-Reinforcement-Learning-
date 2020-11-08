@@ -7,6 +7,7 @@ from ext.supportive import Point, Collision, MapGenerator
 import random
 from ext.loggers import LOGGING_DASHES, logger_engine, logger_hiding, logger_seeker
 import numpy as np
+from ext.config import config
 
 
 class HideNSeek(object):
@@ -87,8 +88,6 @@ class HideNSeek(object):
         logger_engine.info("Initializing Game Engine")
         logger_engine.info(f"\tFPS: {self.fps}")
 
-
-
     def init(self, walls, seeker, hider, width, height):
         """
         Initializes game environment, which means creating Agents & their POV, 
@@ -102,8 +101,6 @@ class HideNSeek(object):
         -------
             None
         """
-
-
 
         self.duration = self.cfg.getint('DURATION', fallback=60)
         self.clock = pygame.time.Clock()
@@ -259,7 +256,7 @@ class HideNSeek(object):
                 self.player_hide.direction, self.player_hide.pos, wall_pos)
 
             wall = Wall(self.player_hide, wall_pos.x,
-                        wall_pos.y, wall_size)
+                        wall_pos.y, wall_size, config['AGENT_HIDING'])
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
             wall._rotate(self.player_hide.direction, wall_pos)
             if self._can_create_wall(wall, self.agent_env['p_hide']['enemy']):
@@ -275,7 +272,6 @@ class HideNSeek(object):
     def _remove_wall(self):
         """
         Removes (randomly chosen) Wall
-        TODO: Implement decision-making algorithm which Wall to delete
 
         Parameters
         ----------
@@ -286,13 +282,18 @@ class HideNSeek(object):
             None
         """
         if self.agent_env['p_seek']['walls'] and not self.player_seek.wall_timer:
-            # remove randomly selected wall in local env
-            delete_wall = random.choice(self.agent_env['p_seek']['walls'])
-            self.player_seek.wall_timer = self.player_seek.wall_timer_init
-            if delete_wall.owner:
+            # remove closest in local env
+            enemy_walls = [
+                wall for wall in self.agent_env['p_seek']['walls'] if wall.owner]
+            if enemy_walls:
+                wall_dist = [self.player_seek.pos.distance(
+                    wall.pos) for wall in enemy_walls]
+                closest = wall_dist.index(min(wall_dist))
+                delete_wall = enemy_walls[closest]
                 delete_wall.owner.walls_counter -= 1
                 self.walls_group.remove(delete_wall)
                 del delete_wall
+                self.player_seek.wall_timer = self.player_seek.wall_timer_init
 
     def _reduce_agent_cooldown(self, agent):
         """
@@ -432,19 +433,18 @@ class HideNSeek(object):
         -------
             None
         """
-        polygon_points_tuples = [(p.x, p.y) for p in agent.polygon_points]
-        image_inplace = pygame.Surface((agent.width, agent.height))
-        image_inplace.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_inplace, agent.color, polygon_points_tuples)
 
-        image_movement = pygame.Surface((agent.width, agent.height))
-        image_movement.set_colorkey((0, 0, 0))
+        # Copy and then rotate the original image.
+        copied_sprite = agent.sprites[agent.image_index].copy()
 
-        pygame.draw.polygon(image_movement, agent.color_anim,
-                            polygon_points_tuples)
-        agent.images = [image_inplace] + \
-            [image_movement for _ in range(10)]  # animations
-        agent.image = image_inplace
+        copied_sprite = pygame.transform.rotozoom(
+            copied_sprite, -agent.direction * 180 / math.pi, 1)
+        copied_sprite_rect = copied_sprite.get_rect()
+        copied_sprite_rect.center = (agent.pos.x, agent.pos.y)
+        screen.blit(copied_sprite, copied_sprite_rect)
+
+        agent.image = pygame.Surface((agent.width, agent.height))
+        agent.image.set_colorkey((0, 0, 0))
 
     def render(self, mode='human', close=False):
         """
