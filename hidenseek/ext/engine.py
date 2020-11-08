@@ -256,7 +256,7 @@ class HideNSeek(object):
                 self.player_hide.direction, self.player_hide.pos, wall_pos)
 
             wall = Wall(self.player_hide, wall_pos.x,
-                        wall_pos.y, wall_size, config['AGENT_HIDING'])
+                        wall_pos.y, wall_size, self.cfg['GRAPHICS_PATH_WALL_OWNER'])
             logger_hiding.info(f"\t\tPosition: {wall_pos}")
             wall._rotate(self.player_hide.direction, wall_pos)
             if self._can_create_wall(wall, self.agent_env['p_hide']['enemy']):

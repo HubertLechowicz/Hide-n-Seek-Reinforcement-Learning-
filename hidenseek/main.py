@@ -54,7 +54,7 @@ def generate_map(all_objects, map_bmp):
                     center_x,
                     center_y,
                     obj_size,
-                    config['GAME']
+                    config['GAME']['GRAPHICS_PATH_WALL']
                 )
             )
 

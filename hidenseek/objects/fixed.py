@@ -34,7 +34,7 @@ class Wall(pygame.sprite.Sprite):
             rotates the Wall by Angle and moves its center to Position
     """
 
-    def __init__(self, owner, x, y, size, cfg):
+    def __init__(self, owner, x, y, size, img_path):
         """
         Constructs all neccesary attributes for the Wall Object
 
@@ -63,17 +63,10 @@ class Wall(pygame.sprite.Sprite):
         image.fill((0, 0, 0, 0))
         image.set_colorkey((0, 0, 0))
 
-        pygame.draw.rect(
-            image,
-            (0, 255, 0),  # green
-            (0, 0, self.width, self.height),
-            0
-        )
-
         self.image = image
 
-        self.filling = [pygame.image.load(os.path.join(os.getcwd(), 'wall', cfg.get('GRAPHICS_PATH_WALL', fallback='wall_game'), file))
-                        for file in os.listdir(os.path.join(os.getcwd(), 'wall', cfg.get('GRAPHICS_PATH_WALL', fallback='wall_game')))]
+        self.filling = [pygame.image.load(os.path.join(os.getcwd(), 'wall', img_path, file))
+                        for file in os.listdir(os.path.join(os.getcwd(), 'wall', img_path))]
 
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
@@ -140,7 +133,7 @@ class Wall(pygame.sprite.Sprite):
         self.rect.center = (position.x, position.y)
         self.width = self.rect.width
         self.height = self.rect.height
-        print('after rotate',self.width)
+
         # Update the polygon points for collisions
         self.polygon_points = [Point.triangle_unit_circle_relative(
             angle, self.pos, polygon_point) for polygon_point in self.polygon_points]
