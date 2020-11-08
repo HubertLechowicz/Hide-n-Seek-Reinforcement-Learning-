@@ -9,6 +9,7 @@ from ext.loggers import LOGGING_DASHES, logger_engine, logger_hiding, logger_see
 import numpy as np
 from ext.config import config
 
+
 class HideNSeek(object):
     """
     Engine Class for Hide'n'Seek Game
@@ -271,7 +272,6 @@ class HideNSeek(object):
     def _remove_wall(self):
         """
         Removes (randomly chosen) Wall
-        TODO: Implement decision-making algorithm which Wall to delete
 
         Parameters
         ----------
@@ -282,13 +282,18 @@ class HideNSeek(object):
             None
         """
         if self.agent_env['p_seek']['walls'] and not self.player_seek.wall_timer:
-            # remove randomly selected wall in local env
-            delete_wall = random.choice(self.agent_env['p_seek']['walls'])
-            self.player_seek.wall_timer = self.player_seek.wall_timer_init
-            if delete_wall.owner:
+            # remove closest in local env
+            enemy_walls = [
+                wall for wall in self.agent_env['p_seek']['walls'] if wall.owner]
+            if enemy_walls:
+                wall_dist = [self.player_seek.pos.distance(
+                    wall.pos) for wall in enemy_walls]
+                closest = wall_dist.index(min(wall_dist))
+                delete_wall = enemy_walls[closest]
                 delete_wall.owner.walls_counter -= 1
                 self.walls_group.remove(delete_wall)
                 del delete_wall
+                self.player_seek.wall_timer = self.player_seek.wall_timer_init
 
     def _reduce_agent_cooldown(self, agent):
         """
@@ -428,7 +433,6 @@ class HideNSeek(object):
         -------
             None
         """
-        polygon_points_tuples = [(p.x, p.y) for p in agent.polygon_points]
 
         # Copy and then rotate the original image.
         copied_sprite = agent.sprites[agent.image_index].copy()
@@ -441,19 +445,6 @@ class HideNSeek(object):
 
         agent.image = pygame.Surface((agent.width, agent.height))
         agent.image.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(agent.image, (255, 255, 255),
-                            polygon_points_tuples, 1)
-
-        temp = agent.image.get_rect()
-
-        # pygame.draw.polygon(agent.image, (255, 255, 0), agent.ray_objects[-1], 1)
-        xd = agent.ray_objects[-1]
-        for i in range(len(xd)):
-            start = xd[i % len(xd)]
-            start = (start.x, start.y)
-            end = xd[(i + 1) % len(xd)]
-            end = (end.x, end.y)
-            pygame.draw.line(screen, (255, 255, 0), start, end, 1)
 
     def render(self, mode='human', close=False):
         """

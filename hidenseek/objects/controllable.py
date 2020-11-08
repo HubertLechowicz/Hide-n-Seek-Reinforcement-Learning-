@@ -158,7 +158,6 @@ class Player(pygame.sprite.Sprite):
 
         ]
 
-        polygon_tuples = [(p.x, p.y) for p in self.polygon_points]
         self.sprites = [pygame.image.load(os.path.join(os.getcwd(), 'people', cfg.get('GRAPHICS_PATH', fallback='bald'), file))
                         for file in os.listdir(os.path.join(os.getcwd(), 'people', cfg.get('GRAPHICS_PATH', fallback='bald')))]
 
@@ -209,31 +208,9 @@ class Player(pygame.sprite.Sprite):
             None
         """
         self.image_index = 0
-        old_direction = copy.deepcopy(self.direction)
         self.direction += self.speed_rotate * turn
         # base 2PI, because it's circle
         self.direction = self.direction % (2 * math.pi)
-
-        angle = (self.direction - old_direction)
-
-        # Update the polygon points for collisions
-        old_polygon_points = copy.deepcopy(self.polygon_points)
-        self.polygon_points = [Point.triangle_unit_circle_relative(
-            angle, Point((self.width / 2, self.height / 2)), polygon_point) for polygon_point in self.polygon_points]
-
-        for wall in local_env['walls']:
-            if Collision.aabb(self.pos, (self.width, self.height), wall.pos, (wall.width, wall.height)):
-                if Collision.sat(self.get_abs_vertices(), wall.get_abs_vertices()):
-                    self.polygon_points = old_polygon_points
-                    self.direction = old_direction
-                    return
-
-        if local_env['enemy']:
-            if Collision.aabb(self.pos, (self.width, self.height), local_env['enemy'].pos, (local_env['enemy'].width, local_env['enemy'].height)):
-                if Collision.sat(self.get_abs_vertices(), local_env['enemy'].get_abs_vertices()):
-                    self.polygon_points = old_polygon_points
-                    self.direction = old_direction
-                    return
 
     def get_abs_vertices(self):
         """
