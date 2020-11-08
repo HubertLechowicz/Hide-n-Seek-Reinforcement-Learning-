@@ -13,12 +13,15 @@
 #		FPS: Frames Per Second
 #		DURATION: Game duration in frames, ends  if seeker don't find Hiding
 #		REVERSE: If turn order should be reversed (Hiding first instead of Seeker first)
+#		GRAPHICS_PATH_WALL: Folder for Wall graphics made by Map Generator
+#		GRAPHICS_PATH_WALL_OWNER: Folder for Wall graphics made by Agent
 
 #	HIDING:
 #		SPEED_RATIO: multiplier for Agent movement (in frames)
 #		SPEED_ROTATE_RATIO: multiplier for Agent rotate angle (in frames)
 #		WALL_ACTION_TIMEOUT: timeout after doing wall-related action (in frames)
 #		WALLS_MAX: max number of walls created by Agent
+#		GRAPHICS_PATH: folder for Agent graphics
 
 # 	REWARDS:
 #			MOVE: Points per move (successful)
@@ -31,6 +34,7 @@
 #		SPEED_RATIO: multiplier for Agent movement (in frames)
 #		SPEED_ROTATE_RATIO: multiplier for Agent rotate angle (in frames)
 #		WALL_ACTION_TIMEOUT: timeout after doing wall-related action (in frames)
+#		GRAPHICS_PATH: folder for Agent graphics
 
 #		REWARDS:
 #			MOVE: Points per move (successful)
@@ -51,11 +55,14 @@ game:
   reverse: no
   map: maps/map.bmp
   continuous_reward: yes
+  graphics_path_wall: graphics/wall/game
+  graphics_path_wall_owner: graphics/wall/ai
 
 seeker:
   speed_ratio: 5
   speed_rotate_ratio: 0.2
   wall_action_timeout: 500
+  graphics_path: graphics/people/policeman
   rewards:
     noop: -1
     move: 1
@@ -69,6 +76,7 @@ hiding:
   speed_rotate_ratio: 0.2
   wall_action_timeout: 5
   walls_max: 5
+  graphics_path: graphics/people/thief
   rewards:
     noop: 0
     move: 1
@@ -76,5 +84,3 @@ hiding:
     special: 5
     win: 100
     lose: 100
-
-

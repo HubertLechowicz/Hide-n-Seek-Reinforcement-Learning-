@@ -181,7 +181,7 @@ class HideNSeekEnv(gym.Env):
                 self.player_hide.direction, self.player_hide.pos, wall_pos)
 
             wall = Wall(self.player_hide, wall_pos.x,
-                        wall_pos.y, wall_size)
+                        wall_pos.y, wall_size, self.cfg['graphics_path_wall_owner'])
             wall._rotate(self.player_hide.direction, wall_pos)
             if self._can_create_wall(wall, self.agent_env['p_hide']['enemy']):
                 self.player_hide.walls_counter += 1
@@ -195,7 +195,6 @@ class HideNSeekEnv(gym.Env):
         return False
 
     def _remove_wall(self):
-        # TODO: Implement decision-making algorithm which Wall to delete
         if self.agent_env['p_seek']['walls'] and not self.player_seek.wall_timer:
             # remove randomly selected wall in local env
             delete_wall = random.choice(self.agent_env['p_seek']['walls'])
@@ -263,7 +262,7 @@ class HideNSeekEnv(gym.Env):
 
         return next_obs
 
-    def _rotate_agent(self, agent, turn, local_env):
+    def _rotate_agent(self, agent, turn):
         """
         Rotates the object, accordingly to the value, along its axis.
 
@@ -279,25 +278,9 @@ class HideNSeekEnv(gym.Env):
         -------
             None
         """
-        old_direction = copy.deepcopy(agent.direction)
+        agent.image_index = 0
         agent.direction += agent.speed_rotate * turn
-        # base 2PI, because it's circle
         agent.direction = agent.direction % (2 * math.pi)
-
-        angle = (agent.direction - old_direction)
-
-        # Update the polygon points for collisions
-        old_polygon_points = copy.deepcopy(agent.polygon_points)
-        agent.polygon_points = [Point.triangle_unit_circle_relative(
-            angle, Point((agent.width / 2, agent.height / 2)), polygon_point) for polygon_point in agent.polygon_points]
-
-        for wall in local_env['walls']:
-            if Collision.aabb(agent.pos, (agent.width, agent.height), wall.pos, (wall.width, wall.height)):
-                if Collision.sat(agent.get_abs_vertices(), wall.get_abs_vertices()):
-                    agent.polygon_points = old_polygon_points
-                    agent.direction = old_direction
-                    return False
-
         return True
 
     def _calc_action_reward(self, agent, action, success=True):
@@ -339,8 +322,7 @@ class HideNSeekEnv(gym.Env):
             return self._calc_action_reward(agent, action)
         elif action in [3, 4]:
             # (3 - 3.5) * 2 = -1, so for Clockwise Rotate it needs to be * (-1)
-            did_rotate = self._rotate_agent(
-                agent, (action - 3.5) * 2 * (-1), local_env)
+            did_rotate = self._rotate_agent(agent, (action - 3.5) * 2 * (-1))
             return self._calc_action_reward(agent, action, success=did_rotate)
         elif action == 5:
             if isinstance(agent, Seeker):
@@ -371,14 +353,14 @@ class HideNSeekEnv(gym.Env):
         agent.pos = new_pos
 
         if old_pos != agent.pos:  # if moving
-            agent.image_index = (agent.image_index + 1) % len(agent.images)
+            agent.image_index = (agent.image_index + 1) % len(agent.sprites)
             if not agent.image_index:
                 agent.image_index += 1
             agent.rect.center = (agent.pos.x, agent.pos.y)
         else:  # if not moving
             agent.image_index = 0
 
-        agent.image = agent.images[agent.image_index]
+        agent.image = agent.sprites[agent.image_index]
 
     def step(self, action_n):
         obs_n = list()
@@ -447,7 +429,7 @@ class HideNSeekEnv(gym.Env):
         return obs_n, reward_n, done, info_n
 
     def _get_state(self):
-        state = np.fliplr(np.flip(np.rot90(pygame.surfarray.array3d(
+        state = np.fliplr(np.flip(np.rot90(pygame.surfarray.pixels3d(
             pygame.display.get_surface()).astype(np.uint8))))
         return state
 
@@ -477,19 +459,17 @@ class HideNSeekEnv(gym.Env):
         -------
             None
         """
-        polygon_points_tuples = [(p.x, p.y) for p in agent.polygon_points]
-        image_inplace = pygame.Surface((agent.width, agent.height))
-        image_inplace.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_inplace, agent.color, polygon_points_tuples)
+        # Copy and then rotate the original image.
+        copied_sprite = agent.sprites[agent.image_index].copy()
 
-        image_movement = pygame.Surface((agent.width, agent.height))
-        image_movement.set_colorkey((0, 0, 0))
+        copied_sprite = pygame.transform.rotozoom(
+            copied_sprite, -agent.direction * 180 / math.pi, 1)
+        copied_sprite_rect = copied_sprite.get_rect()
+        copied_sprite_rect.center = (agent.pos.x, agent.pos.y)
+        screen.blit(copied_sprite, copied_sprite_rect)
 
-        pygame.draw.polygon(image_movement, agent.color_anim,
-                            polygon_points_tuples)
-        agent.images = [image_inplace] + \
-            [image_movement for _ in range(10)]  # animations
-        agent.image = image_inplace
+        agent.image = pygame.Surface((agent.width, agent.height))
+        agent.image.set_colorkey((0, 0, 0))
 
     def render(self, mode='human', close=False):
         """

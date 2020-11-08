@@ -50,6 +50,11 @@ class Helpers:
         tree['video']['draw_pov'] = True if 'video-draw_pov' in config_data else False
         tree['video']['monitoring'] = True if 'video-monitoring' in config_data else False
 
+        tree['game']['graphics_path_wall'] = default_config['game']['graphics_path_wall']
+        tree['game']['graphics_path_wall_owner'] = default_config['game']['graphics_path_wall_owner']
+        tree['seeker']['graphics_path'] = default_config['seeker']['graphics_path']
+        tree['hiding']['graphics_path'] = default_config['hiding']['graphics_path']
+
         # concat dictionaries, with second being more important (take type from first)
         tree = Helpers.change_config_value_type(default_config, tree)
 
@@ -97,14 +102,12 @@ class Helpers:
             if obj["type"] == "wall":
                 wall_direction = math.pi / 2 if obj_width > obj_height else 0
                 walls_group.append(
-                    Wall(None, center_x, center_y, obj_size, wall_direction))
+                    Wall(None, center_x, center_y, obj_size, cfg['game']['graphics_path_wall'], wall_direction))
 
             elif obj["type"] == "seeker":
-                player_seek = Seeker(cfg['seeker'], obj_size, (center_x, center_y), (
-                    255, 255, 255), width, height, (255, 255, 0))
+                player_seek = Seeker(cfg['seeker'], obj_size, (center_x, center_y), width, height)
 
             elif obj["type"] == "hider":
-                player_hide = Hiding(cfg['hiding'], obj_size, (center_x, center_y), (
-                    255, 0, 0), width, height)
+                player_hide = Hiding(cfg['hiding'], obj_size, (center_x, center_y), width, height)
 
         return walls_group, player_seek, player_hide, width, height
