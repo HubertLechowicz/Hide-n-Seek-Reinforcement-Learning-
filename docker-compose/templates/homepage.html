@@ -192,6 +192,12 @@
           $(el)
             .find("#core-" + core_id + "-status-rewards")
             .text(data.status.rewards);
+          $(el)
+            .find("#core-" + core_id + "-status-wins")
+            .text(data.status.wins);
+          $(el)
+            .find("#core-" + core_id + "-status-wins-moving")
+            .text(data.status.wins_moving);
 
           setTimeout(function () {
             get_task_status(task_id, core_id);
@@ -300,7 +306,7 @@
               .text(cfg["game-duration"]);
             $(el)
               .find("#core-" + id + "-config-continuous-rewards")
-              .text(cfg["game-continuous-reward"]);
+              .text(cfg["game-continuous_reward"] ? "True" : "False");
 
             $(el)
               .find("#core-" + id + "-config-seeker-speed")

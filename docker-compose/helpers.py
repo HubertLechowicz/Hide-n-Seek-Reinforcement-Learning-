@@ -2,9 +2,19 @@ from game_env.hidenseek_gym.config import config as default_config
 from game_env.hidenseek_gym.controllable import Seeker, Hiding
 from game_env.hidenseek_gym.fixed import Wall
 
-import copy
 import math
+from PIL import Image as img
+from pathlib import Path
+import random
+import shutil
+import statistics
 
+import gym
+
+from game_env.hidenseek_gym import wrappers as multi_wrappers
+from game_env.hidenseek_gym.controllable import Seeker, Hiding
+from game_env.hidenseek_gym.supportive import Point, MapGenerator
+from game_env.hidenseek_gym.fixed import Wall
 
 class Helpers:
     @staticmethod
@@ -63,7 +73,7 @@ class Helpers:
         return new_cfg
 
     @staticmethod
-    def generate_map(all_objects, map_bmp, cfg):
+    def _generate_map(all_objects, map_bmp, cfg):
         """
         Generates map by using BMP File
 
@@ -111,3 +121,115 @@ class Helpers:
                 player_hide = Hiding(cfg['hiding'], obj_size, (center_x, center_y), width, height)
 
         return walls_group, player_seek, player_hide, width, height
+
+    @staticmethod
+    def prepare_map(cfg):
+        map_bmp = MapGenerator.open_bmp(cfg['game']['map'])
+        all_objects = MapGenerator.get_objects_coordinates(map_bmp, MapGenerator.get_predefined_palette())
+
+        walls, seeker, hider, width, height = Helpers._generate_map(all_objects, map_bmp, cfg)
+
+        map_bmp.close()  # memory management
+
+        return walls, seeker, hider, width, height
+
+    @staticmethod
+    def create_env(config, width, height, hiding, seeker, walls, start_date, core_id):
+        render_mode = 'rgb_array'
+        env = gym.make(
+            'hidenseek-v1',
+            config=config,
+            width=width,
+            height=height,
+            seeker=seeker,
+            hiding=hiding,
+            walls=walls
+        )
+
+        monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
+        env = multi_wrappers.MultiMonitor(
+            env,
+            monitor_folder,
+            force=True,
+            config=config
+        )
+        step_img_path = '/opt/app/static/images/core-' + \
+            str(core_id) + '/last_frame.jpg'
+
+        return env, step_img_path, [], render_mode, [[], []]
+
+    @staticmethod
+    def new_ep(env):
+        # obs_n, reward_n, rewards_ep, done, fps_episode
+        return env.reset(), [0, 0], [0, 0], [False, None], []
+
+    @staticmethod
+    def update_img_status(env, recording, path, render_mode):
+        # 1% chance to get new frame update if monitoring enabled
+        if recording and random.random() < .01:
+            step_img = env.render(render_mode)
+            step_img = img.fromarray(step_img, mode='RGB')
+            step_img.save(path)
+            step_img.close()
+
+    @staticmethod
+    def handle_gameover(winner, scores):
+        if 'S' in winner:
+            scores[0].append(1)
+            scores[1].append(0)
+        else:
+            scores[0].append(0)
+            scores[1].append(1)
+
+    @staticmethod
+    def cleanup(env, core_id):
+        env.close()
+        rm_path = Path('/opt/app/static/images/core-' + str(core_id))
+        shutil.rmtree(rm_path)
+
+    @staticmethod
+    def update_metadata_status(fps, itera, iter_perc, time_elap, eta, img_path, rewards, wins, wins_moving):
+        return {
+            'fps': fps, 
+            'iteration': itera, 
+            'iteration_percentage': iter_perc, 
+            'time_elapsed': time_elap, 
+            'eta': eta,
+            'image_path': img_path, 
+            'rewards': rewards,
+            'wins': wins,
+            'wins_moving': wins_moving,
+        }
+
+    @staticmethod
+    def update_celery_metadata(core_id, curr, total, ep_iter, fps, itera, iter_perc, time_elap, img_path, eta, rewards, wins, wins_moving):
+        return {
+            'core_id': core_id,
+            'current': curr,
+            'total': total,
+            'episode_iter': ep_iter,
+            'status': Helpers.update_metadata_status(
+                fps=fps,
+                itera=itera,
+                iter_perc=iter_perc,
+                time_elap=time_elap,
+                eta=eta,
+                img_path=img_path,
+                rewards=rewards,
+                wins=wins, 
+                wins_moving=wins_moving,
+            ),
+        }
+
+    @staticmethod
+    def get_celery_success(core_id, time_elap, fps_batch, wins, ):
+        return {
+            'core_id': core_id,
+            'time_elapsed': time_elap,
+            'fps_peak': round(max(fps_batch)),
+            'fps_lower': round(min(fps_batch)),
+            'fps_mean': round(statistics.fmean(fps_batch)),
+            'fps_median': round(statistics.median(fps_batch)),
+            'fps_quantiles': [round(quantile) for quantile in statistics.quantiles(fps_batch)],
+            'wins': wins,
+        }
