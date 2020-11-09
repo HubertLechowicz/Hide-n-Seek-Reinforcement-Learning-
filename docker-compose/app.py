@@ -10,7 +10,7 @@ import statistics
 
 import game_env.hidenseek_gym
 from game_env.hidenseek_gym.config import config as default_config
-from rl import TrainingAlgorithm
+from rl import A2C
 from helpers import Helpers
 
 app = Flask(__name__)
@@ -36,11 +36,22 @@ def train(self, core_id, config_data, start_date):
         core_id=core_id,
     )
 
+    AGENTS = 2
     # algorithm = Helpers.pick_algorithm(...)
-    algorithm = TrainingAlgorithm() # temp
+    # it is temporarily, the A2C class initialization should be handled in Helpers.pick_algorithm(...) method and return only instance
+    algorithm = A2C(
+        env=env, 
+        num_agents=AGENTS,
+        gamma=0.99,
+        hidden_size=2**6,
+        l_rate=1e-4,
+        n_inputs_n=[env.flatten_observation_space_n[j].shape[0] for j in range(AGENTS)],
+        n_outputs=env.action_space.n,
+    )
     algorithm.prepare_model()
 
     for i in range(cfg['game']['episodes']):
+        algorithm.before_episode()
         metadata = Helpers.update_celery_metadata(
             core_id=core_id,
             curr=i + 1,
@@ -77,21 +88,23 @@ def train(self, core_id, config_data, start_date):
 
             fps_episode.append(env.clock.get_fps())
 
-            algorithm.before_action()
+            algorithm.before_action(obs_n=obs_n)
 
-            algorithm.take_action()
-            action_n = [seeker.act(obs_n[0], reward_n[0], done[0], env.action_space),
-                        hiding.act(obs_n[1], reward_n[1], done[0], env.action_space)]
+            action_n = algorithm.take_action()
             
-            algorithm.before_step()
+            algorithm.before_step(action_n=action_n)
             obs_n, reward_n, done, _ = env.step(action_n)
-            algorithm.after_step()
+            algorithm.after_step(reward_n=reward_n)
 
             Helpers.update_img_status(env, cfg['video']['monitoring'], step_img_path, render_mode)
             self.update_state(state='PROGRESS', meta=metadata)
 
             if done[0]:
-                algorithm.handle_gameover()
+                algorithm.handle_gameover(
+                    obs_n=obs_n,
+                    reward_n=reward_n, 
+                    ep_length=int(cfg['game']['duration']) - env.duration,
+                )
                 Helpers.handle_gameover(done[1], wins_l)
                 break
 

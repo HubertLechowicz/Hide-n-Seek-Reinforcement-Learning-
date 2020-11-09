@@ -5,6 +5,9 @@ class TrainingAlgorithm:
     def prepare_model(self, *args, **kwargs):
         raise NotImplementedError(f"You need to implement method `prepare_model` in {self}")
 
+    def before_episode(self, *args, **kwargs):
+        raise NotImplementedError(f"You need to implement method `before_episode` in {self}")
+
     def before_action(self, *args, **kwargs):
         raise NotImplementedError(f"You need to implement method `before_action` in {self}")
 

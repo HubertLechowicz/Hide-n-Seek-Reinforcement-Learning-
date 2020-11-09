@@ -61,17 +61,17 @@ class HideNSeekEnv(gym.Env):
             spaces.Dict({
                 'agent': spaces.Dict({
                     # position, assuming width=height
-                    'position': spaces.Box(low=0, high=self.width, shape=(2,)),
-                    'direction': spaces.Box(low=0, high=2 * math.pi, shape=(1,)),
-                    'action_cooldown': spaces.Box(low=0, high=config['seeker']['wall_action_timeout'], shape=(1,)),
+                    'position': spaces.Box(low=-1, high=1, shape=(2, )),
+                    'direction': spaces.Box(low=0, high=1, shape=(1, )),
+                    'action_cooldown': spaces.Box(low=0, high=1, shape=(1, )),
                 }),
-                'enemy': spaces.Dict({
-                    # position, assuming width=height, not inf if in local env
-                    'position': spaces.Box(low=0, high=np.inf, shape=(2,)),
-                    # direction, not inf if in local env
-                    'direction': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                'enemy':  spaces.Dict({
+                    # position, assuming width=height, not 20000 if in local env
+                    'position': spaces.Box(low=-1, high=1, shape=(2, )),
+                    # # direction, not inf if in local env
+                    'direction': spaces.Box(low=0, high=1, shape=(1, )),
                     # distance, not inf if in local env
-                    'distance': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                    'distance': spaces.Box(low=-1, high=1, shape=(2, )),
                 }),
                 # 'walls': spaces.Dict({
                 #     "positions": spaces.Tuple((spaces.Box(low=0, high=self.width, shape=(2, )), )),
@@ -84,18 +84,18 @@ class HideNSeekEnv(gym.Env):
             spaces.Dict({
                 'agent': spaces.Dict({
                     # position, assuming width=height
-                    'position': spaces.Box(low=0, high=self.width, shape=(2,)),
-                    'direction': spaces.Box(low=0, high=2 * math.pi, shape=(1,)),
-                    'action_cooldown': spaces.Box(low=0, high=config['hiding']['wall_action_timeout'], shape=(1,)),
-                    'walls_available': spaces.Box(low=0, high=config['hiding']['walls_max'], shape=(1,)),
+                    'position': spaces.Box(low=-1, high=1, shape=(2, )),
+                    'direction': spaces.Box(low=0, high=1, shape=(1, )),
+                    'action_cooldown': spaces.Box(low=0, high=1, shape=(1, )),
+                    'walls_available': spaces.Box(low=0, high=1, shape=(1, )),
                 }),
-                'enemy': spaces.Dict({
-                    # position, assuming width=height, not inf if in local env
-                    'position': spaces.Box(low=0, high=np.inf, shape=(2,)),
-                    # direction, not inf if in local env
-                    'direction': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                'enemy':  spaces.Dict({
+                    # position, assuming width=height, not 20000 if in local env
+                    'position': spaces.Box(low=-1, high=1, shape=(2, )),
+                    # # direction, not inf if in local env
+                    'direction': spaces.Box(low=0, high=1, shape=(1, )),
                     # distance, not inf if in local env
-                    'distance': spaces.Box(low=0, high=np.inf, shape=(1,)),
+                    'distance': spaces.Box(low=-1, high=1, shape=(2, )),
                 }),
             }),
         ]
@@ -234,14 +234,12 @@ class HideNSeekEnv(gym.Env):
 
         next_obs = {
             'agent': {
-                'position': np.array([agent.pos.x, agent.pos.y]),
-                'direction': np.array(agent.direction),
-                'action_cooldown': np.array(agent.wall_timer),
-            },
-            'enemy': {
-                'position': np.array([local_env['enemy'].pos.x, local_env['enemy'].pos.y] if local_env['enemy'] else [np.inf, np.inf]),
-                'direction': np.array(local_env['enemy'].direction if local_env['enemy'] else np.inf),
-                'distance': np.array(local_env['enemy'].pos.distance(agent.pos) if local_env['enemy'] else np.inf)
+                'position': np.array([
+                    (agent.pos.x - self.width / 2) / (self.width / 2), 
+                    (agent.pos.y - self.height / 2) / (self.height / 2), 
+                    ]),
+                'direction': np.array(agent.direction / (2*math.pi)),
+                'action_cooldown': np.array(agent.wall_timer / agent.wall_timer_init),
             },
             # 'walls': {
             #     'positions': tuple(wall_data['position'] for wall_data in walls_data),
@@ -253,12 +251,32 @@ class HideNSeekEnv(gym.Env):
         }
 
         if isinstance(agent, Hiding):
-            next_obs['agent']['walls_available'] = agent.walls_max - \
-                agent.walls_counter
+            next_obs['agent']['walls_available'] = np.array((agent.walls_max - agent.walls_counter) / agent.walls_max)
+            next_obs['enemy'] = {
+                'position': np.array([
+                    (self.player_seek.pos.x - self.width / 2) / (self.width / 2), 
+                    (self.player_seek.pos.y - self.height / 2) / (self.height / 2), 
+                    ]),
+                'direction': np.array(self.player_seek.direction / (2*math.pi)),
+                'distance': np.array([
+                    (self.player_seek.pos.x - agent.pos.x) / (self.width / 2),
+                    (self.player_seek.pos.y - agent.pos.y) / (self.height / 2),
+                ])
+            }
             next_obs = flatten(self.observation_space_n[1], next_obs)
         else:
+            next_obs['enemy'] = {
+                'position': np.array([
+                    (self.player_hide.pos.x - self.width / 2) / (self.width / 2), 
+                    (self.player_hide.pos.y - self.height / 2) / (self.height / 2), 
+                    ]),
+                'direction': np.array(self.player_hide.direction / (2*math.pi)),
+                'distance': np.array([
+                    (self.player_hide.pos.x - agent.pos.x) / (self.width / 2),
+                    (self.player_hide.pos.y - agent.pos.y) / (self.height / 2),
+                ])
+            }
             next_obs = flatten(self.observation_space_n[0], next_obs)
-
 
         return next_obs
 
