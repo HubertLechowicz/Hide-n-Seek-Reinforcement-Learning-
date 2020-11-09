@@ -134,6 +134,17 @@ class Helpers:
         return walls, seeker, hider, width, height
 
     @staticmethod
+    def record_every_100_ep(episode_id):
+        return (
+            not episode_id
+            or (
+                episode_id
+                and
+                (episode_id + 1) % 100 == 0
+            )
+        )
+
+    @staticmethod
     def create_env(config, width, height, hiding, seeker, walls, start_date, core_id):
         render_mode = 'rgb_array'
         env = gym.make(
@@ -151,7 +162,8 @@ class Helpers:
             env,
             monitor_folder,
             force=True,
-            config=config
+            config=config,
+            video_callable=Helpers.record_every_100_ep,
         )
         step_img_path = '/opt/app/static/images/core-' + \
             str(core_id) + '/last_frame.jpg'
