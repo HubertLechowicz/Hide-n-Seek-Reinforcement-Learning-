@@ -10,6 +10,7 @@ import statistics
 
 import game_env.hidenseek_gym
 from game_env.hidenseek_gym.config import config as default_config
+from rl import TrainingAlgorithm
 from helpers import Helpers
 
 app = Flask(__name__)
@@ -36,7 +37,8 @@ def train(self, core_id, config_data, start_date):
     )
 
     # algorithm = Helpers.pick_algorithm(...)
-    # algorithm.prepare_model(...)
+    algorithm = TrainingAlgorithm() # temp
+    algorithm.prepare_model()
 
     for i in range(cfg['game']['episodes']):
         metadata = Helpers.update_celery_metadata(
@@ -75,28 +77,29 @@ def train(self, core_id, config_data, start_date):
 
             fps_episode.append(env.clock.get_fps())
 
-            # algorithm.before_action(...)
+            algorithm.before_action()
 
-            # algorithm.take_action(...)
+            algorithm.take_action()
             action_n = [seeker.act(obs_n[0], reward_n[0], done[0], env.action_space),
                         hiding.act(obs_n[1], reward_n[1], done[0], env.action_space)]
             
-            # algorithm.before_step(...)
+            algorithm.before_step()
             obs_n, reward_n, done, _ = env.step(action_n)
-            # algorithm.after_step(...)
+            algorithm.after_step()
 
             Helpers.update_img_status(env, cfg['video']['monitoring'], step_img_path, render_mode)
             self.update_state(state='PROGRESS', meta=metadata)
 
             if done[0]:
-                # algorithm.handle_gameover(...)
+                algorithm.handle_gameover()
                 Helpers.handle_gameover(done[1], wins_l)
                 break
 
-        # algorithm.after_episode(...)
+        algorithm.after_episode()
 
         fps_batch.append(statistics.fmean(fps_episode))
 
+    algorithm.before_cleanup()
     Helpers.cleanup(env, core_id)
 
     return Helpers.get_celery_success(
