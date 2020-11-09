@@ -20,34 +20,23 @@ celery = Celery(broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 @celery.task(name='train.core', bind=True)
 def train(self, core_id, config_data, start_date):
     start = time.time()
-    
     cfg = Helpers.prepare_config(config_data)
 
     walls, seeker, hiding, width, height = Helpers.prepare_map(cfg)
 
     env, step_img_path, fps_batch, render_mode, wins_l = Helpers.create_env(
-        config=cfg, 
-        width=width, 
-        height=height, 
-        walls=walls, 
-        seeker=seeker, 
+        config=cfg,
+        width=width,
+        height=height,
+        walls=walls,
+        seeker=seeker,
         hiding=hiding,
         start_date=start_date,
         core_id=core_id,
     )
 
     AGENTS = 2
-    # algorithm = Helpers.pick_algorithm(...)
-    # it is temporarily, the A2C class initialization should be handled in Helpers.pick_algorithm(...) method and return only instance
-    algorithm = A2C(
-        env=env, 
-        num_agents=AGENTS,
-        gamma=0.99,
-        hidden_size=2**6,
-        l_rate=1e-4,
-        n_inputs_n=[env.flatten_observation_space_n[j].shape[0] for j in range(AGENTS)],
-        n_outputs=env.action_space.n,
-    )
+    algorithm = Helpers.pick_algorithm(cfg, env=env, agents=AGENTS)
     algorithm.prepare_model()
 
     for i in range(cfg['game']['episodes']):
@@ -77,9 +66,11 @@ def train(self, core_id, config_data, start_date):
             metadata['status'] = Helpers.update_metadata_status(
                 fps=env.clock.get_fps(),
                 itera=int(cfg['game']['duration']) - env.duration,
-                iter_perc=round(((int(cfg['game']['duration']) - env.duration) / int(cfg['game']['duration'])) * 100, 2),
+                iter_perc=round(
+                    ((int(cfg['game']['duration']) - env.duration) / int(cfg['game']['duration'])) * 100, 2),
                 time_elap=round(time.time() - start),
-                eta=round((env.duration / env.clock.get_fps()) + int(cfg['game']['duration']) / env.clock.get_fps() * cfg['game']['episodes']) if env.clock.get_fps() else None,
+                eta=round((env.duration / env.clock.get_fps()) + int(cfg['game']['duration']) / env.clock.get_fps(
+                ) * cfg['game']['episodes']) if env.clock.get_fps() else None,
                 img_path=step_img_path[8:],
                 rewards=rewards_ep,
                 wins=[sum(w) for w in wins_l],
@@ -91,18 +82,19 @@ def train(self, core_id, config_data, start_date):
             algorithm.before_action(obs_n=obs_n)
 
             action_n = algorithm.take_action()
-            
+
             algorithm.before_step(action_n=action_n)
             obs_n, reward_n, done, _ = env.step(action_n)
             algorithm.after_step(reward_n=reward_n)
 
-            Helpers.update_img_status(env, cfg['video']['monitoring'], step_img_path, render_mode)
+            Helpers.update_img_status(
+                env, cfg['video']['monitoring'], step_img_path, render_mode)
             self.update_state(state='PROGRESS', meta=metadata)
 
             if done[0]:
                 algorithm.handle_gameover(
                     obs_n=obs_n,
-                    reward_n=reward_n, 
+                    reward_n=reward_n,
                     ep_length=int(cfg['game']['duration']) - env.duration,
                 )
                 Helpers.handle_gameover(done[1], wins_l)
@@ -116,8 +108,8 @@ def train(self, core_id, config_data, start_date):
     Helpers.cleanup(env, core_id)
 
     return Helpers.get_celery_success(
-        core_id=core_id, 
-        time_elap=round(time.time() - start, 4), 
+        core_id=core_id,
+        time_elap=round(time.time() - start, 4),
         fps_batch=fps_batch,
         wins=[sum(w) for w in wins_l],
     )

@@ -58,9 +58,9 @@ game:
   graphics_path_wall: graphics/wall/game
   graphics_path_wall_owner: graphics/wall/ai
   algorithms:
-    - a2c
-    - "Hubert's algorithm"
-    - "Lukasz's algorithm"
+    a2c: "A2C"
+    hubert: "Hubert's algorithm"
+    lukasz: "Lukasz's algorithm"
   algorithm: a2c
 
 seeker:

@@ -15,6 +15,8 @@ from game_env.hidenseek_gym import wrappers as multi_wrappers
 from game_env.hidenseek_gym.controllable import Seeker, Hiding
 from game_env.hidenseek_gym.supportive import Point, MapGenerator
 from game_env.hidenseek_gym.fixed import Wall
+from rl import A2C
+
 
 class Helpers:
     @staticmethod
@@ -115,23 +117,44 @@ class Helpers:
                     Wall(None, center_x, center_y, obj_size, cfg['game']['graphics_path_wall'], wall_direction))
 
             elif obj["type"] == "seeker":
-                player_seek = Seeker(cfg['seeker'], obj_size, (center_x, center_y), width, height)
+                player_seek = Seeker(
+                    cfg['seeker'], obj_size, (center_x, center_y), width, height)
 
             elif obj["type"] == "hider":
-                player_hide = Hiding(cfg['hiding'], obj_size, (center_x, center_y), width, height)
+                player_hide = Hiding(
+                    cfg['hiding'], obj_size, (center_x, center_y), width, height)
 
         return walls_group, player_seek, player_hide, width, height
 
     @staticmethod
     def prepare_map(cfg):
         map_bmp = MapGenerator.open_bmp(cfg['game']['map'])
-        all_objects = MapGenerator.get_objects_coordinates(map_bmp, MapGenerator.get_predefined_palette())
+        all_objects = MapGenerator.get_objects_coordinates(
+            map_bmp, MapGenerator.get_predefined_palette())
 
-        walls, seeker, hider, width, height = Helpers._generate_map(all_objects, map_bmp, cfg)
+        walls, seeker, hider, width, height = Helpers._generate_map(
+            all_objects, map_bmp, cfg)
 
         map_bmp.close()  # memory management
 
         return walls, seeker, hider, width, height
+
+    @staticmethod
+    def pick_algorithm(cfg, **kwargs):
+        if cfg['game']['algorithm'] == 'a2c':
+            return A2C(
+                env=kwargs['env'],
+                num_agents=kwargs['agents'],
+                gamma=0.99,
+                hidden_size=2**6,
+                l_rate=1e-4,
+                n_inputs_n=[kwargs['env'].flatten_observation_space_n[j].shape[0]
+                            for j in range(kwargs['agents'])],
+                n_outputs=kwargs['env'].action_space.n,
+            )
+        else:
+            raise NotImplementedError(
+                f"Given algorithm (`{cfg['game']['algorithm']}`) is not implemeneted yet!")
 
     @staticmethod
     def record_every_100_ep(episode_id):
@@ -202,12 +225,12 @@ class Helpers:
     @staticmethod
     def update_metadata_status(fps, itera, iter_perc, time_elap, eta, img_path, rewards, wins, wins_moving):
         return {
-            'fps': fps, 
-            'iteration': itera, 
-            'iteration_percentage': iter_perc, 
-            'time_elapsed': time_elap, 
+            'fps': fps,
+            'iteration': itera,
+            'iteration_percentage': iter_perc,
+            'time_elapsed': time_elap,
             'eta': eta,
-            'image_path': img_path, 
+            'image_path': img_path,
             'rewards': rewards,
             'wins': wins,
             'wins_moving': wins_moving,
@@ -228,7 +251,7 @@ class Helpers:
                 eta=eta,
                 img_path=img_path,
                 rewards=rewards,
-                wins=wins, 
+                wins=wins,
                 wins_moving=wins_moving,
             ),
         }
