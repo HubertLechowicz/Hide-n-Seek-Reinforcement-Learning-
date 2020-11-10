@@ -1,0 +1,11 @@
+-e git+https://github.com/QuatZo/HideNSeek-DeepReinforcementLearning-PyGame.git@8b3069d8735f2015159d7ac216b11145136f9e02#egg=hidenseek&subdirectory=hidenseek
+joblib==0.17.0
+numpy==1.19.2
+Pillow==7.2.0
+pipfile==0.0.2
+pygame==1.9.6
+scikit-learn==0.23.2
+scipy==1.5.2
+threadpoolctl==2.1.0
+toml==0.10.1
+tripy==1.0.0

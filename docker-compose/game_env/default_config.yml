@@ -1,42 +1,50 @@
 #	HIDE'N'SEEK DEEP REINFORCEMENT LEARNING CONFIG FILE
 
-#	AUTHORS: Lechowicz Hubert, Mrosek Dawid, Płaneta Lukasz
+#	AUTHORS:
+#		- Lechowicz Hubert
+#		- Mrosek Dawid
+#		- Płaneta Lukasz
 #	LICENSE: MIT
 
 #	VIDEO:
-#		CENTERED: whenever game window should be centered (0 - no, 1 - yes)
-#		DRAW_POV: If Agent POV should be drawn
-# 	MONITORING: If Environment should be monitored (recorded)
+#		CENTERED: whenever game window should be centered (0 - no, 1 - yes); works only for `human` render mode
+#		DRAW_POV: If Agent POV should be drawn; consumes A LOT of FPS; probably most computation-heavy algorithm
+# 	MONITORING: If Environment should be recorded every 100th episode; may decrease FPS only for that episode
 
 #	GAME:
 #		EPISODES: Training Episodes
-#		FPS: Frames Per Second
-#		DURATION: Game duration in frames, ends  if seeker don't find Hiding
+#		FPS: Max Frames Per Second
+#		DURATION: Game duration in frames, ends if Seeker don't collide with Hiding
 #		REVERSE: If turn order should be reversed (Hiding first instead of Seeker first)
-#		GRAPHICS_PATH_WALL: Folder for Wall graphics made by Map Generator
-#		GRAPHICS_PATH_WALL_OWNER: Folder for Wall graphics made by Agent
+#		MAP: Relative path to map BMP for Map Generator
+#		GRAPHICS_PATH_WALL: Relative path to folder with walls made by Map Generator
+#		GRAPHICS_PATH_WALL_OWNER: Relative path to folder with walls made by Hiding Agent
+#		ALGORITHMS: List of algorithms created by authors, together with its string representation
+#		ALGORITHM: Chosen algorithm to train model on
 
-#	HIDING:
-#		SPEED_RATIO: multiplier for Agent movement (in frames)
-#		SPEED_ROTATE_RATIO: multiplier for Agent rotate angle (in frames)
-#		WALL_ACTION_TIMEOUT: timeout after doing wall-related action (in frames)
-#		WALLS_MAX: max number of walls created by Agent
-#		GRAPHICS_PATH: folder for Agent graphics
+#	SEEKER:
+#		SPEED_RATIO: Multiplier for Agent movement (in frames)
+#		SPEED_ROTATE_RATIO: Multiplier for Agent rotate angle (in frames)
+#		WALL_ACTION_TIMEOUT: Timeout after doing wall-related action (in frames)
+#		GRAPHICS_PATH: Relative path to folder with Seeker graphics
 
-# 	REWARDS:
+#		REWARDS:
+#			NOOP: Points for doing nothing
 #			MOVE: Points per move (successful)
 #			ROTATE: Points per rotate (successful)
-#			SPECIAL: Points per added Wall (successful)
+#			SPECIAL: Points per deleted Wall (successful)
 #			WIN: Points if won the game
 #			LOSE: Points if lost the game
 
-#	SEEKER:
-#		SPEED_RATIO: multiplier for Agent movement (in frames)
-#		SPEED_ROTATE_RATIO: multiplier for Agent rotate angle (in frames)
-#		WALL_ACTION_TIMEOUT: timeout after doing wall-related action (in frames)
-#		GRAPHICS_PATH: folder for Agent graphics
+#	HIDING:
+#		SPEED_RATIO: Multiplier for Agent movement (in frames)
+#		SPEED_ROTATE_RATIO: Multiplier for Agent rotate angle (in frames)
+#		WALL_ACTION_TIMEOUT: Timeout after doing wall-related action (in frames)
+#		WALLS_MAX: Max number of walls created by Agent
+#		GRAPHICS_PATH: Relative path to folder with Hiding graphics
 
-#		REWARDS:
+# 	REWARDS:
+#			NOOP: Points for doing nothing
 #			MOVE: Points per move (successful)
 #			ROTATE: Points per rotate (successful)
 #			SPECIAL: Points per deleted Wall (successful)
