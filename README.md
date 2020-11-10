@@ -1,7 +1,5 @@
 # Hide'n'Seek Reinforcement Learning
 
----
-
 ### Introduction
 
 This repo contains code for bachelor's project, which was about checking how the change of environment parameters affects agent's learning.
@@ -31,6 +29,9 @@ This is an awesome archive showing the work progress of this project. Sadly it d
 ### Authors
 
 [IceDice / Hubert Lechowicz](https://github.com/HubertLechowicz)
+
 [QuatZo / Dawid Mrosek](https://github.com/QuatZo)
+
 [Woocashowski / Łukasz Płaneta](https://github.com/woocashowski)
+
 Made as a Bachelor Project while studying at Silesian University of Technology, Gliwice, Poland
