@@ -81,11 +81,11 @@ def train(self, core_id, config_data, start_date):
 
             algorithm.before_action(obs_n=obs_n)
 
-            action_n = algorithm.take_action()
+            action_n = algorithm.take_action(obs_n=obs_n)
 
             algorithm.before_step(action_n=action_n)
             obs_n, reward_n, done, _ = env.step(action_n)
-            algorithm.after_step(reward_n=reward_n)
+            algorithm.after_step(reward_n=reward_n,done=done)
 
             Helpers.update_img_status(
                 env, cfg['video']['monitoring'], step_img_path, render_mode)
