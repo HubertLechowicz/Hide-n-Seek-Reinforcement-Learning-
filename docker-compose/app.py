@@ -15,6 +15,7 @@ from helpers import Helpers
 
 app = Flask(__name__)
 celery = Celery(broker='redis://redis:6379/0', backend='redis://redis:6379/0')
+celery.conf.broker_transport_options = {"visibility_timeout": 3600 * 24 * 360} # 1h * 24 * 360 = 360d
 
 
 @celery.task(name='train.core', bind=True)
