@@ -15,7 +15,8 @@ from game_env.hidenseek_gym import wrappers as multi_wrappers
 from game_env.hidenseek_gym.controllable import Seeker, Hiding
 from game_env.hidenseek_gym.supportive import Point, MapGenerator
 from game_env.hidenseek_gym.fixed import Wall
-from rl import A2C
+from rl import A2C, DQN
+
 
 
 class Helpers:
@@ -148,6 +149,19 @@ class Helpers:
                 gamma=0.99,
                 hidden_size=2**6,
                 l_rate=1e-4,
+                n_inputs_n=[kwargs['env'].flatten_observation_space_n[j].shape[0]
+                            for j in range(kwargs['agents'])],
+                n_outputs=kwargs['env'].action_space.n,
+            )
+        elif cfg['game']['algorithm'] == 'dqn':
+            return DQN(
+                env=kwargs['env'],
+                num_agents=kwargs['agents'],
+                gamma=0.99,
+                epsilon=1.0,
+                epsilon_min=0.1,
+                epsilon_max=1.0,
+                batch_size=32,
                 n_inputs_n=[kwargs['env'].flatten_observation_space_n[j].shape[0]
                             for j in range(kwargs['agents'])],
                 n_outputs=kwargs['env'].action_space.n,

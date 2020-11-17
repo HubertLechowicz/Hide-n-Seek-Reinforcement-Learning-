@@ -68,7 +68,7 @@ game:
   algorithms:
     a2c: "A2C"
     hubert: "Hubert's algorithm"
-    lukasz: "Lukasz's algorithm"
+    dqn: "DQN"
   algorithm: a2c
 
 seeker:

@@ -3,6 +3,7 @@ from celery import Celery
 from celery.result import AsyncResult
 
 import time
+import copy
 import datetime
 from pytz import timezone
 from pathlib import Path
@@ -10,7 +11,7 @@ import statistics
 
 import game_env.hidenseek_gym
 from game_env.hidenseek_gym.config import config as default_config
-from rl import A2C
+
 from helpers import Helpers
 
 app = Flask(__name__)
@@ -81,11 +82,17 @@ def train(self, core_id, config_data, start_date):
 
             algorithm.before_action(obs_n=obs_n)
 
-            action_n = algorithm.take_action()
+            action_n = algorithm.take_action(obs_n=obs_n)
+            obs_old_n=copy.deepcopy(obs_n)
 
             algorithm.before_step(action_n=action_n)
             obs_n, reward_n, done, _ = env.step(action_n)
-            algorithm.after_step(reward_n=reward_n)
+            algorithm.after_step(
+                reward_n=reward_n,
+                obs_old_n=obs_old_n,
+                obs_n=obs_n,
+                done=done
+            )
 
             Helpers.update_img_status(
                 env, cfg['video']['monitoring'], step_img_path, render_mode)
