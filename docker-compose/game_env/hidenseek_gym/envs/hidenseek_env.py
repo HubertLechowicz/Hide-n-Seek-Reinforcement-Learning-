@@ -479,9 +479,10 @@ class HideNSeekEnv(gym.Env):
         """
         # Copy and then rotate the original image.
         copied_sprite = agent.sprites[agent.image_index].copy()
+        copied_sprite = pygame.transform.scale(copied_sprite, (agent.width, agent.height))
+        copied_sprite = pygame.transform.rotate(
+            copied_sprite, -agent.direction * 180 / math.pi)
 
-        copied_sprite = pygame.transform.rotozoom(
-            copied_sprite, -agent.direction * 180 / math.pi, 1)
         copied_sprite_rect = copied_sprite.get_rect()
         copied_sprite_rect.center = (agent.pos.x, agent.pos.y)
         screen.blit(copied_sprite, copied_sprite_rect)

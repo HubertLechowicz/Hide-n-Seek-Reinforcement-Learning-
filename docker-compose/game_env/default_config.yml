@@ -67,8 +67,8 @@ game:
   graphics_path_wall_owner: graphics/wall/ai
   algorithms:
     a2c: "A2C"
-    hubert: "Hubert's algorithm"
     dqn: "DQN"
+    ppo: "PPO"
   algorithm: a2c
 
 seeker:
