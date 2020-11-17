@@ -67,8 +67,8 @@ game:
   graphics_path_wall_owner: graphics/wall/ai
   algorithms:
     a2c: "A2C"
+    dqn: "DQN"
     ppo: "PPO"
-    lukasz: "Lukasz's algorithm"
   algorithm: a2c
 
 seeker:
