@@ -3,127 +3,125 @@ from celery import Celery
 from celery.result import AsyncResult
 
 import time
-import random
+import copy
 import datetime
 from pytz import timezone
-import copy
-from PIL import Image as img
 from pathlib import Path
-import shutil
 import statistics
 
-import gym
 import game_env.hidenseek_gym
-from gym import wrappers
-from game_env.hidenseek_gym import wrappers as multi_wrappers
 from game_env.hidenseek_gym.config import config as default_config
-from game_env.hidenseek_gym.controllable import Seeker, Hiding
-from game_env.hidenseek_gym.supportive import Point, Collision, MapGenerator
-from game_env.hidenseek_gym.fixed import Wall
+
 from helpers import Helpers
 
 app = Flask(__name__)
 celery = Celery(broker='redis://redis:6379/0', backend='redis://redis:6379/0')
+celery.conf.broker_transport_options = {"visibility_timeout": 3600 * 24 * 360} # 1h * 24 * 360 = 360d
 
 
 @celery.task(name='train.core', bind=True)
 def train(self, core_id, config_data, start_date):
+    start = time.time()
     cfg = Helpers.prepare_config(config_data)
 
-    start = time.time()
+    walls, seeker, hiding, width, height = Helpers.prepare_map(cfg)
 
-    map_bmp = MapGenerator.open_bmp(cfg['game']['map'])
-    all_objects = MapGenerator.get_objects_coordinates(
-        map_bmp, MapGenerator.get_predefined_palette())
-
-    walls, seeker, hider, width, height = Helpers.generate_map(
-        all_objects, map_bmp, cfg)
-
-    map_bmp.close()  # memory management
-
-    render_mode = 'rgb_array'
-    env = gym.make(
-        'hidenseek-v1',
+    env, step_img_path, fps_batch, render_mode, wins_l = Helpers.create_env(
         config=cfg,
         width=width,
         height=height,
+        walls=walls,
         seeker=seeker,
-        hiding=hider,
-        walls=walls
+        hiding=hiding,
+        start_date=start_date,
+        core_id=core_id,
     )
-    env.seed(0)
-    monitor_folder = 'monitor/' + start_date + '/core-' + str(core_id)
-    env = multi_wrappers.MultiMonitor(
-        env,
-        monitor_folder,
-        force=True,
-        config=cfg
-    )
-    step_img_path = '/opt/app/static/images/core-' + \
-        str(core_id) + '/last_frame.jpg'
 
-    fps_batch = []
+    AGENTS = 2
+    algorithm = Helpers.pick_algorithm(cfg, env=env, agents=AGENTS)
+    algorithm.prepare_model()
 
     for i in range(cfg['game']['episodes']):
-        metadata = {
-            'core_id': core_id,
-            'current': i + 1,
-            'total': cfg['game']['episodes'],
-            'episode_iter': cfg['game']['duration'],
-            'status': {'fps': None, 'iteration': 0, 'iteration_percentage': 0, 'time_elapsed': round(time.time() - start), 'image_path': step_img_path, 'eta': None, 'rewards': [0, 0]},
-        }
+        algorithm.before_episode()
+        metadata = Helpers.update_celery_metadata(
+            core_id=core_id,
+            curr=i + 1,
+            total=cfg['game']['episodes'],
+            ep_iter=cfg['game']['duration'],
+            fps=None,
+            itera=0,
+            iter_perc=0,
+            time_elap=round(time.time() - start),
+            img_path=step_img_path,
+            eta=None,
+            rewards=[0, 0],
+            wins=[0, 0],
+            wins_moving=[0, 0],
+        )
         self.update_state(state='PROGRESS', meta=metadata)
 
-        obs_n = env.reset()
-        reward_n = [0, 0]
-        rewards_ep = [0, 0]
-        done = [False, None]
-        fps_episode = []
+        obs_n, reward_n, rewards_ep, done, fps_episode = Helpers.new_ep(env)
+
         while True:
             rewards_ep = [rewards_ep[0] + reward_n[0],
                           rewards_ep[1] + reward_n[1]]
-            metadata['status'] = {
-                'fps': env.clock.get_fps(),
-                'iteration': int(cfg['game']['duration']) - env.duration,
-                'iteration_percentage': round(((int(cfg['game']['duration']) - env.duration) / int(cfg['game']['duration'])) * 100, 2),
-                'time_elapsed': round(time.time() - start),
-                'eta': round((env.duration / env.clock.get_fps()) + int(cfg['game']['duration']) / env.clock.get_fps() * cfg['game']['episodes']) if env.clock.get_fps() else None,
-                'image_path': step_img_path[8:],
-                'rewards': rewards_ep,
-            }
+            metadata['status'] = Helpers.update_metadata_status(
+                fps=env.clock.get_fps(),
+                itera=int(cfg['game']['duration']) - env.duration,
+                iter_perc=round(
+                    ((int(cfg['game']['duration']) - env.duration) / int(cfg['game']['duration'])) * 100, 2),
+                time_elap=round(time.time() - start),
+                eta=round((env.duration / env.clock.get_fps()) + int(cfg['game']['duration']) / env.clock.get_fps(
+                ) * cfg['game']['episodes']) if env.clock.get_fps() else None,
+                img_path=step_img_path[8:],
+                rewards=rewards_ep,
+                wins=[sum(w) for w in wins_l],
+                wins_moving=[sum(w[-10:]) for w in wins_l],
+            )
+
             fps_episode.append(env.clock.get_fps())
 
-            action_n = [seeker.act(obs_n[0], reward_n[0], done[0], env.action_space),
-                        hider.act(obs_n[1], reward_n[1], done[0], env.action_space)]
+            algorithm.before_action(obs_n=obs_n)
+
+            action_n = algorithm.take_action(obs_n=obs_n)
+            obs_old_n=copy.deepcopy(obs_n)
+
+            algorithm.before_step(action_n=action_n)
             obs_n, reward_n, done, _ = env.step(action_n)
+            algorithm.after_step(
+                reward_n=reward_n,
+                obs_old_n=obs_old_n,
+                obs_n=obs_n,
+                done=done
+            )
 
-            # 1% chance to get new frame update if monitoring enabled
-            if cfg['video']['monitoring'] and random.random() < .01:
-                step_img = env.render(render_mode)
-                step_img = img.fromarray(step_img, mode='RGB')
-                step_img.save(step_img_path)
-                step_img.close()
 
+            Helpers.update_img_status(
+                env, cfg['video']['monitoring'], step_img_path, render_mode)
             self.update_state(state='PROGRESS', meta=metadata)
 
             if done[0]:
+                algorithm.handle_gameover(
+                    obs_n=obs_n,
+                    reward_n=reward_n,
+                    ep_length=int(cfg['game']['duration']) - env.duration,
+                )
+                Helpers.handle_gameover(done[1], wins_l)
                 break
+
+        algorithm.after_episode()
 
         fps_batch.append(statistics.fmean(fps_episode))
 
-    env.close()
-    rm_path = Path('/opt/app/static/images/core-' + str(core_id))
-    shutil.rmtree(rm_path)
+    algorithm.before_cleanup()
+    Helpers.cleanup(env, core_id)
 
-    return {
-        'core_id': core_id,
-        'time_elapsed': round(time.time() - start),
-        'fps_peak': round(max(fps_batch)),
-        'fps_lower': round(min(fps_batch)),
-        'fps_mean': round(statistics.fmean(fps_batch)),
-        'fps_median': round(statistics.median(fps_batch)),
-        'fps_quantiles': [round(quantile) for quantile in statistics.quantiles(fps_batch)],
-    }
+    return Helpers.get_celery_success(
+        core_id=core_id,
+        time_elap=round(time.time() - start, 4),
+        fps_batch=fps_batch,
+        wins=[sum(w) for w in wins_l],
+    )
 
 
 @app.route('/status/<task_id>')

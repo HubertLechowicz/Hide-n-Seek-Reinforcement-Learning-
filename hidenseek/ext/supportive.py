@@ -537,14 +537,14 @@ class Collision:
 
         in_radius = []
         # width, height for arc w/ 0 radians, don't need an actual arc
-        arc_surface = pygame.Surface((radius, 2 * radius))
+        # because of backward movement, we need to find walls also behind the Agent, so we are using whole circle
+        arc_surface = pygame.Surface((2 * radius, 2 * radius))
         arc_surface = pygame.transform.rotozoom(
             arc_surface, -angle*180/math.pi, 1)
 
         # Create a new rect with the center of the sprite.
         arc_rect = arc_surface.get_rect()
-        arc_center = Point.triangle_unit_circle_relative(
-            angle, center, Point((center.x + radius / 2, center.y)))
+        arc_center = center
         arc_rect.center = (arc_center.x, arc_center.y)
 
         for obj in objs:

@@ -6,6 +6,7 @@ import random
 import json
 import math
 import numpy as np
+import os
 
 
 class Player(pygame.sprite.Sprite):
@@ -72,8 +73,7 @@ class Player(pygame.sprite.Sprite):
             Not implemented in Parent Class
     """
 
-    # color_anim IS TEMPORARILY HERE, BECAUSE THERE ARE NO ANIMATION SPRITES, ONLY RECTANGLES WITH COLORS
-    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim=(64, 128, 240)):
+    def __init__(self, cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT):
         """
         Constructs all neccesary attributes for the Player Object
 
@@ -86,16 +86,10 @@ class Player(pygame.sprite.Sprite):
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen);
                 if value < 1 then it's ratio in percentage, otherwise it's coord
-            color : tuple
-                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
             SCREEN_WIDTH : int
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
-            color_anim : tuple
-                if no image, represents the shape fill color for animation in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
         """
 
         super().__init__()
@@ -126,30 +120,51 @@ class Player(pygame.sprite.Sprite):
         self.ray_objects = None
         self.vision_rad = math.pi
         self.ray_points = []
-        self.image_index = 0
         self.direction = 0  # radians from which vision_rad is added/substracted
-        self.color = color  # temp, until sprites
-        self.color_anim = color_anim  # temp, until sprites
 
+        """
+        OCTAGON
+            > 0.15 on every side because we need to cover only 0.7 of space, to be able to freely rotate without making bigger rectangle
+            > 2*x / sqrt(2) + x = 0.7
+            > x ~= 0.29
+            > x / sqrt(2) ~= 0.205
+
+            x/sqrt(2)   x     x/sqrt(2)
+            ........---------........
+            ....../           \......
+            ...../             \.....
+            ..../               \....
+            .../                 \...
+            ..|                   |..
+            ..|                   |..
+            ..|                   |..
+            ..|                   |..
+            ..|                   |..
+            ...\                 /...
+            ....\               /....
+            .....\             /.....
+            ......\           /......
+            ........---------........
+
+        """
         self.polygon_points = [
-            Point((self.width - 10, self.height / 2)),
-            Point((.4 * self.width, self.height - 5)),
-            Point((.4 * self.width, 5)),
+            Point((self.width * .355, self.height * .15)),
+            Point((self.width * .645, self.height * .15)),
+            Point((self.width * .85, self.height * .355)),
+            Point((self.width * .85, self.height * .645)),
+            Point((self.width * .645, self.height * .85)),
+            Point((self.width * .355, self.height * .85)),
+            Point((self.width * .15, self.height * .645)),
+            Point((self.width * .15, self.height * .355)),
         ]
-        polygon_tuples = [(p.x, p.y) for p in self.polygon_points]
 
-        image_inplace = pygame.Surface((self.width, self.height))
-        image_inplace.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_inplace, self.color, polygon_tuples)
+        self.sprites = [pygame.image.load(os.path.join(cfg['graphics_path'], file_)) for file_ in os.listdir(cfg['graphics_path'])]
 
-        image_movement = pygame.Surface((self.width, self.height))
-        image_movement.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_movement, self.color_anim,
-                            polygon_tuples)
+        surface = pygame.Surface((self.width, self.height))
+        surface.set_colorkey((0, 0, 0))
 
-        self.images = [image_inplace] + \
-            [image_movement for _ in range(10)]  # animations
-        self.image = image_inplace
+        self.image_index = 0
+        self.image = surface
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
 
@@ -350,30 +365,15 @@ class Player(pygame.sprite.Sprite):
         self.wall_timer = copy.deepcopy(self.wall_timer_init)
         self.vision_top = None
         self.ray_objects = None
-        self.image_index = 0
         self.direction = 0
-        self.polygon_points = [
-            Point((self.width - 10, self.height / 2)),
-            Point((.4 * self.width, self.height - 5)),
-            Point((.4 * self.width, 5)),
-        ]
-        polygon_tuples = [(p.x, p.y) for p in self.polygon_points]
 
-        image_inplace = pygame.Surface((self.width, self.height))
-        image_inplace.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_inplace, self.color, polygon_tuples)
+        surface = pygame.Surface((self.width, self.height))
+        surface.set_colorkey((0, 0, 0))
 
-        image_movement = pygame.Surface((self.width, self.height))
-        image_movement.set_colorkey((0, 0, 0))
-        pygame.draw.polygon(image_movement, self.color_anim,
-                            polygon_tuples)
-
-        self.images = [image_inplace] + \
-            [image_movement for _ in range(10)]  # animations
-        self.image = image_inplace
+        self.image_index = 0
+        self.image = surface
         self.rect = self.image.get_rect()
         self.rect.center = (self.pos.x, self.pos.y)
-
 
 class Hiding(Player):
     """
@@ -444,7 +444,7 @@ class Hiding(Player):
             takes and performs the action
     """
 
-    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT):
+    def __init__(self, cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT):
         """
         Constructs all neccesary attributes for the Hiding Object
 
@@ -457,16 +457,13 @@ class Hiding(Player):
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen);
                 if value < 1 then it's ratio in percentage, otherwise it's coord
-            color : tuple
-                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
             SCREEN_WIDTH : int
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
         """
 
-        super().__init__(cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT)
+        super().__init__(cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         self.walls_counter = 0
         self.walls_max = cfg['walls_max']
@@ -542,7 +539,7 @@ class Seeker(Player):
             takes and performs the action
     """
 
-    def __init__(self, cfg, size, pos_ratio, color, SCREEN_WIDTH, SCREEN_HEIGHT, color_anim):
+    def __init__(self, cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT):
         """
         Constructs all neccesary attributes for the Seeker Object
 
@@ -555,20 +552,13 @@ class Seeker(Player):
             pos_ratio : tuple
                 used to calculate initial position of the Player in absolute coordinate system (game screen);
                 if value < 1 then it's ratio in percentage, otherwise it's coord
-            color : tuple
-                if no image, represents the shape fill color in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
             SCREEN_WIDTH : int
                 width of the game window
             SCREEN_HEIGHT : int
                 height of the game window
-            color_anim : tuple
-                if no image, represents the shape fill color for animation in RGB format, i.e. (0, 0, 0)
-                TODO: ONCE USING IMAGE - DELETE THIS
         """
 
-        super().__init__(cfg, size, pos_ratio, color,
-                         SCREEN_WIDTH, SCREEN_HEIGHT, color_anim)
+        super().__init__(cfg, size, pos_ratio, SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def __str__(self):
         return "[SEEKER]"
